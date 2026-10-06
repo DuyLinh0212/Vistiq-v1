@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="CLI Arguments" tests="9" assertions="33" errors="4" failures="0" skipped="0" time="6.649886">
+    <testsuite name="Tests\Feature\BackupRestoreTest" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\BackupRestoreTest.php" tests="4" assertions="11" errors="4" failures="0" skipped="0" time="5.851229">
+      <testcase name="test_exported_data_can_be_restored_without_losing_quoted_text" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\BackupRestoreTest.php" line="14" class="Tests\Feature\BackupRestoreTest" classname="Tests.Feature.BackupRestoreTest" assertions="2" time="4.025396">
+        <error type="Illuminate\Database\QueryException">Tests\Feature\BackupRestoreTest::test_exported_data_can_be_restored_without_losing_quoted_text&#13;
+Illuminate\Database\QueryException: SQLSTATE[HY000]: General error: 1 error in index users_status_index after drop column: no such column: status (Connection: sqlite, Database: :memory:, SQL: alter table "users" drop column "status")
+&#13;
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:857
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:813
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:590
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint.php:122
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Builder.php:704
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Builder.php:510
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:364
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\database\migrations\2026_10_05_132952_add_admin_workflows_and_attempt_snapshots.php:233
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:517
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:442
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:451
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:417
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\View\Components\Task.php:43
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:853
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:417
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:340
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:284
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Console\Migrations\RollbackCommand.php:62
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:672
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Console\Migrations\RollbackCommand.php:61
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Command\Command.php:285
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:1121
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:379
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:218
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:447
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithConsole.php:87
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\DatabaseMigrations.php:24
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:333
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:129
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:101</error>
+      </testcase>
+      <testcase name="test_schema_restore_preserves_unique_indexes" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\BackupRestoreTest.php" line="30" class="Tests\Feature\BackupRestoreTest" classname="Tests.Feature.BackupRestoreTest" assertions="3" time="0.944352">
+        <error type="Illuminate\Database\QueryException">Tests\Feature\BackupRestoreTest::test_schema_restore_preserves_unique_indexes&#13;
+Illuminate\Database\QueryException: SQLSTATE[HY000]: General error: 1 error in index users_status_index after drop column: no such column: status (Connection: sqlite, Database: :memory:, SQL: alter table "users" drop column "status")
+&#13;
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:857
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:813
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:590
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint.php:122
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Builder.php:704
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Builder.php:510
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:364
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\database\migrations\2026_10_05_132952_add_admin_workflows_and_attempt_snapshots.php:233
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:517
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:442
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:451
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:417
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\View\Components\Task.php:43
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:853
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:417
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:340
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:284
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Console\Migrations\RollbackCommand.php:62
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:672
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Console\Migrations\RollbackCommand.php:61
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Command\Command.php:285
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:1121
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:379
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:218
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:447
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithConsole.php:87
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\DatabaseMigrations.php:24
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:333
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:129
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:101</error>
+      </testcase>
+      <testcase name="test_all_statements_are_validated_before_any_write" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\BackupRestoreTest.php" line="39" class="Tests\Feature\BackupRestoreTest" classname="Tests.Feature.BackupRestoreTest" assertions="2" time="0.435428">
+        <error type="Illuminate\Database\QueryException">Tests\Feature\BackupRestoreTest::test_all_statements_are_validated_before_any_write&#13;
+Illuminate\Database\QueryException: SQLSTATE[HY000]: General error: 1 error in index users_status_index after drop column: no such column: status (Connection: sqlite, Database: :memory:, SQL: alter table "users" drop column "status")
+&#13;
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:857
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:813
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:590
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint.php:122
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Builder.php:704
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Builder.php:510
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:364
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\database\migrations\2026_10_05_132952_add_admin_workflows_and_attempt_snapshots.php:233
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:517
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:442
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:451
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:417
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\View\Components\Task.php:43
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:853
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:417
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:340
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:284
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Console\Migrations\RollbackCommand.php:62
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:672
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Console\Migrations\RollbackCommand.php:61
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Command\Command.php:285
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:1121
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:379
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:218
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:447
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithConsole.php:87
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\DatabaseMigrations.php:24
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:333
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:129
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:101</error>
+      </testcase>
+      <testcase name="test_cross_database_and_truncated_sql_are_rejected_before_mutation" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\BackupRestoreTest.php" line="52" class="Tests\Feature\BackupRestoreTest" classname="Tests.Feature.BackupRestoreTest" assertions="4" time="0.446052">
+        <error type="Illuminate\Database\QueryException">Tests\Feature\BackupRestoreTest::test_cross_database_and_truncated_sql_are_rejected_before_mutation&#13;
+Illuminate\Database\QueryException: SQLSTATE[HY000]: General error: 1 error in index users_status_index after drop column: no such column: status (Connection: sqlite, Database: :memory:, SQL: alter table "users" drop column "status")
+&#13;
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:857
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:813
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Connection.php:590
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Blueprint.php:122
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Builder.php:704
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Schema\Builder.php:510
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:364
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\database\migrations\2026_10_05_132952_add_admin_workflows_and_attempt_snapshots.php:233
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:517
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:442
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:451
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:417
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\View\Components\Task.php:43
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:853
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:417
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:340
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:284
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Console\Migrations\RollbackCommand.php:62
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Migrations\Migrator.php:672
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Database\Console\Migrations\RollbackCommand.php:61
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Command\Command.php:285
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:1121
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:379
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\symfony\console\Application.php:218
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:447
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithConsole.php:87
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\DatabaseMigrations.php:24
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:333
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:129
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:101</error>
+      </testcase>
+    </testsuite>
+    <testsuite name="Tests\Feature\ContentRevisionTest" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\ContentRevisionTest.php" tests="5" assertions="22" errors="0" failures="0" skipped="0" time="0.798656">
+      <testcase name="test_editor_reviewer_and_publisher_complete_lifecycle_and_published_revision_is_immutable" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\ContentRevisionTest.php" line="24" class="Tests\Feature\ContentRevisionTest" classname="Tests.Feature.ContentRevisionTest" assertions="7" time="0.413787"/>
+      <testcase name="test_reject_requires_reason_and_stale_save_returns_conflict" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\ContentRevisionTest.php" line="45" class="Tests\Feature\ContentRevisionTest" classname="Tests.Feature.ContentRevisionTest" assertions="4" time="0.109907"/>
+      <testcase name="test_editing_legacy_published_question_pins_old_payload_before_saving_new_draft" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\ContentRevisionTest.php" line="57" class="Tests\Feature\ContentRevisionTest" classname="Tests.Feature.ContentRevisionTest" assertions="3" time="0.087295"/>
+      <testcase name="test_html_sanitizer_removes_active_content_and_retains_tables" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\ContentRevisionTest.php" line="70" class="Tests\Feature\ContentRevisionTest" classname="Tests.Feature.ContentRevisionTest" assertions="4" time="0.071401"/>
+      <testcase name="test_preview_creates_no_attempt_or_activity_or_result" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\ContentRevisionTest.php" line="79" class="Tests\Feature\ContentRevisionTest" classname="Tests.Feature.ContentRevisionTest" assertions="4" time="0.116267"/>
+    </testsuite>
+  </testsuite>
+</testsuites>

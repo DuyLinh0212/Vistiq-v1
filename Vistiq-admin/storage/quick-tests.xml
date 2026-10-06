@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\Feature\AttemptWorkflowTest" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AttemptWorkflowTest.php" tests="6" assertions="16" errors="0" failures="0" skipped="0" time="61.542744">
+    <testcase name="test_snapshot_hides_keys_and_remains_unchanged_after_edit_and_submit_is_idempotent" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AttemptWorkflowTest.php" line="23" class="Tests\Feature\AttemptWorkflowTest" classname="Tests.Feature.AttemptWorkflowTest" assertions="6" time="60.096807"/>
+    <testcase name="test_deadline_submits_even_when_browser_is_closed" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AttemptWorkflowTest.php" line="42" class="Tests\Feature\AttemptWorkflowTest" classname="Tests.Feature.AttemptWorkflowTest" assertions="3" time="0.799404"/>
+    <testcase name="test_pause_extends_duration_and_close_time_still_wins" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AttemptWorkflowTest.php" line="52" class="Tests\Feature\AttemptWorkflowTest" classname="Tests.Feature.AttemptWorkflowTest" assertions="1" time="0.076118"/>
+    <testcase name="test_duplicate_events_are_counted_once_and_threshold_submits_without_cheating_label" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AttemptWorkflowTest.php" line="64" class="Tests\Feature\AttemptWorkflowTest" classname="Tests.Feature.AttemptWorkflowTest" assertions="3" time="0.080765"/>
+    <testcase name="test_timed_group_does_not_restart_on_next_part_and_future_group_is_locked" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AttemptWorkflowTest.php" line="75" class="Tests\Feature\AttemptWorkflowTest" classname="Tests.Feature.AttemptWorkflowTest" assertions="1" time="0.083806"/>
+    <testcase name="test_learner_routes_are_absent_from_admin_application" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AttemptWorkflowTest.php" line="92" class="Tests\Feature\AttemptWorkflowTest" classname="Tests.Feature.AttemptWorkflowTest" assertions="2" time="0.405843"/>
+  </testsuite>
+</testsuites>

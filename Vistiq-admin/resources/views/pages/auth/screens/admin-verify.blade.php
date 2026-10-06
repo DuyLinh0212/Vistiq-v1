@@ -1,0 +1,3 @@
+<a class="auth-back" href="{{ route('login') }}">Quay lại đăng nhập</a><span class="eyebrow">BẢO MẬT TÀI KHOẢN</span><h2>Xác thực hai bước</h2><p>Gửi mã đến email quản trị. Mã dùng một lần, hết hạn sau 5 phút.</p>
+@if(session('status'))<p role="status">{{ session('status') }}</p>@endif @if($errors->any())<p role="alert">{{ $errors->first() }}</p>@endif
+<form method="post" action="{{ route('admin.otp.verify') }}">@csrf<label>Mã OTP<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button class="button button-primary button-full">Xác thực và tiếp tục</button></form><form method="post" action="{{ route('admin.otp.send') }}">@csrf<button class="button button-quiet">Gửi mã mới</button></form>

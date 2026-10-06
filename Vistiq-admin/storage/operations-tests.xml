@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="CLI Arguments" tests="35" assertions="85" errors="1" failures="5" skipped="0" time="8.238227">
+    <testsuite name="Tests\Feature\AdminOperationsTest" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" tests="27" assertions="49" errors="1" failures="2" skipped="0" time="6.570233">
+      <testsuite name="Tests\Feature\AdminOperationsTest::test_admin_screens_render_with_real_data" tests="21" assertions="21" errors="0" failures="0" skipped="0" time="4.522691">
+        <testcase name="test_admin_screens_render_with_real_data with data set #0" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="1.613997"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #1" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.117415"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #2" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.316337"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #3" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.150749"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #4" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.157090"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #5" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.129017"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #6" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.126694"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #7" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.133887"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #8" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.173527"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #9" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.158240"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #10" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.138673"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #11" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.141558"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #12" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.132296"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #13" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.124225"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #14" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.138322"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #15" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.139967"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #16" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.120997"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #17" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.122586"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #18" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.136444"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #19" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.118924"/>
+        <testcase name="test_admin_screens_render_with_real_data with data set #20" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="18" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.131746"/>
+      </testsuite>
+      <testcase name="test_last_super_admin_is_protected_and_sessions_are_revoked" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="19" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="4" time="0.227340">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\AdminOperationsTest::test_last_super_admin_is_protected_and_sessions_are_revoked&#13;
+Expected response status code [401] but received 403.
+Failed asserting that 403 is identical to 401.
+&#13;
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:46
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:183
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\Concerns\AssertsStatusCodes.php:121
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php:24</failure>
+      </testcase>
+      <testcase name="test_content_editor_cannot_manage_users_and_reviewer_cannot_edit" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="28" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="5" time="0.220484"/>
+      <testcase name="test_media_rejects_executable_and_persists_disk_and_metadata" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="34" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="1" time="0.602061">
+        <error type="LogicException">Tests\Feature\AdminOperationsTest::test_media_rejects_executable_and_persists_disk_and_metadata&#13;
+LogicException: GD extension is not installed.
+&#13;
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Http\Testing\FileFactory.php:77
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Http\Testing\FileFactory.php:59
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php:38</error>
+      </testcase>
+      <testcase name="test_password_reset_uses_broker_and_backup_requires_current_password" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="41" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="3" time="0.627584"/>
+      <testcase name="test_leaderboard_and_analytics_use_real_completed_attempts_and_reset_keeps_history" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="47" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="5" time="0.166325">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\AdminOperationsTest::test_leaderboard_and_analytics_use_real_completed_attempts_and_reset_keeps_history&#13;
+Failed asserting that 1 is identical to 0.
+&#13;
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php:54</failure>
+      </testcase>
+      <testcase name="test_complete_authoring_to_publish_to_exam_to_result_flow" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOperationsTest.php" line="56" class="Tests\Feature\AdminOperationsTest" classname="Tests.Feature.AdminOperationsTest" assertions="10" time="0.203747"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\AiEvaluationTest" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AiEvaluationTest.php" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="1.147901">
+      <testcase name="test_missing_configuration_returns_validation_error_without_network_call" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AiEvaluationTest.php" line="13" class="Tests\Feature\AiEvaluationTest" classname="Tests.Feature.AiEvaluationTest" assertions="2" time="0.145540"/>
+      <testcase name="test_quota_is_atomic_and_result_is_only_reviewer_suggestion" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AiEvaluationTest.php" line="17" class="Tests\Feature\AiEvaluationTest" classname="Tests.Feature.AiEvaluationTest" assertions="5" time="0.905094"/>
+      <testcase name="test_http_failure_does_not_expose_api_key_and_failed_job_records_clear_error" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AiEvaluationTest.php" line="28" class="Tests\Feature\AiEvaluationTest" classname="Tests.Feature.AiEvaluationTest" assertions="2" time="0.097267"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\AdminOtpTest" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOtpTest.php" tests="3" assertions="18" errors="0" failures="2" skipped="0" time="0.341777">
+      <testcase name="test_otp_is_off_by_default_and_when_enabled_protects_admin" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOtpTest.php" line="16" class="Tests\Feature\AdminOtpTest" classname="Tests.Feature.AdminOtpTest" assertions="4" time="0.102976"/>
+      <testcase name="test_otp_can_only_be_used_once" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOtpTest.php" line="21" class="Tests\Feature\AdminOtpTest" classname="Tests.Feature.AdminOtpTest" assertions="3" time="0.132740">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\AdminOtpTest::test_otp_can_only_be_used_once&#13;
+Failed asserting that two strings are equal.&#13;
+&#13;
+The following errors occurred during the last request:
+
+Mã không hợp lệ, hết hạn hoặc vượt số lần thử.&#13;
+
+--- Expected
++++ Actual
+@@ @@
+-'http://localhost:8001/admin'
++'http://localhost:8001/admin/verify'
+&#13;
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:46
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:440
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:214
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOtpTest.php:24</failure>
+      </testcase>
+      <testcase name="test_five_invalid_tries_block_correct_code_and_expired_codes_fail" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOtpTest.php" line="28" class="Tests\Feature\AdminOtpTest" classname="Tests.Feature.AdminOtpTest" assertions="11" time="0.106061">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\AdminOtpTest::test_five_invalid_tries_block_correct_code_and_expired_codes_fail&#13;
+Failed asserting that 0 is identical to 5.
+&#13;
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AdminOtpTest.php:32</failure>
+      </testcase>
+    </testsuite>
+    <testsuite name="Tests\Feature\AuthScreensTest" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AuthScreensTest.php" tests="2" assertions="9" errors="0" failures="1" skipped="0" time="0.178315">
+      <testcase name="test_admin_login_and_password_recovery_render_and_registration_is_not_exposed" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AuthScreensTest.php" line="11" class="Tests\Feature\AuthScreensTest" classname="Tests.Feature.AuthScreensTest" assertions="5" time="0.077363"/>
+      <testcase name="test_learner_cannot_login_to_admin_and_locked_admin_is_rejected" file="F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AuthScreensTest.php" line="15" class="Tests\Feature\AuthScreensTest" classname="Tests.Feature.AuthScreensTest" assertions="4" time="0.100952">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\AuthScreensTest::test_learner_cannot_login_to_admin_and_locked_admin_is_rejected&#13;
+Session is missing expected key [errors].
+Failed asserting that false is true.
+&#13;
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:46
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:1595
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:1706
+F:\NgDuyLinh\Do_an\OpenSourceProgrammìng\Vistiq-admin\tests\Feature\AuthScreensTest.php:20</failure>
+      </testcase>
+    </testsuite>
+  </testsuite>
+</testsuites>

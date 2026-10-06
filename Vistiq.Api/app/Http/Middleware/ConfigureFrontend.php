@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Services\FrontendContext;
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\URL;
+use Symfony\Component\HttpFoundation\Response;
+
+class ConfigureFrontend
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        $context = app(FrontendContext::class);
+        if ($context->isTrustedGateway($request)) {
+            $origin = config('frontends.'.app('vistiq.surface').'.url');
+            URL::forceRootUrl($origin);
+            URL::forceScheme(parse_url($origin, PHP_URL_SCHEME));
+            $clientIp = $request->header('X-Vistiq-Client-IP');
+            if (filter_var($clientIp, FILTER_VALIDATE_IP)) {
+                $request->server->set('REMOTE_ADDR', $clientIp);
+            }
+        }
+        if ($request->is('api/*')) {
+            $request->headers->set('Accept', 'application/json');
+        }
+        URL::formatPathUsing(fn (string $path, ?Route $route = null): string => $request->is('api/*') && $route !== null ? $context->apiPath($path) : $path);
+
+        return $next($request);
+    }
+}

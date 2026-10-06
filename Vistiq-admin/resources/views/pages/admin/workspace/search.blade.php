@@ -1,0 +1,1 @@
+<form class="assessment-actions" method="get"><label>Tìm nội dung<input name="q" value="{{ $term }}" placeholder="Câu hỏi, kiến thức, đề thi"></label><button class="button button-primary">Tìm kiếm</button></form><section class="panel">@forelse($results as $result)<p><a href="{{ $result['url'] }}">{{ $result['label'] }}</a></p>@empty<p>Chưa có kết quả.</p>@endforelse</section>

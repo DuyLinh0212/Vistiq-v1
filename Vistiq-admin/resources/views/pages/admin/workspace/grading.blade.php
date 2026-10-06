@@ -1,0 +1,9 @@
+@forelse($answers as $answer)@php($item=collect($answer->attempt->snapshot['items'])->firstWhere('key',$answer->item_key))
+<article class="panel"><span class="badge badge-soft">{{ $answer->grade?'ĐÃ CHẤM':'CHỜ CHẤM' }}</span><h2>{{ $answer->attempt->user->name }} · {{ $answer->item_key }}</h2><div>{!! $item['prompt'] !!}</div><p>{{ $answer->response['text']??'' }}</p>@if($answer->response['asset_id']??null)<audio controls src="{{ route('admin.media.show',$answer->response['asset_id']) }}"></audio>@endif
+<details><summary>Rubric đã ghim</summary><pre>{{ json_encode($item['metadata']['rubric']??[],JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT) }}</pre><p>{{ $item['metadata']['model_answer']??'' }}</p></details>
+<form method="post" action="{{ route('admin.grading.store',$answer) }}" class="admin-form-grid">@csrf
+@foreach($gradingCriteria[$item['type']] as $criterion)<label>{{ $criterion }}<input type="number" step="0.5" min="0" max="9" required name="criteria[{{ $criterion }}]" value="{{ $answer->grade['criteria'][$criterion]??'' }}"></label>@endforeach
+<label class="admin-form-wide">Feedback<textarea name="feedback" required>{{ $answer->grade['feedback']??'' }}</textarea></label><button class="button button-primary">Công bố điểm Estimated</button></form>
+<form method="post" action="{{ route('admin.grading.ai',$answer) }}">@csrf<button class="button button-quiet">Yêu cầu gợi ý AI</button></form>
+@foreach($suggestions->get($answer->id,collect()) as $suggestion)<details><summary>AI #{{ $suggestion->id }} · {{ $suggestion->status }} · Estimated</summary><pre>{{ $suggestion->result??$suggestion->error??'Đang xử lý' }}</pre><p>Reviewer kiểm tra gợi ý và công bố bằng form chấm bài.</p></details>@endforeach</article>
+@empty<div class="panel">Chưa có bài tự luận cần chấm.</div>@endforelse{{ $answers->links() }}
