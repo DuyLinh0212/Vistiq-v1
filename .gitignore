@@ -21,6 +21,8 @@ Desktop.ini
 **/storage/framework/testing/*
 **/storage/framework/views/*
 **/storage/logs/*
+**/storage/app/public/*
+**/storage/app/retry-import/*
 **/storage/*.key
 **/bootstrap/cache/*.php
 **/public/build/

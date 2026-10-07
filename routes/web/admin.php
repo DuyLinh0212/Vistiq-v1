@@ -1,0 +1,115 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use VistiqAdmin\Http\Controllers\Admin\AdminOtpController;
+use VistiqAdmin\Http\Controllers\Admin\AttemptController;
+use VistiqAdmin\Http\Controllers\Admin\ContentWorkflowController;
+use VistiqAdmin\Http\Controllers\Admin\DashboardController;
+use VistiqAdmin\Http\Controllers\Admin\DatabaseBackupController;
+use VistiqAdmin\Http\Controllers\Admin\ExamBuilderController;
+use VistiqAdmin\Http\Controllers\Admin\GradingController;
+use VistiqAdmin\Http\Controllers\Admin\KnowledgeAdminController;
+use VistiqAdmin\Http\Controllers\Admin\LeaderboardController;
+use VistiqAdmin\Http\Controllers\Admin\MediaController;
+use VistiqAdmin\Http\Controllers\Admin\QuestionController;
+use VistiqAdmin\Http\Controllers\Admin\SettingsController;
+use VistiqAdmin\Http\Controllers\Admin\StimulusController;
+use VistiqAdmin\Http\Controllers\Admin\UserManagementController;
+use VistiqAdmin\Http\Controllers\Auth\AuthController;
+
+Route::prefix('admin')->name('admin.')->group(function (): void {
+    Route::middleware('guest')->group(function (): void {
+        Route::get('/forgot-password', [AuthController::class, 'passwordForm'])->name('password.request');
+        Route::post('/forgot-password', [AuthController::class, 'sendReset'])->middleware('throttle:3,1')->name('password.email');
+        Route::get('/reset-password/{token}', [AuthController::class, 'passwordForm'])->name('password.reset');
+        Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:6,1')->name('password.update');
+        Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
+        Route::post('/login', [AuthController::class, 'authenticate'])->middleware('throttle:6,1')->name('login.store');
+    });
+
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+    Route::middleware(['auth', 'active.admin'])->group(function (): void {
+        Route::get('/verify', [AdminOtpController::class, 'show'])->name('otp.show');
+        Route::post('/verify', [AdminOtpController::class, 'verify'])->middleware('throttle:5,1')->name('otp.verify');
+        Route::post('/verify/resend', [AdminOtpController::class, 'send'])->middleware('throttle:1,1')->name('otp.send');
+
+        Route::middleware('admin')->group(function (): void {
+            Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+            Route::get('/search', [DashboardController::class, 'search'])->name('search');
+            Route::get('/analytics', [DashboardController::class, 'analytics'])->middleware('can:results.view')->name('analytics');
+            Route::get('/questions/import-template', [QuestionController::class, 'importTemplate'])->middleware('can:content.edit')->name('questions.import-template');
+            Route::get('/questions/import-progress/{token}', [QuestionController::class, 'importProgress'])->middleware('can:content.edit')->name('questions.import-progress');
+            Route::get('/questions/export', [ContentWorkflowController::class, 'export'])->middleware('can:content.view')->name('questions.export');
+            Route::post('/questions/import', [QuestionController::class, 'import'])->middleware('can:content.edit')->name('questions.import');
+            Route::post('/questions/bulk', [ContentWorkflowController::class, 'bulk'])->name('questions.bulk');
+            Route::resource('/questions', QuestionController::class)->except(['show', 'destroy'])->middleware('can:content.view');
+            Route::get('/readings', [StimulusController::class, 'reading'])->middleware('can:content.view')->name('readings.index');
+            Route::post('/readings', [StimulusController::class, 'storeReading'])->middleware('can:content.edit')->name('readings.store');
+            Route::get('/audio', [StimulusController::class, 'audio'])->middleware('can:content.view')->name('audio.index');
+            Route::post('/audio', [StimulusController::class, 'storeAudio'])->middleware('can:content.edit')->name('audio.store');
+            Route::put('/stimuli/{stimulus}', [StimulusController::class, 'update'])->middleware('can:content.edit')->name('stimuli.update');
+            Route::get('/groups', [ContentWorkflowController::class, 'groups'])->middleware('can:content.view')->name('groups.index');
+            Route::post('/groups', [ContentWorkflowController::class, 'storeGroup'])->middleware('can:content.edit')->name('groups.store');
+            Route::put('/groups/{group}', [ContentWorkflowController::class, 'updateGroup'])->middleware('can:content.edit')->name('groups.update');
+            Route::delete('/groups/{group}', [ContentWorkflowController::class, 'destroyGroup'])->middleware('can:content.edit')->name('groups.destroy');
+            Route::get('/media', [MediaController::class, 'index'])->middleware('can:content.view')->name('media.index');
+            Route::post('/media', [MediaController::class, 'store'])->middleware('can:content.edit')->name('media.store');
+            Route::get('/media/{asset}', [MediaController::class, 'show'])->middleware('can:content.view')->name('media.show');
+            Route::post('/content/{kind}/{id}/{action}', [ContentWorkflowController::class, 'transition'])->whereIn('action', ['review', 'approve', 'reject', 'publish', 'archive'])->middleware('throttle:30,1')->name('content.transition');
+            Route::post('/content/{kind}/{id}/clone-draft', [ContentWorkflowController::class, 'cloneDraft'])->middleware('can:content.edit')->name('content.clone');
+            Route::delete('/content/{kind}/{id}', [ContentWorkflowController::class, 'destroy'])->middleware('can:content.edit')->name('content.destroy');
+            Route::resource('/exams', ExamBuilderController::class)->except(['show', 'destroy'])->middleware('can:content.view');
+            Route::post('/exams/{exam}/{action}', [ExamBuilderController::class, 'transition'])->name('exams.transition');
+            Route::get('/exams/{exam}/preview', [ExamBuilderController::class, 'preview'])->middleware('can:content.view')->name('exams.preview');
+            Route::get('/exams/{exam}/validation', [ExamBuilderController::class, 'validation'])->middleware('can:content.view')->name('exams.validation');
+            Route::get('/attempts', [AttemptController::class, 'index'])->middleware('can:results.view')->name('attempts.index');
+            Route::get('/attempts/{attempt}', [AttemptController::class, 'detail'])->middleware('can:results.view')->name('attempts.show');
+            Route::get('/grading', [GradingController::class, 'index'])->middleware('can:results.grade')->name('grading.index');
+            Route::post('/grading/{answer}', [GradingController::class, 'store'])->middleware('can:results.grade')->name('grading.store');
+            Route::post('/grading/{answer}/ai', [GradingController::class, 'ai'])->middleware(['can:results.grade', 'throttle:6,1'])->name('grading.ai');
+            Route::resource('/knowledge', KnowledgeAdminController::class)->except(['show', 'destroy'])->middleware('can:content.view');
+            Route::get('/leaderboard', [LeaderboardController::class, 'index'])->middleware('can:results.view')->name('leaderboard.index');
+            Route::post('/leaderboard/{exam}/reset', [LeaderboardController::class, 'reset'])->middleware('can:content.publish')->name('leaderboard.reset');
+            Route::post('/attempts/{attempt}/moderate', [AttemptController::class, 'moderate'])->middleware('can:reports.review')->name('attempts.moderate');
+            Route::get('/users', [UserManagementController::class, 'index'])->middleware('can:users.manage')->name('users.index');
+            Route::get('/users/{user}', [UserManagementController::class, 'show'])->middleware('can:users.manage')->name('users.show');
+            Route::post('/users/{user}/{action}', [UserManagementController::class, 'action'])->middleware(['can:users.manage', 'throttle:20,1'])->name('users.action');
+            Route::get('/roles', [UserManagementController::class, 'roles'])->middleware('can:roles.manage')->name('roles.index');
+            Route::post('/roles/{role}', [UserManagementController::class, 'updateRole'])->middleware('can:roles.manage')->name('roles.update');
+            Route::get('/settings', [SettingsController::class, 'index'])->middleware('can:settings.manage')->name('settings.index');
+            Route::put('/settings/{group}', [SettingsController::class, 'update'])->middleware(['can:settings.manage', 'throttle:20,1'])->name('settings.update');
+            Route::get('/settings/database', [DatabaseBackupController::class, 'show'])->middleware('can:settings.manage')->name('settings.database');
+            Route::post('/settings/database/backup', [DatabaseBackupController::class, 'download'])->middleware(['can:settings.manage', 'throttle:3,1'])->name('settings.database.backup');
+            Route::post('/settings/database/restore', [DatabaseBackupController::class, 'restore'])->middleware(['can:settings.manage', 'throttle:1,1'])->name('settings.database.restore');
+            Route::get('/audit', [SettingsController::class, 'audit'])->middleware('can:audit.view')->name('audit.index');
+            Route::post('/ai', [SettingsController::class, 'ai'])->middleware(['can:content.edit', 'throttle:6,1'])->name('ai.create');
+            Route::get('/ai/{task}', [SettingsController::class, 'aiStatus'])->name('ai.show');
+        });
+    });
+
+    Route::get('/demo/{screen}', function (string $screen) {
+        $routes = [
+            'admin' => 'admin.dashboard',
+            'admin-login' => 'admin.login',
+            'admin-verify' => 'admin.otp.show',
+            'admin-questions' => 'admin.questions.index',
+            'admin-question-edit' => 'admin.questions.create',
+            'admin-reading-bank' => 'admin.readings.index',
+            'admin-audio-bank' => 'admin.audio.index',
+            'admin-exam-builder' => 'admin.exams.create',
+            'admin-ielts-builder' => 'admin.exams.create',
+            'admin-rules' => 'admin.exams.index',
+            'admin-publish' => 'admin.exams.index',
+            'admin-attempts' => 'admin.attempts.index',
+            'admin-incident' => 'admin.attempts.index',
+            'admin-grading' => 'admin.grading.index',
+            'admin-grammar' => 'admin.knowledge.index',
+            'admin-leaderboard' => 'admin.leaderboard.index',
+            'admin-settings' => 'admin.settings.index',
+        ];
+        abort_unless(isset($routes[$screen]), 404);
+
+        return redirect()->route($routes[$screen]);
+    })->name('demo.page');
+});
