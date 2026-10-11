@@ -9,7 +9,7 @@ use VistiqAdmin\Models\User;
 use VistiqCore\Models\ExamRevision;
 use VistiqCore\Models\ExamTemplate;
 use VistiqCore\Models\Role;
-use VistiqCore\Services\ExamPublishingService;
+use VistiqCore\Services\Assessment\Exams\ExamPublishingService;
 
 abstract class TestCase extends \Illuminate\Foundation\Testing\TestCase
 {

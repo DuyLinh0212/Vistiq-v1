@@ -12,6 +12,14 @@ class EnsureAccountActive
     public function handle(Request $request, Closure $next): mixed
     {
         if ($user = $request->user()) {
+            if ($user->isAdmin()) {
+                if ($request->expectsJson()) {
+                    abort(403, 'Tài khoản quản trị không sử dụng khu vực học viên.');
+                }
+
+                return redirect()->route('admin.dashboard');
+            }
+
             if ($user->status !== 'active' || $request->session()->get('user_session_version', $user->session_version) !== $user->session_version) {
                 Auth::logout();
                 $request->session()->invalidate();

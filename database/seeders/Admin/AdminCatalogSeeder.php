@@ -4,28 +4,14 @@ namespace Database\Admin\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use VistiqCore\Services\QuestionRegistry;
+use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
 
 class AdminCatalogSeeder extends Seeder
 {
     public function run(): void
     {
         $this->call(AssessmentCatalogSeeder::class);
-        $permissionCodes = ['admin.access', 'content.view', 'content.edit', 'content.review', 'content.publish', 'exams.edit', 'results.view', 'results.grade', 'reports.review', 'users.manage', 'roles.manage', 'settings.manage', 'audit.view'];
-        foreach ($permissionCodes as $code) {
-            DB::table('permissions')->updateOrInsert(['code' => $code], ['name' => $code]);
-        }
-        foreach ([
-            'super-admin' => ['Super Admin', $permissionCodes],
-            'content-admin' => ['Content Admin', ['admin.access', 'content.view', 'content.edit', 'exams.edit']],
-            'reviewer' => ['Reviewer', ['admin.access', 'content.view', 'content.review', 'results.view', 'results.grade', 'reports.review']],
-        ] as $code => [$name,$permissions]) {
-            DB::table('roles')->updateOrInsert(['code' => $code], ['name' => $name, 'created_at' => now(), 'updated_at' => now()]);
-            $roleId = DB::table('roles')->where('code', $code)->value('id');
-            foreach ($permissions as $permission) {
-                DB::table('permission_role')->insertOrIgnore(['role_id' => $roleId, 'permission_id' => DB::table('permissions')->where('code', $permission)->value('id')]);
-            }
-        }
+        $this->call(AdminPermissionSeeder::class);
         foreach (QuestionRegistry::TYPES as $code => $family) {
             DB::table('question_types')->updateOrInsert(['code' => $code], ['name' => ucwords(str_replace('_', ' ', $code)), 'supports_options' => in_array($family, ['choice', 'matching'], true)]);
         }

@@ -5,6 +5,7 @@
 - vistiq-question-bank-template.csv: 41 dòng minh họa, đủ 20 dạng câu hỏi đang hỗ trợ.
 - vistiq-toeic-template.csv: 7 dòng, TOEIC Listening Part 1–4 và Reading Part 5–7.
 - vistiq-ielts-template.csv: 34 dòng, IELTS Listening, Reading, Writing và Speaking.
+- vistiq-readings-with-questions-template.csv: 3 bài, 9 câu; TOEIC Part 7 (3 câu), Paragraph Part 6 (4 câu) và IELTS Reading (2 câu).
 - by-question-type/: CSV riêng theo từng loại.
 - part-skill-guide.csv, question-type-guide.csv, difficulty-guide.csv: bảng tra cứu; không nhập các file hướng dẫn này vào form câu hỏi.
 
@@ -38,11 +39,27 @@ Import xử lý từng dòng: dòng hợp lệ được lưu, dòng lỗi đư�
 | `tags` | Tùy chọn | Nhiều tag phân tách bằng dấu phẩy; CSV tự bao dấu nháy kép cho ô có dấu phẩy. |
 | `stimulus` | Khi có passage Reading | ID hoặc tiêu đề chính xác của passage đã có trong kho. Với Listening, audio không liên kết qua CSV. |
 | `audio_group` | Tùy chọn cho Listening | Mã gom các câu hỏi cùng một bài nghe. Lặp cùng mã trên mọi dòng trong nhóm; importer tạo nhóm chưa gắn audio. |
+| `reading_key` | Khi tạo bài đọc kèm câu hỏi | Mã gom bài trong file, tối đa 100 ký tự. Các dòng cùng mã (không phân biệt hoa thường) tạo một bài và một nhóm câu hỏi theo phần. Đây không phải mã bài trong hệ thống. |
+| `reading_title` | Dòng đầu tiên hợp lệ của bài | Tiêu đề bài mới, tối đa 255 ký tự. Lặp lại cùng tiêu đề hoặc để trống trên những dòng sau của cùng reading_key. |
+| `reading_body` | Dòng đầu tiên hợp lệ của bài | Nội dung bài mới, tối đa 50.000 ký tự; hỗ trợ HTML an toàn và xuống dòng trong ô CSV. Lặp cùng nội dung hoặc để trống ở những dòng sau của cùng reading_key. |
 | `status` | Bản nháp | Dùng draft. Mọi câu import đều vào bản nháp để rà soát, duyệt và xuất bản. |
 | `payload_json` | Dạng nâng cao | JSON object chứa options, correct_options, accepted_answers, metadata. Những trường này ghi đè cột đơn giản nếu được nhập trong JSON. |
 | `sample_note` | Chỉ hướng dẫn | Ghi chú cách dùng dòng mẫu, kịch bản audio và media cần bổ sung. Không nhập vào nội dung câu hỏi. Có thể xóa cột này. |
 
 CSV dùng dấu phẩy, dấu chấm phẩy hoặc tab được hỗ trợ khi import. File mẫu dùng dấu phẩy, UTF-8 BOM và quy tắc CSV chuẩn: ô chứa dấu phẩy, dấu nháy kép hoặc xuống dòng được bao bằng dấu nháy kép; nháy kép bên trong được nhân đôi. Không gộp ô hay chèn hàng hướng dẫn phía trên header.
+
+### Bài đọc kèm câu hỏi
+
+Tải **Mẫu CSV kèm câu hỏi** trong **Bài đọc**, sửa file rồi dùng **Import bài đọc CSV** ngay tại trang đó. Có thể tải và nhập cùng mẫu từ ngân hàng câu hỏi.
+
+- Mỗi dòng chứa một câu hỏi, các lựa chọn/đáp án và giải thích. Dùng cùng `reading_key` cho các câu thuộc cùng bài, kể cả khi các dòng không nằm liền nhau.
+- Dòng đầu tiên hợp lệ của mỗi bài cần `reading_title` và `reading_body`. Những dòng sau có thể lặp lại hoặc để trống hai ô này. Các giá trị được điền phải thống nhất; mọi câu trong bài dùng cùng `exam_part`.
+- `part-7` tạo passage TOEIC; `part-6` tự tạo Paragraph; `reading-part-1/2/3` tạo passage IELTS. Đặt đoạn văn ở `reading_body`, chỉ đặt yêu cầu riêng của từng câu ở `prompt`.
+- Import tự tạo bài nháp, nhóm theo phần và thứ tự câu tăng dần. Bài có mã do hệ thống cấp; `reading_key` chỉ gom bài trong lần import hiện tại.
+- Khi tạo bài bằng `reading_key`, không đồng thời điền `stimulus`, `audio_group` hoặc `payload_json.group_id/stimulus_ids`. Để liên kết bài đã có, dùng `stimulus` trong luồng import câu hỏi hiện có và bỏ các cột `reading_*`.
+- Mỗi lần import mới tạo bài mới. Khi có dòng lỗi, kiểm tra những bài đã tạo trước khi nhập lại; có thể thêm các câu bị lỗi ngay trong bài đã lưu. Không tải lại toàn bộ file sau khi một phần đã thành công.
+
+File mẫu chứa đầy đủ nội dung bài, đáp án và giải thích; không cần tạo passage trước. Các ô `payload_json` minh họa giới hạn từ của câu trả lời ngắn và đáp án True / False / Not Given của IELTS.
 
 ### Nhóm Listening dùng chung audio
 

@@ -12,6 +12,7 @@ use VistiqCore\Models\LearningItem;
 use VistiqCore\Models\LearningStimulus;
 use VistiqCore\Models\QuestionBankItem;
 use VistiqCore\Models\User;
+use VistiqCore\Support\PermissionCatalog;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(ExamAttempt::class, AttemptPolicy::class);
-        foreach (['admin.access', 'content.view', 'content.edit', 'content.review', 'content.publish', 'exams.edit', 'results.view', 'results.grade', 'reports.review', 'users.manage', 'roles.manage', 'settings.manage', 'audit.view'] as $permission) {
+        foreach (PermissionCatalog::codes() as $permission) {
             Gate::define($permission, fn (User $user): bool => $user->hasPermission($permission));
         }
         foreach ([LearningItem::class, LearningStimulus::class, QuestionBankItem::class, ExamTemplate::class] as $model) {

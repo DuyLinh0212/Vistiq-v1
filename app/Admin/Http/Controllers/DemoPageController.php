@@ -3,15 +3,15 @@
 namespace VistiqAdmin\Http\Controllers;
 
 use Illuminate\View\View;
-use VistiqAdmin\Http\Controllers\Admin\AttemptController;
-use VistiqAdmin\Http\Controllers\Admin\DashboardController;
-use VistiqAdmin\Http\Controllers\Admin\ExamBuilderController;
-use VistiqAdmin\Http\Controllers\Admin\ExamRuleController;
-use VistiqAdmin\Http\Controllers\Admin\GradingController;
-use VistiqAdmin\Http\Controllers\Admin\GrammarController as AdminGrammarController;
-use VistiqAdmin\Http\Controllers\Admin\LeaderboardController as AdminLeaderboardController;
-use VistiqAdmin\Http\Controllers\Admin\QuestionController;
-use VistiqAdmin\Http\Controllers\Auth\AuthController;
+use VistiqAdmin\Http\Controllers\Admin\Assessment\Attempts\AttemptController;
+use VistiqAdmin\Http\Controllers\Admin\Analytics\DashboardController;
+use VistiqAdmin\Http\Controllers\Admin\Assessment\Exams\ExamBuilderController;
+use VistiqAdmin\Http\Controllers\Admin\Assessment\Exams\ExamRuleController;
+use VistiqAdmin\Http\Controllers\Admin\Assessment\Attempts\GradingController;
+use VistiqAdmin\Http\Controllers\Admin\Learning\Knowledge\GrammarController as AdminGrammarController;
+use VistiqAdmin\Http\Controllers\Admin\Analytics\LeaderboardController as AdminLeaderboardController;
+use VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank\QuestionController;
+use VistiqAdmin\Http\Controllers\Admin\Identity\Authentication\AuthController;
 
 /**
  * Dispatch the admin prototype screens to their feature controllers.

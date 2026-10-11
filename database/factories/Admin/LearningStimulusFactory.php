@@ -3,14 +3,14 @@
 namespace Database\Admin\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use VistiqAdmin\Models\Model;
+use VistiqCore\Models\LearningStimulus;
 
 /**
- * @extends Factory<Model>
+ * @extends Factory<LearningStimulus>
  */
 class LearningStimulusFactory extends Factory
 {
-    protected $model = Model::class;
+    protected $model = LearningStimulus::class;
 
     /**
      * Define the model's default state.

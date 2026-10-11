@@ -1,0 +1,118 @@
+{
+  "generated_at": "2026-10-11T07:04:12.477133+00:00",
+  "nodes": {
+    "app_admin_http_controllers_admin_exambuildercontroller": {
+      "code_fingerprint": "17a47ae1b6bbbe56519bacde97fafd8f7ef017d0289e8c5d6e78b48f63cddd20",
+      "label": "ExamBuilderController.php",
+      "last": "2026-10-11T06:58:07.960072+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T06:58:07.960072+00:00",
+          "outcome": "useful",
+          "q": "Why does the THPT exam builder reject 40 selected questions?"
+        }
+      ],
+      "score": 0.999902526,
+      "source_file": "app/Admin/Http/Controllers/Admin/ExamBuilderController.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_admin_http_controllers_admin_questioncontroller": {
+      "code_fingerprint": "71bc9506576585c965c4faffd5cd0de0d253226af5780c20cbd205ad048fa18c",
+      "label": "QuestionController.php",
+      "last": "2026-10-11T06:45:55.845534+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T06:45:55.845534+00:00",
+          "outcome": "useful",
+          "q": "Fix THPT English Excel import error for missing category, question type, and difficulty initialization"
+        }
+      ],
+      "score": 0.999706784,
+      "source_file": "app/Admin/Http/Controllers/Admin/QuestionController.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_domain_services_examgenerationservice_examgenerationservice": {
+      "code_fingerprint": "5456c910d55d13a8e63f59b27807053072d79c5e6d044402c3812c713d98f91f",
+      "label": "ExamGenerationService",
+      "last": "2026-10-11T06:58:07.960072+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T06:58:07.960072+00:00",
+          "outcome": "useful",
+          "q": "Why does the THPT exam builder reject 40 selected questions?"
+        }
+      ],
+      "score": 0.999902526,
+      "source_file": "app/Domain/Services/ExamGenerationService.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_domain_services_examgenerationservice_examgenerationservice_validateselection": {
+      "code_fingerprint": "5456c910d55d13a8e63f59b27807053072d79c5e6d044402c3812c713d98f91f",
+      "label": ".validateSelection()",
+      "last": "2026-10-11T06:58:07.960072+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T06:58:07.960072+00:00",
+          "outcome": "useful",
+          "q": "Why does the THPT exam builder reject 40 selected questions?"
+        }
+      ],
+      "score": 0.999902526,
+      "source_file": "app/Domain/Services/ExamGenerationService.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "database_seeders_admin_admincatalogseeder_admincatalogseeder": {
+      "code_fingerprint": "c3c82bbacc2b8fcd134fbea4a941fb25822679eb5b4641df751a59303279fbd8",
+      "label": "AdminCatalogSeeder",
+      "last": "2026-10-11T06:45:55.845534+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T06:45:55.845534+00:00",
+          "outcome": "useful",
+          "q": "Fix THPT English Excel import error for missing category, question type, and difficulty initialization"
+        }
+      ],
+      "score": 0.999706784,
+      "source_file": "database/seeders/Admin/AdminCatalogSeeder.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "database_seeders_admin_assessmentcatalogseeder": {
+      "code_fingerprint": "cf4abd0a540a6c41c04f22b101000c0ec53a984e118623d7299f05e71a46c7e2",
+      "label": "Admin/AssessmentCatalogSeeder.php",
+      "last": "2026-10-11T06:45:55.845534+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T06:45:55.845534+00:00",
+          "outcome": "useful",
+          "q": "Fix THPT English Excel import error for missing category, question type, and difficulty initialization"
+        }
+      ],
+      "score": 0.999706784,
+      "source_file": "database/seeders/Admin/AssessmentCatalogSeeder.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "resources_js_exam_builder": {
+      "code_fingerprint": "c8d3ddd292efef64021cf1006a924c3e9e58f8974b2d95d6f19ee2a0455b359b",
+      "label": "exam-builder.js",
+      "last": "2026-10-11T06:58:07.960072+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T06:58:07.960072+00:00",
+          "outcome": "useful",
+          "q": "Why does the THPT exam builder reject 40 selected questions?"
+        }
+      ],
+      "score": 0.999902526,
+      "source_file": "resources/js/exam-builder.js",
+      "status": "tentative",
+      "uses": 1
+    }
+  },
+  "version": 1
+}

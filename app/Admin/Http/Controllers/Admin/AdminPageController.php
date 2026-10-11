@@ -9,10 +9,6 @@ abstract class AdminPageController extends StaticPageController
 {
     protected function page(string $title, string $view, array $data = []): View
     {
-        $view = [
-            'pages.admin.workspace.stimuli' => 'pages.admin.stimuli.index',
-        ][$view] ?? $view;
-
         return $this->renderScreen(
             request()->route()?->getName() ?? 'admin',
             [

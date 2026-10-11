@@ -1,4 +1,9 @@
 import './admin-workspace.js';
+import.meta.glob('./resource-library.js', { eager: true });
+import './question-bank.js';
+import './question-workbook-import.js';
+import './question-editor.js';
+import './reading-library.js';
 import './exam-runner.js';
 
 const adminLoginForm = document.querySelector('[data-admin-login-form]');

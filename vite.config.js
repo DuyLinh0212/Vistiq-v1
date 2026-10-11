@@ -8,6 +8,7 @@ export default defineConfig({
         laravel({
             input: [
                 'resources/css/learner.css',
+                'resources/css/exam-session.css',
                 'resources/js/learner.js',
                 'resources/css/admin.css',
                 'resources/js/admin.js',

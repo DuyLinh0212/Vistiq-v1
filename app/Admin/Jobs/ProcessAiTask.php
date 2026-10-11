@@ -5,7 +5,7 @@ namespace VistiqAdmin\Jobs;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
-use VistiqCore\Services\AiService;
+use VistiqCore\Services\Shared\AiService;
 
 class ProcessAiTask implements ShouldQueue
 {

@@ -11,7 +11,9 @@ use VistiqAdmin\Console\Commands\CreateSuperAdmin;
 use VistiqAdmin\Console\Commands\ExpireAttempts;
 use VistiqAdmin\Http\Middleware\EnsureAccountActive as EnsureAdminAccountActive;
 use VistiqAdmin\Http\Middleware\EnsureAdminAccess;
+use VistiqAdmin\Http\Middleware\EnsureAdminGuest;
 use VistiqLearner\Http\Middleware\EnsureAccountActive as EnsureLearnerAccountActive;
+use VistiqLearner\Http\Middleware\EnsureLearnerGuest;
 
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(using: function (): void {
@@ -25,6 +27,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'active.admin' => EnsureAdminAccountActive::class,
             'admin' => EnsureAdminAccess::class,
             'api.response' => ApiResponse::class,
+            'guest.learner' => EnsureLearnerGuest::class,
+            'guest.admin' => EnsureAdminGuest::class,
         ]);
         $middleware->prepend(ConfigureFrontend::class);
     })

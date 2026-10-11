@@ -2,9 +2,14 @@
     $shell = $page['shell'] ?? 'user';
     $section = $page['section'] ?? '';
     $hasAuthSpotlight = $shell === 'auth' && in_array($page['slug'] ?? '', ['login', 'register'], true);
+    $assets = ['resources/css/learner.css'];
+    if (isset($preview)) {
+        $assets[] = 'resources/css/exam-session.css';
+    }
+    $assets[] = 'resources/js/learner.js';
 @endphp
 <!doctype html>
-<html lang="vi" class="{{ $shell === 'auth' ? 'auth-document' : '' }} {{ $hasAuthSpotlight ? 'auth-spotlight-document' : '' }}" @if ($hasAuthSpotlight) data-spotlight-sky="day" @endif>
+<html lang="vi" class="{{ $shell === 'admin' ? 'admin-document' : '' }} {{ $shell === 'auth' ? 'auth-document' : '' }} {{ $hasAuthSpotlight ? 'auth-spotlight-document' : '' }}" @if ($hasAuthSpotlight) data-spotlight-sky="day" @endif>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,7 +17,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/vistiq-logo.png') }}">
     <title>{{ $page['title'] ?? 'Vistiq' }} · Vistiq</title>
     @fonts
-    @vite(['resources/css/learner.css', 'resources/js/learner.js'])
+    @vite($assets)
 </head>
 <body class="{{ $shell === 'admin' ? 'admin-mode' : ($shell === 'auth' ? 'auth-mode' : 'user-mode') }} {{ $hasAuthSpotlight ? 'auth-spotlight-mode' : '' }} {{ $section === 'lookup' ? 'dictionary-mode' : '' }}" @if ($hasAuthSpotlight) data-spotlight-sky="day" @endif>
     @yield('content')

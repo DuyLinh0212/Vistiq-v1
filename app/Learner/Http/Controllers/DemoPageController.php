@@ -4,13 +4,13 @@ namespace VistiqLearner\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use VistiqLearner\Http\Controllers\Auth\AuthController;
-use VistiqLearner\Http\Controllers\Dictionary\LookupController;
-use VistiqLearner\Http\Controllers\Grammar\GrammarController;
+use VistiqLearner\Http\Controllers\Authentication\AuthController;
+use VistiqLearner\Http\Controllers\Search\LookupController;
+use VistiqLearner\Http\Controllers\Knowledge\GrammarController;
 use VistiqLearner\Http\Controllers\Knowledge\KnowledgeController;
-use VistiqLearner\Http\Controllers\Practice\ExamController;
-use VistiqLearner\Http\Controllers\Practice\ResultController;
-use VistiqLearner\Http\Controllers\Practice\SkillPracticeController;
+use VistiqLearner\Http\Controllers\Assessment\ExamTakingAndSubmission\ExamController;
+use VistiqLearner\Http\Controllers\Assessment\ExamTakingAndSubmission\ResultController;
+use VistiqLearner\Http\Controllers\Practice\SkillPractice\SkillPracticeController;
 use VistiqLearner\Http\Controllers\Profile\ProfileController;
 use VistiqLearner\Http\Controllers\Site\HomeController;
 

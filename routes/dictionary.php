@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use VistiqLearner\Http\Controllers\Dictionary\DictionaryApiController;
+use VistiqLearner\Http\Controllers\Search\DictionaryApiController;
 
 Route::prefix('v1/dictionary')->middleware('throttle:60,1')->name('api.dictionary.')->group(function (): void {
     Route::get('/', [DictionaryApiController::class, 'index'])->name('index');

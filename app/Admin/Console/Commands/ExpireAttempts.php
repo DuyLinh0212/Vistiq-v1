@@ -6,7 +6,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use VistiqCore\Models\ExamAttempt;
-use VistiqCore\Services\AttemptService;
+use VistiqCore\Services\Assessment\Attempts\AttemptService;
 
 #[Signature('attempts:expire')]
 #[Description('Tự nộp bài hết hạn và chuyển phần thi theo mốc server.')]

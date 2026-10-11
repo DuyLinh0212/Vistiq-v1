@@ -4,7 +4,7 @@ namespace VistiqAdmin\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use VistiqCore\Services\SettingsService;
+use VistiqCore\Services\System\SettingsService;
 
 class EnsureAdminAccess
 {

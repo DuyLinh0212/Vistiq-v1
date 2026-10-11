@@ -1,8 +1,13 @@
 @php
     $shell = $page['shell'] ?? 'admin';
+    $assets = ['resources/css/admin.css'];
+    if (isset($preview)) {
+        $assets[] = 'resources/css/exam-session.css';
+    }
+    $assets[] = 'resources/js/admin.js';
 @endphp
 <!doctype html>
-<html lang="vi" class="{{ $shell === 'auth' ? 'auth-document' : '' }}">
+<html lang="vi" class="{{ $shell === 'admin' ? 'admin-document' : 'auth-document' }}">
 <head>
     <meta charset="utf-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -11,7 +16,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/vistiq-logo.png') }}">
     <title>{{ $page['title'] ?? 'Vistiq' }} · Vistiq</title>
     @fonts
-    @vite(['resources/css/admin.css', 'resources/js/admin.js'])
+    @vite($assets)
 </head>
 <body class="{{ $shell === 'admin' ? 'admin-mode' : 'auth-mode' }}">
     @yield('content')
