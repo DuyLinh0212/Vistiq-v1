@@ -94,8 +94,14 @@ class AttemptService
                 return $attempt;
             }
             $closes = $attempt->snapshot['closes_at'] ?? null;
-            if (($closes && Carbon::parse($closes)->lte(now())) || (! $attempt->paused_at && $attempt->expires_at?->lte(now()))) {
-                $timestamp = $closes ? min(now()->timestamp, Carbon::parse($closes)->timestamp, $attempt->expires_at->timestamp) : $attempt->expires_at->timestamp;
+            $closed = $closes && Carbon::parse($closes)->lte(now());
+            if ($closed || (! $attempt->paused_at && $attempt->expires_at?->lte(now()))) {
+                $timestamp = $closed ? Carbon::parse($closes)->timestamp : $attempt->expires_at->timestamp;
+                // A running pause suspends the duration deadline, but cannot
+                // extend the published closing time of the exam.
+                if (! $attempt->paused_at && $attempt->expires_at) {
+                    $timestamp = min($timestamp, $attempt->expires_at->timestamp);
+                }
                 $this->expire($attempt, $timestamp);
 
                 return $attempt->refresh();
@@ -245,10 +251,7 @@ class AttemptService
         return DB::transaction(function () use ($attempt): ExamAttempt {
             $attempt = ExamAttempt::lockForUpdate()->findOrFail($attempt->id);
             if (! $attempt->submitted_at) {
-                if ($attempt->paused_at) {
-                    $attempt->paused_seconds += max(0, now()->timestamp - $attempt->paused_at->timestamp);
-                }
-                $this->finish($attempt, $attempt->status === 'expired' ? 'TIMEOUT' : null, $attempt->status === 'expired' ? $this->deadline($attempt)->timestamp : null);
+                $this->finish($attempt, $attempt->status === 'expired' ? 'TIMEOUT' : null, $attempt->status === 'expired' ? $attempt->expires_at->timestamp : null);
             }
 
             return $attempt->refresh();
@@ -260,12 +263,18 @@ class AttemptService
         if ($attempt->snapshot['policies']['auto_submit'] ?? true) {
             $this->finish($attempt, 'TIMEOUT', $timestamp);
         } else {
-            $attempt->update(['status' => 'expired', 'paused_at' => null, 'expires_at' => Carbon::createFromTimestamp($timestamp)]);
+            if ($attempt->paused_at) {
+                $attempt->paused_seconds += max(0, $timestamp - $attempt->paused_at->timestamp);
+            }
+            $attempt->update(['status' => 'expired', 'paused_at' => null, 'paused_seconds' => $attempt->paused_seconds, 'expires_at' => Carbon::createFromTimestamp($timestamp)]);
         }
     }
 
     private function finish(ExamAttempt $attempt, ?string $reason = null, ?int $timestamp = null): void
     {
+        if ($attempt->paused_at) {
+            $attempt->paused_seconds += max(0, ($timestamp ?? now()->timestamp) - $attempt->paused_at->timestamp);
+        }
         $attempt->update(['submitted_at' => $timestamp ? Carbon::createFromTimestamp($timestamp) : now(), 'paused_at' => null, 'paused_seconds' => $attempt->paused_seconds, 'status' => 'submitted']);
         foreach ($attempt->snapshot['items'] as $item) {
             if (in_array(QuestionRegistry::TYPES[$item['type']], ['writing', 'speaking'], true)) {

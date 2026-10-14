@@ -137,4 +137,41 @@ class AttemptReliabilityTest extends TestCase
         $data['answers'][0]['response']['matching']['x'] = 'A';
         $this->postJson($url, $data)->assertConflict();
     }
+
+    public function test_closing_while_paused_excludes_pause_from_automatic_submission_duration(): void
+    {
+        $attempt = $this->attempt(['pause_allowed' => true]);
+        $this->travel(10)->seconds();
+        $this->postJson('/attempts/'.$attempt->id.'/pause')->assertOk();
+        $this->travel(2)->hours();
+        $this->getJson('/attempts/'.$attempt->id.'/result')->assertOk()->assertJsonPath('details.duration_seconds', 10);
+        $this->assertTrue($attempt->fresh()->submitted_at->equalTo($attempt->snapshot['closes_at']));
+        $this->postJson('/attempts/'.$attempt->id.'/submit')->assertOk()->assertJsonPath('result.details.duration_seconds', 10);
+        $this->assertDatabaseCount('attempt_results', 1);
+    }
+
+    public function test_closing_while_paused_keeps_duration_when_manual_submission_is_required(): void
+    {
+        $attempt = $this->attempt(['pause_allowed' => true, 'auto_submit' => false]);
+        $snapshot = $attempt->snapshot;
+        $snapshot['sections'][0]['duration_minutes'] = 1;
+        $attempt->update(['snapshot' => $snapshot]);
+        $this->travel(10)->seconds();
+        $this->postJson('/attempts/'.$attempt->id.'/pause')->assertOk();
+        $this->travel(2)->hours();
+        $this->getJson('/attempts/'.$attempt->id.'/state')->assertOk()->assertJsonPath('status', 'expired');
+        $this->postJson('/attempts/'.$attempt->id.'/submit')->assertOk()->assertJsonPath('result.details.duration_seconds', 10);
+        $this->assertTrue($attempt->fresh()->submitted_at->equalTo($attempt->snapshot['closes_at']));
+    }
+
+    public function test_manual_submission_during_pause_counts_only_active_work_time(): void
+    {
+        $attempt = $this->attempt(['pause_allowed' => true]);
+        $this->travel(10)->seconds();
+        $this->postJson('/attempts/'.$attempt->id.'/pause')->assertOk();
+        $this->travel(60)->seconds();
+        $this->postJson('/attempts/'.$attempt->id.'/submit')->assertOk()->assertJsonPath('result.details.duration_seconds', 10);
+        $this->postJson('/attempts/'.$attempt->id.'/submit')->assertOk()->assertJsonPath('result.details.duration_seconds', 10);
+        $this->assertSame(60, $attempt->fresh()->paused_seconds);
+    }
 }

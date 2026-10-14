@@ -17,7 +17,9 @@ class ReviewQueueController extends AdminPageController
     {
         $filters = $request->validate(['kind' => 'nullable|in:question,exam', 'q' => 'nullable|string|max:255', 'author' => 'nullable|integer|exists:users,id', 'from' => 'nullable|date_format:Y-m-d', 'to' => ['nullable', 'date_format:Y-m-d', Rule::when($request->filled('from'), 'after_or_equal:from')], 'revision' => 'nullable|integer|min:1']);
         $questions = DB::table('content_revisions as r')->join('question_bank_items as q', 'q.draft_revision_id', '=', 'r.id')->join('learning_items as item', 'item.id', '=', 'q.learning_item_id')->where('item.status', '!=', 'archived')->where('r.kind', 'question')->whereColumn('r.entity_id', 'q.id')->where('r.status', 'review')->select('q.id')->selectRaw("'question' as kind")->addSelect('r.payload->prompt as title', 'r.number as revision', 'r.created_by as author_id', 'r.updated_at as submitted_at');
-        $exams = DB::table('exam_templates as e')->where('e.draft_status', 'review')->where('e.status', '!=', 'archived')->selectRaw("e.id, 'exam' as kind, e.title, e.revision_counter as revision, e.created_by as author_id, e.updated_at as submitted_at");
+        $revisionAuthor = DB::table('audit_logs as authors')->select('actor_id')->where('entity_type', 'exam')->whereColumn('entity_id', 'e.id')->where('action', 'exam.save')->whereColumn('after->revision', 'e.revision_counter')->orderByDesc('id')->limit(1);
+        $exams = DB::table('exam_templates as e')->where('e.draft_status', 'review')->where('e.status', '!=', 'archived')->selectRaw("e.id, 'exam' as kind, e.title, e.revision_counter as revision")
+            ->selectRaw('COALESCE(('.$revisionAuthor->toSql().'), e.created_by) as author_id', $revisionAuthor->getBindings())->addSelect('e.updated_at as submitted_at');
         $query = DB::query()->fromSub($questions->unionAll($exams), 'queue')->leftJoin('users as u', 'u.id', '=', 'queue.author_id')->select('queue.*', 'u.name as author_name');
         if (! empty($filters['kind'])) {
             $query->where('queue.kind', $filters['kind']);
@@ -26,7 +28,7 @@ class ReviewQueueController extends AdminPageController
             $query->where('queue.title', 'like', '%'.$filters['q'].'%');
         }
         if (! empty($filters['author'])) {
-            $query->where('queue.author_id', $filters['author']);
+            $query->where('queue.author_id', (int) $filters['author']);
         }
         if (! empty($filters['revision'])) {
             $query->where('queue.revision', $filters['revision']);

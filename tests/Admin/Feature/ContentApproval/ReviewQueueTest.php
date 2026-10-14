@@ -174,6 +174,21 @@ class ReviewQueueTest extends TestCase
         $this->postJson('/admin/exams/'.$exam->id.'/approve')->assertForbidden();
     }
 
+    public function test_exam_queue_author_filter_matches_the_current_revision_writer(): void
+    {
+        $creator = $this->admin('content-admin');
+        $writer = $this->admin('content-admin');
+        $exam = $this->publishedExam();
+        $exam->update(['created_by' => $creator->id, 'draft_status' => 'review', 'revision_counter' => 4]);
+        $this->actingAs($writer);
+        app(AuditService::class)->record('exam.save', 'exam', $exam->id, [], ['revision' => 4]);
+        $this->actingAs($creator);
+        app(AuditService::class)->record('exam.save', 'exam', $exam->id, [], ['revision' => 3]);
+        $this->actingAs($this->admin('reviewer'));
+        $this->get('/admin/content-approval?kind=exam&author='.$writer->id)->assertOk()->assertSee($exam->title)->assertSee($writer->name);
+        $this->get('/admin/content-approval?kind=exam&author='.$creator->id)->assertOk()->assertDontSee($exam->title);
+    }
+
     public function test_archived_questions_are_excluded_and_direct_decision_is_blocked(): void
     {
         $question = $this->question();
