@@ -1,10 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use VistiqLearner\Http\Controllers\Assessment\ExamTakingAndSubmission\AttemptHistoryController;
 use VistiqLearner\Http\Controllers\Assessment\ExamTakingAndSubmission\AttemptRunnerController;
 
 Route::middleware(['auth', 'active.learner'])->group(function (): void {
     Route::get('/exams', [AttemptRunnerController::class, 'index'])->name('exams.index');
+    Route::get('/attempts/history', [AttemptHistoryController::class, 'index'])->name('attempts.history');
     Route::post('/exams/{exam}/start', [AttemptRunnerController::class, 'start'])->middleware('throttle:10,1')->name('exams.start');
     Route::get('/attempts/{attempt}', [AttemptRunnerController::class, 'show'])->name('attempts.show');
     Route::get('/attempts/{attempt}/media/{asset}', [AttemptRunnerController::class, 'media'])->name('attempts.media');

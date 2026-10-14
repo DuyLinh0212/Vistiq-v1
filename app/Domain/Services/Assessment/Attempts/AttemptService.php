@@ -34,9 +34,12 @@ class AttemptService
             $opens = isset($snapshot['opens_at']) ? Carbon::parse($snapshot['opens_at']) : null;
             $closes = isset($snapshot['closes_at']) ? Carbon::parse($snapshot['closes_at']) : null;
             abort_if($opens?->isFuture() || $closes?->lte(now()), 409, 'Đề chưa mở hoặc đã đóng.');
-            $existing = ExamAttempt::where('user_id', $user->id)->where('exam_template_id', $exam->id)->whereIn('status', ['in_progress', 'paused', 'expired'])->first();
+            $existing = ExamAttempt::where('user_id', $user->id)->where('exam_template_id', $exam->id)->whereIn('status', ['in_progress', 'paused', 'expired'])->orderByDesc('id')->first();
             if ($existing) {
-                return $existing;
+                $existing = $this->synchronize($existing);
+                if (! $existing->submitted_at) {
+                    return $existing;
+                }
             }
             if ($snapshot['policies']['randomize_options'] ?? false) {
                 foreach ($snapshot['items'] as &$item) {
@@ -133,13 +136,19 @@ class AttemptService
                     throw ValidationException::withMessages(['answers' => 'Câu hỏi nằm ngoài snapshot của lượt thi.']);
                 }
                 $this->accessibleItem($attempt, $item);
-                $response = $this->validateResponse($item, $data['response'] ?? []);
+                $response = $this->validateResponse($attempt, $item, $data['response'] ?? []);
                 $answer = $attempt->answers()->where('item_key', $item['key'])->first();
-                abort_if(($answer?->version ?? 0) !== ($data['version'] ?? 0), 409, 'Đáp án đã được cập nhật ở phiên khác.');
-                $answer = AttemptAnswer::updateOrCreate(['exam_attempt_id' => $attempt->id, 'item_key' => $item['key']], [
-                    'response' => $response, 'response_text' => $response['text'] ?? null, 'version' => ($answer?->version ?? 0) + 1,
-                    'answered_at' => now(), 'spent_seconds' => $data['spent_seconds'] ?? $answer?->spent_seconds ?? 0, 'flagged' => $data['flagged'] ?? false,
-                ]);
+                $sameRetry = $answer && (int) $answer->version === (int) ($data['version'] ?? 0) + 1
+                    && $this->canonicalResponse($answer->response) === $this->canonicalResponse($response)
+                    && (bool) $answer->flagged === (bool) ($data['flagged'] ?? false)
+                    && (int) $answer->spent_seconds === (int) ($data['spent_seconds'] ?? $answer->spent_seconds ?? 0);
+                abort_if(! $sameRetry && ($answer?->version ?? 0) !== ($data['version'] ?? 0), 409, 'Đáp án đã được cập nhật ở phiên khác.');
+                if (! $sameRetry) {
+                    $answer = AttemptAnswer::updateOrCreate(['exam_attempt_id' => $attempt->id, 'item_key' => $item['key']], [
+                        'response' => $response, 'response_text' => $response['text'] ?? null, 'version' => ($answer?->version ?? 0) + 1,
+                        'answered_at' => now(), 'spent_seconds' => $data['spent_seconds'] ?? $answer?->spent_seconds ?? 0, 'flagged' => $data['flagged'] ?? false,
+                    ]);
+                }
                 $row = ['item_key' => $answer->item_key, 'version' => $answer->version];
                 if (($attempt->snapshot['policies']['answer_review'] ?? '') === 'after_each') {
                     $row['review'] = $this->reviewItem($item, ($attempt->snapshot['policies']['explanation_review'] ?? '') === 'after_each');
@@ -171,7 +180,21 @@ class AttemptService
         }
     }
 
-    private function validateResponse(array $item, array $response): array
+    private function canonicalResponse(array $response): array
+    {
+        if (! array_is_list($response)) {
+            ksort($response);
+        }
+        foreach ($response as $key => $value) {
+            if (is_array($value)) {
+                $response[$key] = $this->canonicalResponse($value);
+            }
+        }
+
+        return $response;
+    }
+
+    private function validateResponse(ExamAttempt $attempt, array $item, array $response): array
     {
         $family = QuestionRegistry::TYPES[$item['type']];
         $response = Validator::make($response, [
@@ -197,6 +220,9 @@ class AttemptService
             if (isset($response['asset_id'])) {
                 $asset = MediaAsset::findOrFail($response['asset_id']);
                 abort_unless((int) $asset->created_by === (int) auth()->id() && str_starts_with($asset->mime_type, 'audio/'), 422, 'Recording không hợp lệ.');
+                $bound = (int) ($asset->metadata['recording_attempt_id'] ?? 0) === (int) $attempt->id && ($asset->metadata['recording_item_key'] ?? null) === $item['key'];
+                $legacyAttached = empty($asset->metadata['recording_attempt_id']) && $attempt->answers()->where('item_key', $item['key'])->where('response->asset_id', $asset->id)->exists();
+                abort_unless($bound || $legacyAttached, 422, 'Recording không thuộc câu hỏi của lượt làm này.');
             }
 
             return array_intersect_key($response, array_flip(['asset_id', 'text']));
