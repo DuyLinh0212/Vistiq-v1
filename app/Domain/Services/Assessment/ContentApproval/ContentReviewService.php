@@ -1,0 +1,170 @@
+<?php
+
+namespace VistiqCore\Services\Assessment\ContentApproval;
+
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
+use VistiqCore\Models\ContentRevision;
+use VistiqCore\Models\ExamTemplate;
+use VistiqCore\Models\LearningStimulus;
+use VistiqCore\Models\MediaAsset;
+use VistiqCore\Models\QuestionBankItem;
+use VistiqCore\Services\Assessment\Exams\ExamPublishingService;
+use VistiqCore\Services\Assessment\QuestionBank\MediaService;
+use VistiqCore\Services\System\AuditService;
+
+class ContentReviewService
+{
+    public function __construct(private ContentRevisionService $revisions, private ExamPublishingService $exams, private AuditService $audit) {}
+
+    public function examAuthor(ExamTemplate $exam): ?int
+    {
+        $actor = DB::table('audit_logs')->where('entity_type', 'exam')->where('entity_id', $exam->id)->where('action', 'exam.save')->where('after->revision', (int) $exam->revision_counter)->orderByDesc('id')->value('actor_id');
+
+        return $actor === null ? ($exam->created_by === null ? null : (int) $exam->created_by) : (int) $actor;
+    }
+
+    public function preview(string $kind, int $id, bool $lock = false): array
+    {
+        abort_unless(in_array($kind, ['question', 'exam'], true), 404);
+        $query = $kind === 'exam' ? ExamTemplate::query() : QuestionBankItem::query();
+        $root = ($lock ? $query->lockForUpdate() : $query)->findOrFail($id);
+        $errors = [];
+        $dependencies = [];
+        $previous = null;
+
+        if ($kind === 'question') {
+            $revisionQuery = ContentRevision::where('id', $root->draft_revision_id)->where('kind', 'question')->where('entity_id', $id);
+            $revision = ($lock ? $revisionQuery->lockForUpdate() : $revisionQuery)->firstOrFail();
+            $payload = $revision->payload;
+            $status = $root->learningItem?->status === 'archived' ? 'archived' : $revision->status;
+            $author = $revision->created_by;
+            $number = $revision->number;
+            $previous = ContentRevision::where('kind', 'question')->where('entity_id', $id)->where('number', '<', $number)->orderByDesc('number')->first()?->payload;
+            $stimulusIds = $payload['stimulus_ids'] ?? [];
+            if (! empty($payload['group_id'])) {
+                $groupQuery = DB::table('question_groups')->where('id', $payload['group_id']);
+                $group = ($lock ? $groupQuery->lockForUpdate() : $groupQuery)->first();
+                $dependencies['group'] = $group;
+                $stimulusIds = array_merge($stimulusIds, json_decode($group?->stimulus_ids ?? '[]', true) ?: []);
+            }
+            $stimuli = LearningStimulus::whereIn('id', array_unique($stimulusIds))->orderBy('id');
+            foreach (($lock ? $stimuli->lockForUpdate() : $stimuli)->get() as $stimulus) {
+                $dependencyRevision = ContentRevision::where('id', $stimulus->draft_revision_id ?? $stimulus->published_revision_id);
+                if ($lock) {
+                    $dependencyRevision->lockForUpdate();
+                }
+                $dependencies['stimulus_revisions'][] = $dependencyRevision->first()?->id;
+                $resolved = $this->revisions->payload('stimulus', $stimulus);
+                $dependencies['stimuli'][] = $resolved;
+            }
+            if (count($dependencies['stimuli'] ?? []) !== count(array_unique($stimulusIds))) {
+                $errors[] = 'Tài nguyên liên kết không còn tồn tại.';
+            }
+            try {
+                $this->revisions->validate('question', $payload);
+                foreach ($dependencies['stimuli'] ?? [] as $stimulus) {
+                    $this->revisions->validate('stimulus', $stimulus);
+                }
+            } catch (ValidationException $exception) {
+                $errors = array_merge($errors, array_merge(...array_values($exception->errors())));
+            }
+            $assetIds = collect([$payload['metadata']['image_id'] ?? null, $payload['metadata']['audio_id'] ?? null])
+                ->merge(collect($dependencies['stimuli'] ?? [])->map(fn ($stimulus) => $stimulus['metadata']['asset_id'] ?? null))->filter()->unique()->sort();
+            foreach ($assetIds as $assetId) {
+                $assetQuery = MediaAsset::where('id', $assetId);
+                $asset = ($lock ? $assetQuery->lockForUpdate() : $assetQuery)->first();
+                $available = $asset && app(MediaService::class)->available((int) $assetId);
+                $dependencies['media'][] = ['id' => $assetId, 'asset' => $asset?->toArray(), 'available' => $available];
+                if (! $available) {
+                    $errors[] = 'Media #'.$assetId.' không còn tồn tại hoặc không tải được.';
+                }
+            }
+        } else {
+            $status = $root->status === 'archived' ? 'archived' : $root->draft_status;
+            $author = $this->examAuthor($root);
+            $number = (int) $root->revision_counter;
+            $previous = $root->publishedRevision?->payload;
+            // assemble(false) may pin legacy revisions. Never call it on a read
+            // until every reference already has a valid published revision.
+            $ready = true;
+            $ids = collect($root->draft_payload['sections'] ?? [])->flatMap(fn ($section) => $section['question_ids'] ?? [])->unique()->sort()->values();
+            $questionQuery = QuestionBankItem::whereIn('id', $ids)->orderBy('id');
+            $questions = ($lock ? $questionQuery->lockForUpdate() : $questionQuery)->get();
+            if ($questions->count() !== $ids->count()) {
+                $ready = false;
+            }
+            foreach ($questions as $question) {
+                $published = ContentRevision::where('id', $question->published_revision_id)->where('kind', 'question')->where('entity_id', $question->id)->where('status', 'published')->first();
+                if (! $published) {
+                    $ready = false;
+
+                    continue;
+                }
+                $stimulusIds = $published->payload['stimulus_ids'] ?? [];
+                if (! empty($published->payload['group_id'])) {
+                    $groupQuery = DB::table('question_groups')->where('id', $published->payload['group_id']);
+                    $group = ($lock ? $groupQuery->lockForUpdate() : $groupQuery)->first();
+                    $stimulusIds = array_merge($stimulusIds, json_decode($group?->stimulus_ids ?? '[]', true) ?: []);
+                }
+                foreach (array_unique($stimulusIds) as $stimulusId) {
+                    $stimulusQuery = LearningStimulus::where('id', $stimulusId);
+                    $stimulus = ($lock ? $stimulusQuery->lockForUpdate() : $stimulusQuery)->first();
+                    if (! $stimulus || ! ContentRevision::where('id', $stimulus->published_revision_id)->where('kind', 'stimulus')->where('entity_id', $stimulusId)->where('status', 'published')->exists()) {
+                        $ready = false;
+                    }
+                }
+            }
+            if (! $ready) {
+                $errors[] = 'Câu hỏi/tài nguyên cần có revision đã xuất bản trước khi duyệt đề. Mở module nguồn để hoàn thiện.';
+            }
+            try {
+                $payload = $this->exams->assemble($root, ! $ready);
+                $errors = array_merge($errors, $this->exams->problems($payload));
+            } catch (ValidationException $exception) {
+                $payload = $root->draft_payload ?? [];
+                $errors = array_merge($errors, array_merge(...array_values($exception->errors())));
+            } catch (ModelNotFoundException $exception) {
+                $payload = $root->draft_payload ?? [];
+                $errors[] = 'Part/câu hỏi/tài nguyên tham chiếu không còn tồn tại.';
+            }
+        }
+
+        $errors = array_values(array_unique($errors));
+        $token = hash_hmac('sha256', json_encode([$kind, $id, $number, $author, $payload, $dependencies, $errors], JSON_THROW_ON_ERROR), (string) config('app.key'));
+        $history = DB::table('audit_logs')->where('entity_type', $kind)->where('entity_id', $id)->whereIn('action', $kind === 'exam' ? ['exam.review', 'exam.approve', 'exam.reject'] : ['content.review', 'content.approve', 'content.reject'])->orderByDesc('id')->limit(50)->get();
+
+        return compact('kind', 'root', 'payload', 'dependencies', 'previous', 'status', 'author', 'number', 'token', 'history') + ['blockers' => $errors];
+    }
+
+    public function decide(string $kind, int $id, string $action, array $data): array
+    {
+        Gate::authorize('content.review');
+        abort_unless(in_array($action, ['approve', 'reject'], true), 404);
+
+        return DB::transaction(function () use ($kind, $id, $action, $data): array {
+            $review = $this->preview($kind, $id, true);
+            abort_unless($review['status'] === 'review' && (int) $review['number'] === (int) $data['revision_counter'] && hash_equals($review['token'], $data['review_token']), 409, 'Revision hoặc nội dung đã thay đổi. Mở lại bản mới trước khi quyết định.');
+            abort_if($action === 'approve' && (int) $review['author'] === (int) auth()->id(), 403, 'Tác giả không được tự duyệt revision của mình.');
+            if ($action === 'approve' && $review['blockers']) {
+                throw ValidationException::withMessages(['content' => $review['blockers']]);
+            }
+            $note = trim($data['note'] ?? '');
+            if ($action === 'reject' && $note === '') {
+                throw ValidationException::withMessages(['note' => 'Nhập lý do trả chỉnh sửa.']);
+            }
+            if ($kind === 'question') {
+                $revision = $this->revisions->transition($kind, $review['root'], $action, $note ?: null);
+                $status = $revision->status;
+            } else {
+                $status = $action === 'approve' ? 'approved' : 'draft';
+                $review['root']->update(['draft_status' => $status, 'review_note' => $note ?: null]);
+                $this->audit->record('exam.'.$action, 'exam', $id, ['status' => 'review', 'revision' => $review['number']], ['status' => $status, 'revision' => $review['number'], 'note' => $note ?: null]);
+            }
+
+            return ['status' => $status, 'revision_counter' => $review['number']];
+        }, 3);
+    }
+}

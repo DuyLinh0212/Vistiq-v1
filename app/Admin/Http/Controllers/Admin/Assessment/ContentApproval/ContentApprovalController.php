@@ -8,8 +8,9 @@ use Illuminate\Validation\ValidationException;
 use VistiqAdmin\Http\Controllers\Controller;
 use VistiqAdmin\Http\Requests\Admin\Shared\AdminActionRequest;
 use VistiqCore\Models\ExamTemplate;
-use VistiqCore\Services\Assessment\Exams\ExamPublishingService;
+use VistiqCore\Services\Assessment\ContentApproval\ContentReviewService;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
+use VistiqCore\Services\Assessment\Exams\ExamPublishingService;
 use VistiqCore\Services\System\AuditService;
 
 class ContentApprovalController extends Controller
@@ -54,14 +55,17 @@ class ContentApprovalController extends Controller
                     default => abort(404),
                 };
                 Gate::authorize($ability);
+                $note = trim($request->validated('note') ?? '');
+                abort_if($action === 'approve' && (int) app(ContentReviewService::class)->examAuthor($exam) === (int) auth()->id(), 403, 'Tác giả không được tự duyệt revision của mình.');
+                abort_if($exam->status === 'archived' && $action !== 'archive', 409);
                 $states = ['review' => 'draft', 'approve' => 'review', 'reject' => 'review', 'archive' => 'published'];
                 abort_unless(($action === 'archive' ? $exam->status : $exam->draft_status) === $states[$action], 409);
 
-                if ($action === 'reject' && ! $request->filled('note')) {
+                if ($action === 'reject' && $note === '') {
                     throw ValidationException::withMessages(['note' => 'Cần lý do từ chối.']);
                 }
 
-                if ($action === 'review') {
+                if (in_array($action, ['review', 'approve'], true)) {
                     $errors = $service->problems($service->assemble($exam));
 
                     if ($errors) {
@@ -69,15 +73,16 @@ class ContentApprovalController extends Controller
                     }
                 }
 
+                $before = ['status' => $action === 'archive' ? $exam->status : $exam->draft_status, 'revision' => $exam->revision_counter];
                 $exam->update($action === 'archive' ? ['status' => 'archived'] : [
                     'draft_status' => match ($action) {
                         'review' => 'review',
                         'approve' => 'approved',
                         'reject' => 'draft',
                     },
-                    'review_note' => $request->validated('note'),
+                    'review_note' => $note ?: null,
                 ]);
-                $audit->record('exam.'.$action, 'exam', $exam->id);
+                $audit->record('exam.'.$action, 'exam', $exam->id, $before, ['status' => $action === 'archive' ? $exam->status : $exam->draft_status, 'revision' => $exam->revision_counter, 'note' => $note ?: null]);
             });
         }
 
