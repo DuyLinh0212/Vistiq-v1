@@ -10,10 +10,13 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\View\View;
 use VistiqCore\Models\User as DomainUser;
 use VistiqLearner\Http\Controllers\StaticPageController;
+use VistiqLearner\Http\Requests\Authentication\ForgotPasswordRequest;
+use VistiqLearner\Http\Requests\Authentication\LoginRequest;
+use VistiqLearner\Http\Requests\Authentication\RegisterRequest;
+use VistiqLearner\Http\Requests\Authentication\ResetPasswordRequest;
 use VistiqLearner\Models\User;
 
 class AuthController extends StaticPageController
@@ -65,18 +68,9 @@ class AuthController extends StaticPageController
         return view('shared.demo-page', ['page' => $page]);
     }
 
-    public function authenticate(Request $request): RedirectResponse
+    public function authenticate(LoginRequest $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ], [
-            'email.required' => 'Nhập địa chỉ email của bạn.',
-            'email.email' => 'Email chưa đúng định dạng.',
-            'password.required' => 'Nhập mật khẩu của bạn.',
-        ]);
-
-        $credentials['email'] = Str::lower(trim($credentials['email']));
+        $credentials = $request->safe()->only(['email', 'password']);
         $throttleKey = $this->loginThrottleKey($request);
 
         if (RateLimiter::tooManyAttempts($throttleKey, self::LOGIN_MAX_ATTEMPTS)) {
@@ -112,32 +106,11 @@ class AuthController extends StaticPageController
         return redirect()->intended(route('home'));
     }
 
-    public function register(Request $request): RedirectResponse
+    public function register(RegisterRequest $request): RedirectResponse
     {
-        $request->merge([
-            'email' => Str::lower(trim((string) $request->input('email'))),
-        ]);
-
-        $attributes = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', PasswordRule::min(10)->letters()->numbers(), 'confirmed'],
-        ], [
-            'name.required' => 'Nhập họ và tên của bạn.',
-            'name.max' => 'Họ và tên không được dài quá :max ký tự.',
-            'email.required' => 'Nhập địa chỉ email của bạn.',
-            'email.email' => 'Email chưa đúng định dạng.',
-            'email.max' => 'Email không được dài quá :max ký tự.',
-            'email.unique' => 'Email này đã có tài khoản.',
-            'password.required' => 'Tạo mật khẩu cho tài khoản.',
-            'password.min' => 'Mật khẩu cần ít nhất :min ký tự.',
-            'password.letters' => 'Mật khẩu cần có ít nhất một chữ cái.',
-            'password.numbers' => 'Mật khẩu cần có ít nhất một chữ số.',
-            'password.confirmed' => 'Hai mật khẩu chưa khớp.',
-        ]);
-
-        $attributes['name'] = trim($attributes['name']);
-        $attributes['email'] = Str::lower(trim($attributes['email']));
+        $attributes = $request->validated();
+        $attributes['name'] = trim((string) $attributes['name']);
+        $attributes['email'] = Str::lower(trim((string) $attributes['email']));
 
         $user = User::create($attributes);
 
@@ -147,16 +120,9 @@ class AuthController extends StaticPageController
         return redirect()->intended(route('home'));
     }
 
-    public function sendResetLink(Request $request): RedirectResponse
+    public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
-        ], [
-            'email.required' => 'Nhập địa chỉ email của bạn.',
-            'email.email' => 'Email chưa đúng định dạng.',
-        ]);
-
-        $credentials['email'] = Str::lower(trim($credentials['email']));
+        $credentials = $request->validated();
         $status = Password::sendResetLink($credentials);
 
         if (in_array($status, [Password::RESET_LINK_SENT, Password::INVALID_USER, Password::RESET_THROTTLED], true)) {
@@ -168,23 +134,9 @@ class AuthController extends StaticPageController
             ->onlyInput('email');
     }
 
-    public function resetPassword(Request $request): RedirectResponse
+    public function resetPassword(ResetPasswordRequest $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'token' => ['required', 'string'],
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string', PasswordRule::min(10)->letters()->numbers(), 'confirmed'],
-        ], [
-            'email.required' => 'Nhập địa chỉ email của bạn.',
-            'email.email' => 'Email chưa đúng định dạng.',
-            'password.required' => 'Tạo mật khẩu mới.',
-            'password.min' => 'Mật khẩu cần ít nhất :min ký tự.',
-            'password.letters' => 'Mật khẩu cần có ít nhất một chữ cái.',
-            'password.numbers' => 'Mật khẩu cần có ít nhất một chữ số.',
-            'password.confirmed' => 'Hai mật khẩu chưa khớp.',
-        ]);
-
-        $credentials['email'] = Str::lower(trim($credentials['email']));
+        $credentials = $request->validated();
         $status = Password::reset(
             $credentials,
             function (DomainUser $user, string $password): void {
