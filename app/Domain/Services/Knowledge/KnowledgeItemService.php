@@ -173,8 +173,8 @@ class KnowledgeItemService
         $hasQuestions = DB::table('question_bank_items')->where('learning_item_id', $item->id)->exists();
         $hasDictionary = DB::table('dictionary_entries')->where('learning_item_id', $item->id)->exists();
         $hasRelations = DB::table('learning_item_relations')
-            ->where('learning_item_id', $item->id)
-            ->orWhere('related_item_id', $item->id)
+            ->where('source_learning_item_id', $item->id)
+            ->orWhere('target_learning_item_id', $item->id)
             ->exists();
 
         abort_if(

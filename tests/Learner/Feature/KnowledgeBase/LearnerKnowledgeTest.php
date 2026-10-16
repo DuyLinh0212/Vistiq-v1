@@ -2,7 +2,7 @@
 
 namespace Tests\Learner\Feature\KnowledgeBase;
 
-use Database\Admin\Seeders\CoreDatabaseSeeder;
+use Database\Admin\Seeders\AdminCatalogSeeder;
 use Database\Admin\Seeders\DictionaryGrammarSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +16,7 @@ class LearnerKnowledgeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(CoreDatabaseSeeder::class);
+        $this->seed(AdminCatalogSeeder::class);
         $this->seed(DictionaryGrammarSeeder::class);
     }
 

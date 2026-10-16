@@ -170,10 +170,12 @@ class KnowledgeImportService
     {
         $content = file_get_contents($file->getPathname());
 
-        // Detect and convert encoding
-        $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-        if ($encoding && $encoding !== 'UTF-8') {
-            $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+        // Detect and convert encoding if not valid UTF-8
+        if (! mb_check_encoding($content, 'UTF-8')) {
+            $encoding = mb_detect_encoding($content, ['Windows-1252', 'ISO-8859-1'], true);
+            if ($encoding) {
+                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+            }
         }
 
         // Remove BOM

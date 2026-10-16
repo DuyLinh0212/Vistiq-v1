@@ -2,7 +2,7 @@
 
 namespace Tests\Admin\Feature\KnowledgeBase;
 
-use Database\Admin\Seeders\CoreDatabaseSeeder;
+use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +17,7 @@ class KnowledgeValidationAndWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(CoreDatabaseSeeder::class);
+        $this->seed(AdminCatalogSeeder::class);
     }
 
     public function test_upsert_validation_fails_when_english_missing(): void

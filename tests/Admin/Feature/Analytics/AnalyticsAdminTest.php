@@ -2,7 +2,7 @@
 
 namespace Tests\Admin\Feature\Analytics;
 
-use Database\Admin\Seeders\CoreDatabaseSeeder;
+use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\Admin\TestCase;
 
@@ -13,7 +13,7 @@ class AnalyticsAdminTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(CoreDatabaseSeeder::class);
+        $this->seed(AdminCatalogSeeder::class);
     }
 
     public function test_admin_can_view_analytics_dashboard(): void

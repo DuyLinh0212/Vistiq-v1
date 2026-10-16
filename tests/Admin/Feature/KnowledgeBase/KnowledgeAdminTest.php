@@ -2,7 +2,7 @@
 
 namespace Tests\Admin\Feature\KnowledgeBase;
 
-use Database\Admin\Seeders\CoreDatabaseSeeder;
+use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\Admin\TestCase;
@@ -15,7 +15,7 @@ class KnowledgeAdminTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(CoreDatabaseSeeder::class);
+        $this->seed(AdminCatalogSeeder::class);
     }
 
     public function test_admin_can_view_knowledge_index(): void
