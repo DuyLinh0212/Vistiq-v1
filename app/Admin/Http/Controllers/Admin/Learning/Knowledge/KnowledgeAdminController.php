@@ -2,112 +2,118 @@
 
 namespace VistiqAdmin\Http\Controllers\Admin\Learning\Knowledge;
 
-use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
+use VistiqAdmin\Http\Requests\Admin\Learning\Knowledge\KnowledgeImportRequest;
 use VistiqAdmin\Http\Requests\Admin\Learning\Knowledge\KnowledgeUpsertRequest;
-use VistiqCore\Models\ContentRevision;
 use VistiqCore\Models\LearningItem;
-use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
+use VistiqCore\Services\Knowledge\KnowledgeImportService;
+use VistiqCore\Services\Knowledge\KnowledgeItemService;
 
 class KnowledgeAdminController extends AdminPageController
 {
-    public function index(Request $request): mixed
+    public function index(Request $request, KnowledgeItemService $service): mixed
     {
-        $types = DB::table('learning_item_types')->where('code', '!=', 'question')->orderBy('sort_order')->get();
-        $selectedType = $request->string('type')->toString();
-        $typeIds = $types->pluck('id', 'code');
-        if (! $typeIds->has($selectedType)) {
-            $selectedType = '';
-        }
+        $listing = $service->listing($request);
 
-        $query = LearningItem::query()
-            ->whereIn('learning_item_type_id', $types->pluck('id'))
-            ->when($request->filled('q'), fn ($items) => $items->where('canonical_text', 'like', '%'.$request->string('q')->toString().'%'))
-            ->when($selectedType !== '', fn ($items) => $items->where('learning_item_type_id', $typeIds[$selectedType]));
-        $typeCounts = LearningItem::query()
-            ->selectRaw('learning_item_type_id, COUNT(*) as item_count')
-            ->whereIn('learning_item_type_id', $types->pluck('id'))
-            ->groupBy('learning_item_type_id')
-            ->pluck('item_count', 'learning_item_type_id');
-
-        return $this->page('Kho kiến thức', 'pages.admin.learning.knowledge.workspace.index', [
-            'items' => $query->latest()->paginate(20)->withQueryString(),
-            'types' => $types,
-            'typeCounts' => $typeCounts,
-            'typeIds' => $typeIds,
-            'levelsById' => DB::table('proficiency_levels')->pluck('label', 'id'),
-            'selectedType' => $selectedType,
-            'search' => $request->string('q')->toString(),
-        ]);
+        return $this->page('Kho kiến thức', 'pages.admin.learning.knowledge.workspace.index', $listing);
     }
 
-    public function create(Request $request, ContentRevisionService $revisions): mixed
+    public function create(Request $request, KnowledgeItemService $service): mixed
     {
-        return $this->editor(new LearningItem, $revisions, $request->string('type')->toString());
+        $payload = $service->editorPayload(new LearningItem, $request->string('type')->toString());
+
+        return $this->page('Biên soạn kiến thức', 'pages.admin.learning.knowledge.workspace.editor', $payload);
     }
 
-    public function edit(LearningItem $knowledge, ContentRevisionService $revisions): mixed
+    public function edit(LearningItem $knowledge, KnowledgeItemService $service): mixed
     {
-        return $this->editor($knowledge, $revisions);
+        $payload = $service->editorPayload($knowledge);
+
+        return $this->page('Biên soạn kiến thức', 'pages.admin.learning.knowledge.workspace.editor', $payload);
     }
 
-    private function editor(LearningItem $item, ContentRevisionService $revisions, string $selectedType = 'vocabulary'): mixed
+    public function store(KnowledgeUpsertRequest $request, KnowledgeItemService $service): mixed
     {
-        $types = DB::table('learning_item_types')->where('code', '!=', 'question')->orderBy('sort_order')->get();
-        if (! $types->contains('code', $selectedType)) {
-            $selectedType = 'vocabulary';
-        }
-
-        $payload = $item->exists ? $revisions->payload('knowledge', $item) : ['type' => $selectedType];
-        $selectedType = $payload['type'] ?? $selectedType;
-        $dictionaryEntries = DB::table('dictionary_entries')
-            ->join('learning_items', 'learning_items.id', '=', 'dictionary_entries.learning_item_id')
-            ->leftJoin('learning_item_meanings', function ($join): void {
-                $join->on('learning_item_meanings.learning_item_id', '=', 'learning_items.id')->where('learning_item_meanings.sense_number', 1);
-            })
-            ->orderBy('learning_items.canonical_text')
-            ->get(['dictionary_entries.id', 'learning_items.canonical_text', 'learning_item_meanings.translation']);
-        $relatedItems = LearningItem::query()
-            ->join('learning_item_types', 'learning_item_types.id', '=', 'learning_items.learning_item_type_id')
-            ->where('learning_item_types.code', '!=', 'question')
-            ->when($item->exists, fn ($items) => $items->where('learning_items.id', '!=', $item->id))
-            ->orderBy('learning_items.canonical_text')
-            ->limit(500)
-            ->get(['learning_items.id', 'learning_items.canonical_text']);
-
-        return $this->page('Biên soạn kiến thức', 'pages.admin.learning.knowledge.workspace.editor', [
-            'item' => $item,
-            'workflowRevision' => $item->exists ? ContentRevision::find($item->draft_revision_id) : null,
-            'payload' => $payload,
-            'types' => $types,
-            'selectedType' => $selectedType,
-            'levels' => DB::table('proficiency_levels')->orderBy('sort_order')->get(),
-            'partsOfSpeech' => DB::table('parts_of_speech')->orderBy('sort_order')->get(),
-            'categories' => DB::table('grammar_categories')->orderBy('sort_order')->get(),
-            'dictionaryEntries' => $dictionaryEntries,
-            'relatedItems' => $relatedItems,
-        ]);
-    }
-
-    public function store(KnowledgeUpsertRequest $request, ContentRevisionService $revisions): mixed
-    {
-        $item = DB::transaction(function () use ($request, $revisions) {
-            $data = $request->validated();
-            $item = LearningItem::create(['learning_item_type_id' => DB::table('learning_item_types')->where('code', $data['type'])->value('id'), 'canonical_text' => $data['english'] ?? 'Bản nháp', 'slug' => Str::slug($data['english'] ?? 'draft').'-'.Str::random(12), 'created_by' => auth()->id(), 'status' => 'draft']);
-            $revisions->save('knowledge', $item, $data, 0);
-
-            return $item;
-        });
+        $item = $service->store($request->validated());
 
         return redirect()->route('admin.knowledge.edit', $item)->with('status', 'Đã tạo kiến thức bản nháp.');
     }
 
-    public function update(KnowledgeUpsertRequest $request, LearningItem $knowledge, ContentRevisionService $revisions): mixed
+    public function update(KnowledgeUpsertRequest $request, LearningItem $knowledge, KnowledgeItemService $service): mixed
     {
-        $revisions->save('knowledge', $knowledge, $request->validated(), $request->validated('revision_counter'));
+        $service->update($knowledge, $request->validated());
 
-        return $request->expectsJson() ? response()->json(['revision_counter' => $knowledge->fresh()->revision_counter]) : back()->with('status', 'Đã lưu bản nháp cần duyệt.');
+        return $request->expectsJson()
+            ? response()->json(['revision_counter' => $knowledge->fresh()->revision_counter])
+            : back()->with('status', 'Đã lưu bản nháp cần duyệt.');
+    }
+
+    public function destroy(Request $request, LearningItem $knowledge, KnowledgeItemService $service): mixed
+    {
+        abort_unless($request->user()?->hasPermission('content.edit'), 403, 'Bạn không có quyền xóa nội dung.');
+
+        $service->destroy($knowledge);
+
+        return redirect()->route('admin.knowledge.index')->with('status', 'Đã xóa bản nháp kiến thức.');
+    }
+
+    public function importForm(Request $request): mixed
+    {
+        $type = $request->string('type', 'vocabulary')->toString();
+
+        return $this->page('Import kiến thức', 'pages.admin.learning.knowledge.workspace.import', [
+            'type' => $type,
+        ]);
+    }
+
+    public function importPreview(KnowledgeImportRequest $request, KnowledgeImportService $importer): mixed
+    {
+        $preview = $importer->preview($request->file('file'), $request->validated('type'));
+        $duplicatePolicy = $request->input('duplicate_policy', 'skip');
+
+        return $this->page('Xem trước import', 'pages.admin.learning.knowledge.workspace.import-preview', [
+            'preview' => $preview,
+            'type' => $request->validated('type'),
+            'duplicatePolicy' => $duplicatePolicy,
+            'filename' => $request->file('file')->getClientOriginalName(),
+        ]);
+    }
+
+    public function importConfirm(Request $request, KnowledgeImportService $importer): mixed
+    {
+        abort_unless($request->user()?->hasPermission('content.edit'), 403, 'Bạn không có quyền import nội dung.');
+
+        $request->validate([
+            'type' => 'required|in:vocabulary,collocation,phrasal_verb,idiom,grammar',
+            'duplicate_policy' => 'required|in:skip,overwrite',
+            'rows_json' => 'required|string',
+        ]);
+
+        $rows = json_decode($request->input('rows_json'), true);
+        if (! is_array($rows)) {
+            return redirect()->route('admin.knowledge.import')->withErrors(['file' => 'Dữ liệu import không hợp lệ.']);
+        }
+
+        $result = $importer->import(
+            $rows,
+            $request->string('type')->toString(),
+            $request->string('duplicate_policy')->toString()
+        );
+
+        return redirect()->route('admin.knowledge.index', ['type' => $request->input('type')])
+            ->with('status', "Đã import thành công {$result['imported']} mục (bỏ qua {$result['skipped']}).");
+    }
+
+    public function export(Request $request, KnowledgeItemService $service, KnowledgeImportService $importer): mixed
+    {
+        $query = $service->query($request);
+        $csv = $importer->exportCsv($query);
+        $filename = 'knowledge-export-'.now()->format('YmdHis').'.csv';
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
     }
 }

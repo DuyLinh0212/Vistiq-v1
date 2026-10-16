@@ -2,8 +2,10 @@
 
 namespace VistiqLearner\Http\Controllers\Knowledge;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use VistiqLearner\Http\Controllers\StaticPageController;
+use VistiqLearner\Http\Requests\Knowledge\KnowledgeFilterRequest;
 
 class GrammarController extends StaticPageController
 {
@@ -15,5 +17,144 @@ class GrammarController extends StaticPageController
     public function show(string $screen): View
     {
         return $this->renderKnownScreen($screen, self::SCREENS);
+    }
+
+    public function index(KnowledgeFilterRequest $request): View
+    {
+        $grammarTypeId = DB::table('learning_item_types')->where('code', 'grammar')->value('id');
+        $q = $request->validated('q');
+        $category = $request->validated('category');
+        $level = $request->validated('level');
+
+        $query = DB::table('learning_items')
+            ->join('grammar_topics', 'grammar_topics.learning_item_id', '=', 'learning_items.id')
+            ->leftJoin('grammar_categories', 'grammar_categories.id', '=', 'grammar_topics.grammar_category_id')
+            ->leftJoin('proficiency_levels', 'proficiency_levels.id', '=', 'learning_items.proficiency_level_id')
+            ->where('learning_items.status', 'published')
+            ->where(fn ($sub) => $sub->whereNull('learning_items.published_at')->orWhere('learning_items.published_at', '<=', now()))
+            ->when($grammarTypeId, fn ($builder) => $builder->where('learning_items.learning_item_type_id', $grammarTypeId))
+            ->when($q, function ($builder) use ($q): void {
+                $builder->where(function ($sub) use ($q): void {
+                    $sub->where('learning_items.canonical_text', 'like', "%{$q}%")
+                        ->orWhere('grammar_topics.summary', 'like', "%{$q}%");
+                });
+            })
+            ->when($category, function ($builder) use ($category): void {
+                $builder->where(function ($sub) use ($category): void {
+                    $sub->where('grammar_categories.slug', $category)
+                        ->orWhere('grammar_categories.name', $category);
+                });
+            })
+            ->when($level, function ($builder) use ($level): void {
+                $builder->where(function ($sub) use ($level): void {
+                    $sub->where('proficiency_levels.code', $level)
+                        ->orWhere('proficiency_levels.label', $level);
+                });
+            })
+            ->select([
+                'learning_items.id',
+                'learning_items.canonical_text',
+                'learning_items.slug',
+                'grammar_topics.summary',
+                'grammar_categories.name as category_name',
+                'grammar_categories.slug as category_slug',
+                'proficiency_levels.code as level_code',
+                'proficiency_levels.label as level_label',
+            ])
+            ->orderBy('learning_items.canonical_text');
+
+        $items = $query->paginate(12)->withQueryString();
+        $categories = DB::table('grammar_categories')->orderBy('name')->get();
+        $levels = DB::table('proficiency_levels')->orderBy('sort_order')->get();
+
+        $page = [
+            'title' => 'Thư viện ngữ pháp',
+            'view' => 'pages.learner.knowledge.grammar.index',
+            'section' => 'grammar',
+            'shell' => 'user',
+            'slug' => 'grammar',
+            'description' => 'Học ngữ pháp theo chủ điểm, cấp độ và lộ trình.',
+            'show_heading' => false,
+        ];
+
+        return view('shared.demo-page', [
+            'page' => $page,
+            'items' => $items,
+            'categories' => $categories,
+            'levels' => $levels,
+            'filters' => [
+                'q' => $q,
+                'category' => $category,
+                'level' => $level,
+            ],
+        ]);
+    }
+
+    public function detail(string $slug): View
+    {
+        $grammarTypeId = DB::table('learning_item_types')->where('code', 'grammar')->value('id');
+
+        $item = DB::table('learning_items')
+            ->join('grammar_topics', 'grammar_topics.learning_item_id', '=', 'learning_items.id')
+            ->leftJoin('grammar_categories', 'grammar_categories.id', '=', 'grammar_topics.grammar_category_id')
+            ->leftJoin('proficiency_levels', 'proficiency_levels.id', '=', 'learning_items.proficiency_level_id')
+            ->where('learning_items.status', 'published')
+            ->where(fn ($sub) => $sub->whereNull('learning_items.published_at')->orWhere('learning_items.published_at', '<=', now()))
+            ->where('learning_items.slug', $slug)
+            ->when($grammarTypeId, fn ($builder) => $builder->where('learning_items.learning_item_type_id', $grammarTypeId))
+            ->select([
+                'learning_items.id',
+                'learning_items.canonical_text',
+                'learning_items.slug',
+                'grammar_topics.id as topic_id',
+                'grammar_topics.summary',
+                'grammar_categories.name as category_name',
+                'proficiency_levels.label as level_label',
+            ])
+            ->first();
+
+        if (! $item) {
+            if (isset(self::SCREENS[$slug])) {
+                return $this->show($slug);
+            }
+            abort(404, 'Chủ điểm ngữ pháp không tồn tại hoặc chưa được xuất bản.');
+        }
+
+        $rules = DB::table('grammar_rules')
+            ->where('grammar_topic_id', $item->topic_id)
+            ->orderBy('sort_order')
+            ->get();
+
+        $ruleIds = $rules->pluck('id')->all();
+        $examplesByRule = DB::table('grammar_examples')
+            ->whereIn('grammar_rule_id', $ruleIds)
+            ->orderBy('sort_order')
+            ->get()
+            ->groupBy('grammar_rule_id');
+
+        $related = DB::table('learning_item_relations')
+            ->join('learning_items', 'learning_items.id', '=', 'learning_item_relations.target_learning_item_id')
+            ->where('learning_item_relations.source_learning_item_id', $item->id)
+            ->where('learning_items.status', 'published')
+            ->select(['learning_items.canonical_text', 'learning_items.slug'])
+            ->get();
+
+        $page = [
+            'title' => $item->canonical_text,
+            'view' => 'pages.learner.knowledge.grammar.show',
+            'section' => 'grammar',
+            'shell' => 'user',
+            'slug' => $slug,
+            'description' => $item->summary ?? 'Cấu trúc, cách dùng và ví dụ dễ nhớ.',
+            'show_heading' => false,
+        ];
+
+        return view('shared.demo-page', [
+            'page' => $page,
+            'item' => $item,
+            'rules' => $rules,
+            'examplesByRule' => $examplesByRule,
+            'related' => $related,
+        ]);
     }
 }
