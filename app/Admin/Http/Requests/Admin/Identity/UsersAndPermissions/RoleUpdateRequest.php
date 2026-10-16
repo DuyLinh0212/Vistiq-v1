@@ -1,0 +1,102 @@
+<?php
+
+namespace VistiqAdmin\Http\Requests\Admin\Identity\UsersAndPermissions;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use VistiqCore\Models\Permission;
+use VistiqCore\Models\Role;
+use VistiqCore\Support\PermissionCatalog;
+
+class RoleUpdateRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->hasPermission('roles.manage') ?? false;
+    }
+
+    public function rules(): array
+    {
+        /** @var Role $role */
+        $role = $this->route('role');
+
+        return [
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('roles', 'name')->ignore($role->id),
+            ],
+            'description' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+            'permissions' => [
+                'sometimes',
+                'array',
+            ],
+            'permissions.*' => [
+                'integer',
+                'exists:permissions,id',
+            ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Tên vai trò không được để trống.',
+            'name.unique' => 'Tên vai trò đã tồn tại.',
+            'permissions.*.exists' => 'Quyền được chọn không tồn tại.',
+        ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            /** @var Role $role */
+            $role = $this->route('role');
+
+            if ($role && $role->code === 'super-admin' && $this->has('permissions')) {
+                $validator->errors()->add('permissions', 'Super Admin luôn có toàn bộ quyền và không thể chỉnh sửa.');
+
+                return;
+            }
+
+            if (! $this->has('permissions')) {
+                return;
+            }
+
+            $permissionIds = array_map('intval', $this->input('permissions', []));
+            if ($permissionIds === []) {
+                return;
+            }
+
+            $catalogIds = Permission::query()
+                ->whereIn('code', PermissionCatalog::codes())
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+
+            if (array_diff($permissionIds, $catalogIds) !== []) {
+                $validator->errors()->add('permissions', 'Chỉ được gán quyền có trong danh mục hệ thống.');
+            }
+        });
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('name')) {
+            $this->merge([
+                'name' => trim((string) $this->input('name')),
+            ]);
+        }
+        if ($this->has('description')) {
+            $this->merge([
+                'description' => trim((string) $this->input('description')),
+            ]);
+        }
+    }
+}
