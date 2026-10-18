@@ -2,8 +2,8 @@
 
 namespace Tests\Admin\Feature\QuestionBank;
 
-use Database\Admin\Seeders\AdminCatalogSeeder;
 use Database\Admin\Factories\QuestionBankItemFactory;
+use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +28,7 @@ class AdminQuestionBankTest extends TestCase
 
     public function test_question_bank_page_renders_catalog_filters(): void
     {
-        $this->get('/admin/questions')->assertOk()
+        $this->getJson('/admin/questions')->assertOk()
             ->assertSee('Ngân hàng câu hỏi')
             ->assertSee('TOEIC')
             ->assertSee('IELTS')
@@ -115,7 +115,7 @@ class AdminQuestionBankTest extends TestCase
             'offset' => 0,
         ]);
 
-        $response->assertRedirect(route('admin.questions.index'))
+        $response->assertRedirect(route('admin.readings.index'))
             ->assertSessionHas('import_summary', ['total' => 2, 'imported' => 2, 'failed' => 0]);
 
         $multipleChoice = QuestionBankItem::query()->with(['learningItem', 'options'])->where('prompt', 'The company is ______ its operations.')->firstOrFail();
@@ -147,7 +147,7 @@ class AdminQuestionBankTest extends TestCase
             'offset' => 0,
         ]);
 
-        $response->assertRedirect(route('admin.questions.index'))
+        $response->assertRedirect(route('admin.readings.index'))
             ->assertSessionHas('import_summary', ['total' => 2, 'imported' => 1, 'failed' => 1])
             ->assertSessionHas('import_errors', fn (array $errors): bool => str_contains($errors[0], 'Dòng 3'));
         $this->assertDatabaseHas('question_bank_items', ['prompt' => 'A valid question?']);
@@ -174,7 +174,7 @@ class AdminQuestionBankTest extends TestCase
             'status' => 'draft',
         ])->assertSessionHasNoErrors();
 
-        $this->get('/admin/questions')->assertOk()
+        $this->getJson('/admin/questions')->assertOk()
             ->assertSee('Xem trước bài / câu hỏi')->assertSee('Đáp án đúng')
             ->assertSee('expand')->assertSee('Use the base form after to.')
             ->assertSee('Verb form')->assertSee('data-qb-preview-template', false);
@@ -186,14 +186,14 @@ class AdminQuestionBankTest extends TestCase
         $plainQuestion = QuestionBankItemFactory::new()->create(['prompt' => 'Question without resources.']);
         $audioQuestion->forceFill(['metadata' => ['audio_id' => 123]])->save();
 
-        $this->get('/admin/questions?audio=yes')->assertOk()
+        $this->getJson('/admin/questions?audio=yes')->assertOk()
             ->assertViewHas('questions', fn ($questions) => $questions->pluck('id')->all() === [$audioQuestion->id])
             ->assertViewHas('stats', fn ($stats) => $stats['audio'] === 1 && $stats['draft'] === 2);
-        $this->get('/admin/questions?audio=no')->assertOk()
+        $this->getJson('/admin/questions?audio=no')->assertOk()
             ->assertViewHas('questions', fn ($questions) => $questions->pluck('id')->all() === [$plainQuestion->id]);
-        $this->get('/admin/questions?reading=yes')->assertOk()
+        $this->getJson('/admin/questions?reading=yes')->assertOk()
             ->assertViewHas('questions', fn ($questions) => $questions->total() === 0);
-        $this->get('/admin/questions?reading=no')->assertOk()
+        $this->getJson('/admin/questions?reading=no')->assertOk()
             ->assertViewHas('questions', fn ($questions) => $questions->total() === 2);
     }
 
@@ -203,11 +203,11 @@ class AdminQuestionBankTest extends TestCase
         $oldest = $questions->first();
         $oldest->forceFill(['updated_at' => now()->subDays(10)])->save();
 
-        $this->get('/admin/questions?sort=oldest&per_page=10')->assertOk()
+        $this->getJson('/admin/questions?sort=oldest&per_page=10')->assertOk()
             ->assertViewHas('questions', fn ($page) => $page->perPage() === 10 && $page->total() === 12 && $page->first()->id === $oldest->id && str_contains($page->nextPageUrl(), 'sort=oldest'));
-        $this->get('/admin/questions?sort=id&per_page=20')->assertOk()
+        $this->getJson('/admin/questions?sort=id&per_page=20')->assertOk()
             ->assertViewHas('questions', fn ($page) => $page->count() === 12 && $page->first()->id === $questions->last()->id);
-        $this->get('/admin/questions?per_page=999')->assertOk()
+        $this->getJson('/admin/questions?per_page=999')->assertOk()
             ->assertViewHas('questions', fn ($page) => $page->perPage() === 10);
     }
 }

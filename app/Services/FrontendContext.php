@@ -15,7 +15,7 @@ class FrontendContext
             return 'admin';
         }
 
-        return ($_SERVER['HTTP_X_VISTIQ_SURFACE'] ?? '') === 'admin' ? 'admin' : 'learner';
+        return $path === null && ($_SERVER['HTTP_X_VISTIQ_SURFACE'] ?? '') === 'admin' ? 'admin' : 'learner';
     }
 
     public function apiPath(string $path, ?string $surface = null): string

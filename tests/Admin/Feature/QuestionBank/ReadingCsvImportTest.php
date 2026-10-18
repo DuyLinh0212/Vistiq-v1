@@ -55,7 +55,7 @@ class ReadingCsvImportTest extends TestCase
         $this->get(route('admin.questions.import-template', ['template' => 'readings']))
             ->assertDownload('vistiq-readings-with-questions-template.csv');
         $this->get('/admin/readings')->assertOk()->assertSee('Mẫu CSV kèm câu hỏi')->assertSee('Import bài đọc CSV');
-        $this->get('/admin/questions')->assertOk()->assertSee('Mẫu bài đọc kèm câu hỏi');
+        $this->get('/admin/questions')->assertRedirect(route('admin.questions.listening'));
         $zip = new \ZipArchive;
         $this->assertTrue($zip->open(resource_path('import-templates/questions/vistiq-question-bank-templates.zip')));
         $this->assertSame(file_get_contents(resource_path('import-templates/questions/vistiq-readings-with-questions-template.csv')), $zip->getFromName('vistiq-readings-with-questions-template.csv'));
@@ -71,7 +71,7 @@ class ReadingCsvImportTest extends TestCase
         $this->assertDatabaseCount('learning_stimuli', 3);
         $this->assertDatabaseCount('question_groups', 3);
         $this->assertDatabaseCount('question_bank_items', 9);
-        $this->get('/admin/questions')->assertOk()->assertViewHas('entries', fn ($entries) => $entries->total() === 3);
+        $this->get('/admin/readings')->assertOk()->assertViewHas('readings', fn ($entries) => $entries->total() === 3);
 
         foreach (LearningStimulus::all() as $reading) {
             $payload = app(ContentRevisionService::class)->payload('stimulus', $reading);
@@ -82,7 +82,9 @@ class ReadingCsvImportTest extends TestCase
             $this->assertSame([$payload['metadata']['question_group_id']], $questions->pluck('question_group_id')->unique()->all());
             $part = DB::table('exam_parts')->find($payload['metadata']['exam_part_id']);
             $this->assertSame($part->code === 'part-6' ? 'paragraph' : 'passage', $payload['metadata']['content_kind']);
-            $this->assertCount(match ($part->code) { 'part-6' => 4, 'part-7' => 3, default => 2 }, $questions);
+            $this->assertCount(match ($part->code) {
+                'part-6' => 4, 'part-7' => 3, default => 2
+            }, $questions);
             foreach ($questions as $question) {
                 $q = app(ContentRevisionService::class)->payload('question', $question);
                 $this->assertSame([$reading->id], $q['stimulus_ids']);
@@ -146,7 +148,7 @@ class ReadingCsvImportTest extends TestCase
 
     public function test_viewer_cannot_import_or_download_editing_templates(): void
     {
-        $this->actingAs($this->admin('teacher'));
+        $this->actingAs($this->admin('teacher'), 'admin');
         $this->post('/admin/questions/import', $this->fields($this->csv([[]])))->assertForbidden();
         $this->get(route('admin.questions.import-template', ['template' => 'readings']))->assertForbidden();
         $this->assertDatabaseCount('learning_stimuli', 0);
@@ -155,7 +157,7 @@ class ReadingCsvImportTest extends TestCase
     public function test_bank_import_supports_new_articles_and_existing_stimulus_links(): void
     {
         $this->post('/admin/questions/import', $this->fields($this->csv([[]]), ['return_to' => 'questions']))
-            ->assertRedirect(route('admin.questions.index'))->assertSessionHas('import_summary.imported', 1);
+            ->assertRedirect(route('admin.readings.index'))->assertSessionHas('import_summary.imported', 1);
         $reading = LearningStimulus::firstOrFail();
         $conflict = $this->csv([['reading_key' => 'NEW', 'stimulus' => (string) $reading->id]]);
         $this->post('/admin/questions/import', $this->fields($conflict))->assertSessionHas('import_summary.failed', 1);

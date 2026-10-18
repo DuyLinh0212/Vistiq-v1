@@ -90,7 +90,7 @@
             <section class="resource-editor-card resource-preview-card"><div class="resource-editor-section-heading"><h2>Xem trước tài nguyên</h2></div>
                 <div class="resource-detail-labels"><span class="resource-badge is-{{ $asset->resource_kind }}">{{ $isAudio ? 'Audio' : 'Hình ảnh' }}</span><span class="resource-badge">{{ $asset->resource_category }}</span><span class="resource-badge">{{ strtoupper($asset->resource_format) }}</span></div>
                 <h3 class="resource-editor-preview-title">{{ $asset->title }}</h3>
-                @if($isAudio)<audio class="resource-editor-audio" controls preload="metadata" src="{{ route('admin.media.show', $asset) }}">Trình duyệt không hỗ trợ phát audio.</audio>
+                @if($isAudio)<audio class="resource-editor-audio" controls preload="none" src="{{ route('admin.media.show', $asset) }}">Trình duyệt không hỗ trợ phát audio.</audio>
                 @elseif($asset->resource_kind === 'image')<a class="resource-editor-image" href="{{ route('admin.media.show', $asset) }}" target="_blank" rel="noopener"><img src="{{ route('admin.media.show', $asset) }}" alt="{{ $asset->title }}"></a>
                 @else<a class="resource-editor-file" href="{{ route('admin.media.show', $asset) }}" target="_blank" rel="noopener">Mở tệp gốc</a>@endif
                 <dl class="resource-editor-facts"><div><dt><i data-resource-icon="user-round"></i>Người tải lên</dt><dd>{{ $asset->resource_creator }}</dd></div><div><dt><i data-resource-icon="clock-3"></i>Cập nhật</dt><dd>{{ $asset->updated_at?->locale('vi')->diffForHumans() }}</dd></div><div><dt><i data-resource-icon="hard-drive"></i>Lưu trữ</dt><dd>{{ $storageLabels[$asset->disk] ?? 'Kho nội bộ' }}</dd></div></dl>

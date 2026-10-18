@@ -1,11 +1,12 @@
 <h1>Duyệt nội dung</h1>
+@if($draftCount)<div class="review-draft-notice" role="status"><p>{{ number_format($draftCount) }} câu hỏi đang ở bản nháp, chưa gửi duyệt. Mở đúng ngân hàng để gửi duyệt:</p><nav class="assessment-actions" aria-label="Ngân hàng câu hỏi nháp"><a class="text-link" href="{{ route('admin.questions.listening', ['status'=>'draft']) }}">Listening →</a><a class="text-link" href="{{ route('admin.readings.index', ['status'=>'draft']) }}">Reading →</a><a class="text-link" href="{{ route('admin.questions.thpt', ['status'=>'draft']) }}">Tiếng Anh THPT →</a></nav></div>@endif
 <section class="panel">
     <nav class="assessment-actions" aria-label="Loại nội dung">
         @foreach([''=>'Tất cả','question'=>'Câu hỏi','exam'=>'Đề thi'] as $kind=>$label)
             <a class="button button-quiet" href="{{ route('admin.content-approval.index', array_merge(request()->except('page'), ['kind'=>$kind])) }}" @if(($filters['kind']??'')===$kind) aria-current="page" @endif>{{ $label }}</a>
         @endforeach
     </nav>
-    <form method="get" class="admin-form-grid">
+    <form method="get" class="admin-form-grid review-queue-filters">
         <input type="hidden" name="kind" value="{{ $filters['kind']??'' }}">
         <label>Tìm nội dung<input name="q" maxlength="255" value="{{ $filters['q']??'' }}"></label>
         <label>ID người gửi<input name="author" type="number" min="1" value="{{ $filters['author']??'' }}"></label>

@@ -2,6 +2,7 @@
 
 namespace VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank;
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -69,7 +70,7 @@ class QuestionController extends StaticPageController
         'admin-question-edit' => ['title' => 'Tạo / chỉnh sửa câu hỏi', 'frame' => 'A03', 'view' => 'pages.admin.assessment.question-bank.questions.edit', 'section' => 'admin', 'description' => 'Tạo câu hỏi, đáp án, giải thích và liên kết media.'],
     ];
 
-    public function show(string $screen): View
+    public function show(string $screen): View|RedirectResponse
     {
         return match ($screen) {
             'admin-questions' => $this->index(request()),
@@ -78,8 +79,11 @@ class QuestionController extends StaticPageController
         };
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        if ($request->routeIs('admin.questions.index') && ! $request->expectsJson()) {
+            return redirect()->route($request->input('exam') === 'thpt' ? 'admin.questions.thpt' : ($request->input('reading') === 'yes' ? 'admin.readings.index' : 'admin.questions.listening'), $request->except('reading', 'audio'));
+        }
         $search = trim($request->string('q')->toString());
         $exam = $request->string('exam')->toString();
         $part = $request->string('part')->toString();
@@ -390,7 +394,7 @@ class QuestionController extends StaticPageController
         $returnRoute = match ($request->input('return_to')) {
             'readings' => 'admin.readings.index',
             'thpt' => 'admin.questions.thpt',
-            default => 'admin.questions.index',
+            default => 'admin.readings.index',
         };
         $importToken = $request->string('import_key')->toString();
         $progressKey = $this->importProgressKey($request->user()->id, $importToken);

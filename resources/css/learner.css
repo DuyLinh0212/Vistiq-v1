@@ -4,6 +4,7 @@
 @import './auth-spotlight.css';
 @import './dictionary.css';
 @import './profile.css';
+@import './personal-library.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

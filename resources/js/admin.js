@@ -3,9 +3,11 @@ import './ui-feedback.js';
 import.meta.glob('./resource-library.js', { eager: true });
 import './question-bank.js';
 import './question-workbook-import.js';
-import './question-editor.js';
+if (document.querySelector('[data-qe-root]')) import('./question-editor.js');
 import './reading-library.js';
 import './exam-runner.js';
+
+document.querySelector('[data-overview-period]')?.addEventListener('change', event => event.target.form.requestSubmit());
 
 const adminLoginForm = document.querySelector('[data-admin-login-form]');
 if (adminLoginForm) {

@@ -22,7 +22,8 @@ class EnsureAccountActive
 
             if ($user->status !== 'active' || $request->session()->get('user_session_version', $user->session_version) !== $user->session_version) {
                 Auth::logout();
-                $request->session()->invalidate();
+                $request->session()->forget(['user_session_version', 'learner.intended']);
+                $request->session()->regenerate(true);
                 $request->session()->regenerateToken();
                 if ($request->expectsJson()) {
                     abort(401, 'Phiên đăng nhập đã hết hiệu lực.');

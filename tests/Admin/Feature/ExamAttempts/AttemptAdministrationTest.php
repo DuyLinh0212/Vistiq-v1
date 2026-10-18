@@ -47,7 +47,7 @@ class AttemptAdministrationTest extends TestCase
         $this->getJson('/admin/attempts?from=2026-10-14&to=2026-10-01')->assertUnprocessable();
         $this->get('/admin/attempts?max_score=100')->assertOk();
         $this->get('/admin/attempts?to=2099-01-01')->assertOk();
-        $this->actingAs(User::factory()->create())->get('/admin/attempts')->assertForbidden();
+        $this->actingAs(User::factory()->create(), 'admin')->get('/admin/attempts')->assertForbidden();
     }
 
     public function test_grading_paginates_only_manual_questions(): void

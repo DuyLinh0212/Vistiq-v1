@@ -188,7 +188,7 @@ function initializeLibrary(library, { selectedId = null, closed = false } = {}) 
             refreshIcons();
         });
         seek.addEventListener('input', () => { if (Number.isFinite(audio.duration)) audio.currentTime = Number(seek.value) * audio.duration / 100; });
-        audio.addEventListener('loadedmetadata', () => { syncTime(); decodeWave(); });
+        audio.addEventListener('loadedmetadata', syncTime);
         audio.addEventListener('timeupdate', syncTime);
         ['play', 'pause', 'ended'].forEach(event => audio.addEventListener(event, syncPlay));
         audio.addEventListener('error', () => { player.querySelector('[data-resource-player-error]').hidden = false; });

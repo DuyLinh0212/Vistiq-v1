@@ -150,7 +150,7 @@
                             <div class="audio-editor-preview">
                                 <div class="audio-editor-preview__heading"><span>Preview audio</span><small>Nghe để kiểm tra đúng file</small></div>
                                 @if($selectedMetadata['asset_id'] ?? null)
-                                    <audio controls preload="metadata" src="{{ route('admin.media.show', $selectedMetadata['asset_id']) }}" aria-label="Phát {{ $selectedStimulus->title }}">Trình duyệt không phát được audio.</audio>
+                                    <audio controls preload="none" src="{{ route('admin.media.show', $selectedMetadata['asset_id']) }}" aria-label="Phát {{ $selectedStimulus->title }}">Trình duyệt không phát được audio.</audio>
                                 @else
                                     <div class="audio-editor-preview__empty">Chưa có file audio</div>
                                 @endif

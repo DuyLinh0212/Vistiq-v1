@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Learner\TestCase;
 use VistiqCore\Models\LearningItem;
+use VistiqLearner\Models\User;
 
 class LearnerKnowledgeTest extends TestCase
 {
@@ -86,7 +87,7 @@ class LearnerKnowledgeTest extends TestCase
 
     public function test_learner_can_view_knowledge_index(): void
     {
-        $response = $this->get(route('knowledge.index'));
+        $response = $this->actingAs(User::factory()->create())->get(route('knowledge.index'));
 
         $response->assertOk()
             ->assertSee('Kho kiến thức');

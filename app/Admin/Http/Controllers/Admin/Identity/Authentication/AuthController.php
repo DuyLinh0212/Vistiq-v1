@@ -38,7 +38,8 @@ class AuthController extends StaticPageController
             return back()->withErrors(['email' => 'Tài khoản không có quyền quản trị.'])->onlyInput('email');
         }
         $request->session()->regenerate();
-        $request->session()->put('user_session_version', $request->user()->session_version);
+        $request->session()->put('admin_session_version', $request->user()->session_version);
+        $request->session()->forget('admin_otp_verified');
 
         return $this->redirectToAdminSurface($request);
     }
@@ -79,7 +80,8 @@ class AuthController extends StaticPageController
     public function logout(Request $request): RedirectResponse
     {
         Auth::logout();
-        $request->session()->invalidate();
+        $request->session()->forget(['admin_session_version', 'admin_otp_verified', 'admin.intended']);
+        $request->session()->regenerate(true);
         $request->session()->regenerateToken();
 
         return redirect()->route('admin.login');

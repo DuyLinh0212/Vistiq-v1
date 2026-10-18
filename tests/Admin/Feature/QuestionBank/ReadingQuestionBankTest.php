@@ -57,7 +57,7 @@ class ReadingQuestionBankTest extends TestCase
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('/admin/questions', $this->fields($reading, ['prompt' => 'Question '.$i]))->assertOk();
         }
-        $this->get('/admin/questions')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['questions']->count() === 5);
+        $this->getJson('/admin/questions')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['questions']->count() === 5);
         $this->get('/admin/questions/bank-preview/stimulus/'.$reading->id)->assertOk()->assertSee('Câu hỏi liên quan (5)')->assertSee('Question 4')->assertSee('Đáp án đúng');
         $rows = QuestionBankItem::orderBy('group_order')->get();
         $this->assertSame([0, 1, 2, 3, 4], $rows->pluck('group_order')->all());
@@ -96,7 +96,7 @@ class ReadingQuestionBankTest extends TestCase
         $p = app(ContentRevisionService::class)->payload('stimulus', $reading);
         $this->assertSame('paragraph', $p['metadata']['content_kind']);
         $this->assertDatabaseHas('question_groups', ['id' => $p['metadata']['question_group_id'], 'kind' => 'part6']);
-        $this->get('/admin/questions')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && str_starts_with($e->first()['code'], 'T-'));
+        $this->getJson('/admin/questions')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && str_starts_with($e->first()['code'], 'T-'));
     }
 
     public function test_current_draft_moves_question_out_of_old_passage(): void
@@ -110,7 +110,7 @@ class ReadingQuestionBankTest extends TestCase
         $data = app(QuestionBankCatalog::class)->catalog();
         $this->assertCount(0, $data['entries']['stimulus:'.$old->id]['questions']);
         $this->assertCount(1, $data['entries']['stimulus:'.$new->id]['questions']);
-        $this->get('/admin/questions?q=Old')->assertViewHas('entries', fn ($e) => $e->total() === 0);
+        $this->getJson('/admin/questions?q=Old')->assertViewHas('entries', fn ($e) => $e->total() === 0);
     }
 
     public function test_multiple_passages_keep_codes_and_shared_question_selection_is_unique(): void
@@ -120,8 +120,8 @@ class ReadingQuestionBankTest extends TestCase
         $q = QuestionBankItemFactory::new()->create();
         $r = ContentRevision::create(['kind' => 'question', 'entity_id' => $q->id, 'number' => 1, 'status' => 'draft', 'payload' => ['prompt' => 'A shared question', 'stimulus_ids' => [$first->id, (string) $second->id]]]);
         $q->forceFill(['draft_revision_id' => $r->id])->save();
-        $this->get('/admin/questions')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 2)->assertViewHas('matchingQuestionIds', [$q->id]);
-        $this->assertSame(1, substr_count($this->get('/admin/questions')->getContent(), 'name="ids[]"'));
+        $this->getJson('/admin/questions')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 2)->assertViewHas('matchingQuestionIds', [$q->id]);
+        $this->assertSame(1, substr_count($this->getJson('/admin/questions')->getContent(), 'name="ids[]"'));
     }
 
     public function test_filtering_groups_rows_but_preview_keeps_all_questions(): void
@@ -130,7 +130,7 @@ class ReadingQuestionBankTest extends TestCase
         $easy = DB::table('question_difficulties')->where('code', 'easy')->value('id');
         $this->postJson('/admin/questions', $this->fields($reading, ['prompt' => 'Easy question', 'question_difficulty_id' => $easy]))->assertOk();
         $this->postJson('/admin/questions', $this->fields($reading, ['prompt' => 'Medium question']))->assertOk();
-        $this->get('/admin/questions?difficulty=easy')->assertViewHas('entries', fn ($e) => $e->first()['questions']->count() === 2 && count($e->first()['matching_ids']) === 1 && $e->first()['difficulty'] === 'mixed');
+        $this->getJson('/admin/questions?difficulty=easy')->assertViewHas('entries', fn ($e) => $e->first()['questions']->count() === 2 && count($e->first()['matching_ids']) === 1 && $e->first()['difficulty'] === 'mixed');
         $this->get('/admin/questions/bank-preview/stimulus/'.$reading->id.'?difficulty=easy')->assertOk()->assertSee('Easy question')->assertSee('Medium question');
     }
 
@@ -146,8 +146,8 @@ class ReadingQuestionBankTest extends TestCase
         $q->forceFill(['metadata' => ['audio_id' => $asset->id]])->save();
         $missingGroup = DB::table('question_groups')->insertGetId(['title' => 'Missing resource', 'kind' => 'conversation', 'exam_part_id' => $part, 'stimulus_ids' => '[]', 'metadata' => '{}', 'created_at' => now(), 'updated_at' => now()]);
         QuestionBankItemFactory::new()->create(['question_group_id' => $missingGroup, 'exam_part_id' => $part]);
-        $this->get('/admin/questions')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 2)->assertSee('Chưa gắn tài nguyên');
-        $this->get('/admin/questions?audio=yes')->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['questions']->count() === 3);
+        $this->getJson('/admin/questions')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 2)->assertSee('Chưa gắn tài nguyên');
+        $this->getJson('/admin/questions?audio=yes')->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['questions']->count() === 3);
     }
 
     public function test_view_only_user_can_preview_but_cannot_create(): void
@@ -170,11 +170,11 @@ class ReadingQuestionBankTest extends TestCase
             $reading = LearningStimulus::create(['title' => 'Passage '.$i, 'body' => 'Shared text', 'stimulus_type' => 'reading', 'status' => 'draft', 'created_by' => auth()->id()]);
             QuestionBankItemFactory::new()->count(2)->create(['learning_stimulus_id' => $reading->id]);
         }
-        $this->get('/admin/questions?page=2')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 11 && $e->count() === 1 && $e->first()['questions']->count() === 2);
+        $this->getJson('/admin/questions?page=2')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 11 && $e->count() === 1 && $e->first()['questions']->count() === 2);
         $first = LearningStimulus::firstOrFail();
-        $this->get('/admin/questions?q=P-'.$first->id)->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['id'] === $first->id);
+        $this->getJson('/admin/questions?q=P-'.$first->id)->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['id'] === $first->id);
         $question = QuestionBankItem::firstOrFail();
-        $this->get('/admin/questions?q=Q-'.$question->id)->assertOk()->assertViewHas('matchingQuestionIds', [$question->id]);
+        $this->getJson('/admin/questions?q=Q-'.$question->id)->assertOk()->assertViewHas('matchingQuestionIds', [$question->id]);
     }
 
     public function test_embedded_edit_preserves_all_passages_of_a_shared_question(): void
@@ -199,9 +199,9 @@ class ReadingQuestionBankTest extends TestCase
         $asset = MediaAsset::create(['title' => 'Shared audio.wav', 'disk' => 'local', 'path' => 'media/shared.wav', 'mime_type' => 'audio/wav', 'size' => 100, 'created_by' => auth()->id()]);
         $group = DB::table('question_groups')->insertGetId(['title' => 'Media group', 'kind' => 'conversation', 'exam_part_id' => $part, 'stimulus_ids' => '[]', 'metadata' => json_encode(['audio_id' => $asset->id]), 'created_at' => now(), 'updated_at' => now()]);
         QuestionBankItemFactory::new()->count(3)->create(['exam_part_id' => $part, 'question_group_id' => $group]);
-        $this->get('/admin/questions')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['kind'] === 'media' && $e->first()['questions']->count() === 3);
+        $this->getJson('/admin/questions')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['kind'] === 'media' && $e->first()['questions']->count() === 3);
         $asset->delete();
-        $this->get('/admin/questions?missing=1')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['questions']->count() === 3);
+        $this->getJson('/admin/questions?missing=1')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['questions']->count() === 3);
         $this->get('/admin/questions/bank-preview/media/'.$asset->id)->assertOk()->assertSee('file không còn tồn tại');
     }
 
@@ -210,8 +210,8 @@ class ReadingQuestionBankTest extends TestCase
         $part = DB::table('exam_parts')->where('code', 'part-6')->value('id');
         $group = DB::table('question_groups')->insertGetId(['title' => 'Unassigned paragraph', 'kind' => 'part6', 'exam_part_id' => $part, 'stimulus_ids' => '[]', 'metadata' => '{}', 'created_at' => now(), 'updated_at' => now()]);
         QuestionBankItemFactory::new()->count(4)->create(['exam_part_id' => $part, 'question_group_id' => $group]);
-        $this->get('/admin/questions?missing=1&reading=no')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['kind'] === 'group');
-        $this->get('/admin/questions?reading=yes')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 0);
+        $this->getJson('/admin/questions?missing=1&reading=no')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 1 && $e->first()['kind'] === 'group');
+        $this->getJson('/admin/questions?reading=yes')->assertOk()->assertViewHas('entries', fn ($e) => $e->total() === 0);
     }
 
     public function test_reading_update_preserves_binding_and_rolls_back_groups_on_conflict(): void
