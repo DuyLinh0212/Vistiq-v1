@@ -4,7 +4,7 @@ namespace Tests\Admin\Feature\SystemOperations;
 
 use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\Admin\TestCase;

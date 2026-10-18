@@ -3,7 +3,7 @@
 // Opt-in disposable MySQL verification. This script cannot name an application database.
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use VistiqAdmin\Models\User;
 use VistiqAdmin\Services\Admin\System\DatabaseOperationsService;
 use VistiqCore\Models\Role;

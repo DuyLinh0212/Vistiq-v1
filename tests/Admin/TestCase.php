@@ -15,6 +15,8 @@ use VistiqCore\Services\Assessment\Exams\ExamPublishingService;
 
 abstract class TestCase extends \Illuminate\Foundation\Testing\TestCase
 {
+    use \Tests\Concerns\AssertsCompactStorage;
+
     public function actingAs(Authenticatable $user, $guard = null)
     {
         return parent::actingAs($user, $guard ?? ($user->isAdmin() ? 'admin' : 'web'));

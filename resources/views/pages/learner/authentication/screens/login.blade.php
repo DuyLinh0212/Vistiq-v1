@@ -7,7 +7,7 @@
     <div class="auth-alert auth-alert-success" role="status">{{ session('status') }}</div>
 @endif
 
-<form data-auth-feedback class="auth-form" action="{{ route('login.store') }}" method="post">
+<form data-auth-feedback data-pending-label="Đang đăng nhập…" class="auth-form" action="{{ route('login.store') }}" method="post">
     @csrf
 
     <div class="auth-field">
@@ -28,7 +28,7 @@
         'fieldPlaceholder' => 'Nhập mật khẩu',
         'showForgotLink' => true,
     ])
-    <p class="spotlight-password-help" id="spotlight-password-help">Di chuyển chuột sau khi bật đèn để soi mật khẩu.</p>
+    <p class="auth-password-help" id="auth-password-help">Bạn có thể hiện mật khẩu bằng biểu tượng con mắt.</p>
 
     <div class="auth-inline">
         <label class="check-line" for="remember">

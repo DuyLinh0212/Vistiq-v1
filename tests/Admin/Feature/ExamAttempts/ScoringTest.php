@@ -4,7 +4,7 @@ namespace Tests\Admin\Feature\ExamAttempts;
 
 use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Admin\TestCase;
 use VistiqAdmin\Models\User;

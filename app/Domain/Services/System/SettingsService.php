@@ -15,7 +15,6 @@ class SettingsService
         'media' => ['max_megabytes' => 50, 'cdn_url' => ''],
         'storage' => ['disk' => 'public', 'key' => '', 'secret' => '', 'region' => 'us-east-1', 'bucket' => '', 'endpoint' => '', 'url' => ''],
         'scoring' => ['estimated' => true],
-        'subscription' => ['enabled' => false],
         'feature_flags' => ['leaderboard' => true, 'ai' => false],
     ];
 

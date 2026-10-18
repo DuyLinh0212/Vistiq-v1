@@ -3,7 +3,7 @@
 namespace VistiqCore\Services\Assessment\ContentApproval;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -88,7 +88,7 @@ class ContentRevisionService
         return DB::transaction(function () use ($kind, $root, $payload, $expected): ContentRevision {
             $root = $root->newQuery()->lockForUpdate()->findOrFail($root->id);
             abort_if($root->revision_counter > 0 && $expected !== $root->revision_counter, 409, 'Nội dung đã thay đổi. Hãy tải lại bản mới nhất.');
-            $liveStatus = $kind === 'question' ? $root->learningItem->status : $root->status;
+            $liveStatus = $kind === 'question' ? $root->contentStatus() : $root->status;
             if (! $root->published_revision_id && $liveStatus === 'published') {
                 $this->published($kind, $root);
                 $root->refresh();
@@ -123,8 +123,12 @@ class ContentRevisionService
             if (mb_strlen($note ?? '') > 2000) {
                 throw ValidationException::withMessages(['note' => 'Lý do không được dài quá 2.000 ký tự.']);
             }
-            abort_if($kind === 'question' && $action === 'approve' && (int) $revision->created_by === (int) auth()->id(), 403, 'Tác giả không được tự duyệt revision của mình.');
-            $liveStatus = $kind === 'question' ? $root->learningItem->status : $root->status;
+            $selfReview = $kind === 'question'
+                && $action === 'approve'
+                && (int) $revision->created_by === (int) auth()->id()
+                && auth()->user()?->hasRole('super-admin');
+            abort_if($kind === 'question' && $action === 'approve' && (int) $revision->created_by === (int) auth()->id() && ! $selfReview, 403, 'Tác giả cần reviewer khác duyệt revision này.');
+            $liveStatus = $kind === 'question' ? $root->contentStatus() : $root->status;
             abort_if($liveStatus === 'archived' && $action !== 'archive', 409, 'Nội dung đã lưu trữ.');
             $allowed = ['review' => ['draft'], 'approve' => ['review'], 'reject' => ['review'], 'publish' => ['approved'], 'archive' => ['published']];
             abort_unless(in_array($revision->status, $allowed[$action], true), 409, 'Trạng thái hiện tại không cho phép thao tác này.');
@@ -161,7 +165,11 @@ class ContentRevisionService
                     $this->mirrorStatus($kind, $root, $status);
                 }
             }
-            $this->audit->record('content.'.$action, $kind, $root->id, $before, ['status' => $action === 'archive' ? 'archived' : $revision->status, 'revision' => $revision->number, 'note' => $note]);
+            $after = ['status' => $action === 'archive' ? 'archived' : $revision->status, 'revision' => $revision->number, 'note' => $note];
+            if ($selfReview) {
+                $after['self_review'] = true;
+            }
+            $this->audit->record('content.'.$action, $kind, $root->id, $before, $after);
 
             return $revision;
         });
@@ -172,7 +180,7 @@ class ContentRevisionService
         if ($root->published_revision_id) {
             return ContentRevision::findOrFail($root->published_revision_id);
         }
-        $status = $kind === 'question' ? $root->learningItem->status : $root->status;
+        $status = $kind === 'question' ? $root->contentStatus() : $root->status;
         abort_unless($status === 'published', 422, 'Nội dung chưa xuất bản.');
 
         return DB::transaction(function () use ($kind, $root): ContentRevision {
@@ -208,7 +216,7 @@ class ContentRevisionService
         Gate::authorize('edit', $root);
         DB::transaction(function () use ($kind, $root, $questionIdsUsedInDraftExams): void {
             $root = $root->newQuery()->lockForUpdate()->findOrFail($root->id);
-            $status = $kind === 'question' ? $root->learningItem->status : $root->status;
+            $status = $kind === 'question' ? $root->contentStatus() : $root->status;
             if ($kind !== 'question') {
                 abort_if($status !== 'draft' || ($root->draft_revision_id && ContentRevision::find($root->draft_revision_id)?->status !== 'draft'), 409, 'Chỉ xóa nội dung bản nháp chưa sử dụng.');
             }
@@ -270,7 +278,10 @@ class ContentRevisionService
 
     private function mirrorStatus(string $kind, Model $root, string $status): void
     {
-        $item = $kind === 'question' ? $root->learningItem : $root;
+        $item = $kind === 'question' ? ($root->learningItem ?? $root) : $root;
+        if ($kind === 'question' && $item !== $root) {
+            $root->forceFill(['status' => $status, 'published_at' => $status === 'published' ? now() : $root->published_at])->save();
+        }
         $item->forceFill(['status' => $status, 'published_at' => $status === 'published' ? now() : $item->published_at])->save();
     }
 
@@ -296,7 +307,7 @@ class ContentRevisionService
                 continue;
             } DB::table('learning_item_relations')->insert(['source_learning_item_id' => $item->id, 'target_learning_item_id' => $relation['id'], 'relation_type' => $relation['type'], 'created_at' => now(), 'updated_at' => now()]);
         }
-        DB::table('learning_item_meanings')->updateOrInsert(['learning_item_id' => $item->id, 'sense_number' => 1], ['translation' => $payload['meaning_vi'] ?? $payload['summary'] ?? $payload['english'], 'definition' => $payload['definition_en'] ?? null, 'part_of_speech_id' => $payload['part_of_speech_id'] ?? null, 'updated_at' => now(), 'created_at' => now()]);
+        DB::table('learning_item_meanings')->updateOrInsert(['learning_item_id' => $item->id, 'sense_number' => 1], ['translation' => $payload['meaning_vi'] ?? $payload['summary'] ?? $payload['english'], 'definition' => $payload['definition_en'] ?? null, 'part_of_speech_id' => $payload['part_of_speech_id'] ?? null, 'part_of_speech' => DB::table('parts_of_speech')->where('id', $payload['part_of_speech_id'] ?? null)->value('code'), 'updated_at' => now(), 'created_at' => now()]);
         $meaningId = DB::table('learning_item_meanings')->where('learning_item_id', $item->id)->where('sense_number', 1)->value('id');
         DB::table('learning_item_meaning_examples')->where('learning_item_meaning_id', $meaningId)->delete();
         foreach ($payload['examples'] ?? [] as $index => $example) {
@@ -321,7 +332,7 @@ class ContentRevisionService
             DB::table('idioms')->updateOrInsert(['learning_item_id' => $item->id], ['register' => $payload['register'] ?? null, 'usage_note' => $payload['usage_note'] ?? null, 'created_at' => now(), 'updated_at' => now()]);
         }
         if ($type === 'grammar') {
-            DB::table('grammar_topics')->updateOrInsert(['learning_item_id' => $item->id], ['grammar_category_id' => $payload['grammar_category_id'] ?? DB::table('grammar_categories')->value('id'), 'summary' => $payload['summary'] ?? null, 'content' => $payload['content'] ?? null, 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('grammar_topics')->updateOrInsert(['learning_item_id' => $item->id], ['grammar_category_id' => $payload['grammar_category_id'] ?? DB::table('grammar_categories')->value('id'), 'summary' => $payload['summary'] ?? null, 'content' => $payload['content'] ?? null, 'category' => DB::table('grammar_categories')->where('id', $payload['grammar_category_id'] ?? DB::table('grammar_categories')->value('id'))->value('slug'), 'created_at' => now(), 'updated_at' => now()]);
         }
         if ($type === 'grammar') {
             $topicId = DB::table('grammar_topics')->where('learning_item_id', $item->id)->value('id');

@@ -31,6 +31,7 @@
                 <a class="button button-quiet" href="#reading-csv-import">Import bài đọc CSV</a>
                 @include('pages.admin.assessment.question-bank.workspace.question-workbook-import', ['workbookKind'=>'reading'])
                 <a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'reading-xlsx']) }}">@include('pages.dictionary.icon', ['name'=>'saved']) Tải mẫu .xlsx</a>
+                @include('pages.admin.assessment.question-bank.workspace.send-all-review')
                 <a class="button button-primary" href="{{ route('admin.readings.index', ['create'=>1]) }}">@include('pages.dictionary.icon', ['name'=>'plus']) Tạo bài đọc</a>
             @endcan
         </div>

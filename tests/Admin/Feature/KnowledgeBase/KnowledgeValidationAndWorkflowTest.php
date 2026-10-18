@@ -5,7 +5,7 @@ namespace Tests\Admin\Feature\KnowledgeBase;
 use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Tests\Admin\TestCase;
 use VistiqCore\Models\LearningItem;
 use VistiqCore\Services\Knowledge\KnowledgeTaxonomyService;

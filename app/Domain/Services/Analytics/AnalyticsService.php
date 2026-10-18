@@ -4,7 +4,7 @@ namespace VistiqCore\Services\Analytics;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use VistiqCore\Models\ExamAttempt;
 use VistiqCore\Models\ExamTemplate;
 use VistiqCore\Models\QuestionBankItem;

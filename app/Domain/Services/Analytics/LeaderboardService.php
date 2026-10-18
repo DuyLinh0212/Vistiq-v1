@@ -4,7 +4,7 @@ namespace VistiqCore\Services\Analytics;
 
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Validation\ValidationException;
 use VistiqCore\Models\ExamTemplate;
 
@@ -13,7 +13,7 @@ class LeaderboardService
     private function rankedQuery(?ExamTemplate $exam = null): Builder
     {
         $seconds = "(COALESCE(JSON_EXTRACT(r.details, '$.duration_seconds'), 0) + 0)";
-        $eligible = DB::table('exam_attempts as a')->join('attempt_results as r', 'r.exam_attempt_id', '=', 'a.id')->join('users as u', 'u.id', '=', 'a.user_id')->join('exam_templates as e', 'e.id', '=', 'a.exam_template_id')
+        $eligible = DB::table('exam_attempts as a')->join(DB::source('attempt_results as r'), 'r.exam_attempt_id', '=', 'a.id')->join('users as u', 'u.id', '=', 'a.user_id')->join('exam_templates as e', 'e.id', '=', 'a.exam_template_id')
             ->whereNotNull('a.snapshot')->whereNotNull('a.submitted_at')->whereIn('a.status', ['submitted', 'completed'])
             ->where('a.snapshot->policies->leaderboard', true)
             ->where('a.leaderboard_status', 'approved')->where('r.grading_status', 'completed')->whereNotNull('r.scaled_score')->where('u.status', 'active')

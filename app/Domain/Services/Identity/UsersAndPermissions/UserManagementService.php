@@ -57,9 +57,7 @@ class UserManagementService
                     }
                     break;
                 case 'subscription':
-                    abort_unless(isset($data['plan_id']) && DB::table('subscription_plans')->where('id', $data['plan_id'])->where('is_active', true)->exists(), 422);
-                    DB::table('user_subscriptions')->updateOrInsert(['user_id' => $user->id], ['subscription_plan_id' => $data['plan_id'], 'expires_at' => $data['expires_at'] ?? null, 'created_at' => now(), 'updated_at' => now()]);
-                    break;
+                    abort(410, 'Chức năng mua gói đã ngừng sử dụng.');
                 default:
                     abort(404);
             }

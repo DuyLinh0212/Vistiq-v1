@@ -33,16 +33,6 @@
                 </form>
             </section>
         @endcan
-        <section class="panel" aria-labelledby="subscription-title"><div class="section-head"><h2 id="subscription-title">Gói dịch vụ hội viên</h2></div>
-            @if($plans->isNotEmpty())
-                <form method="post" action="{{ route('admin.users.action', [$user, 'subscription']) }}" class="admin-form-grid">
-                    @csrf<input type="hidden" name="_identity_form" value="subscription">
-                    <label for="plan_id">Gói dịch vụ *<select id="plan_id" name="plan_id" required>@foreach($plans as $plan)<option value="{{ $plan->id }}" @selected((int) old('plan_id', $subscription?->subscription_plan_id) === $plan->id)>{{ $plan->name }}</option>@endforeach</select>@error('plan_id')<span class="admin-login-field-error">{{ $message }}</span>@enderror</label>
-                    <label for="expires_at">Ngày hết hạn<input id="expires_at" name="expires_at" type="datetime-local" value="{{ old('expires_at', $subscription?->expires_at ? \Illuminate\Support\Carbon::parse($subscription->expires_at)->format('Y-m-d\TH:i') : '') }}" @error('expires_at')aria-invalid="true" aria-describedby="expires-error"@enderror><small>Để trống nếu không giới hạn.</small>@error('expires_at')<span id="expires-error" class="admin-login-field-error">{{ $message }}</span>@enderror</label>
-                    <div class="identity-actions identity-wide"><button type="submit" class="button button-primary">Cập nhật gói dịch vụ</button></div>
-                </form>
-            @else<p>Chưa có gói dịch vụ khả dụng.</p>@endif
-        </section>
     </div>
     @can('results.view')
     <div class="identity-details">

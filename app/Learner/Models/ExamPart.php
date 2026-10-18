@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['exam_type_id', 'skill_id', 'code', 'name', 'sort_order'])]
 class ExamPart extends Model
 {
+    use \VistiqCore\Models\Concerns\StoresClassifications;
+
     /** @return BelongsTo<ExamType, $this> */
     public function examType(): BelongsTo
     {

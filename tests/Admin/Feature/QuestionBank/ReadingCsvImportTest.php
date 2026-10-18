@@ -5,7 +5,7 @@ namespace Tests\Admin\Feature\QuestionBank;
 use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Str;
 use Tests\Admin\TestCase;
 use VistiqCore\Models\LearningStimulus;

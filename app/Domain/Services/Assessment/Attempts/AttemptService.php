@@ -3,7 +3,7 @@
 namespace VistiqCore\Services\Assessment\Attempts;
 
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -385,7 +385,7 @@ class AttemptService
             if ($attempt->snapshot['policies']['event_logging'] ?? true) {
                 $this->recordEvent($attempt, $data['type'], $data['event_key'], $data['item_key'] ?? null);
             }
-            $warnings = DB::table('attempt_events')->join('attempt_event_types', 'attempt_event_types.id', '=', 'attempt_events.attempt_event_type_id')->where('exam_attempt_id', $attempt->id)->whereIn('code', ['FULLSCREEN_EXIT', 'TAB_HIDDEN', 'WINDOW_BLUR', 'COPY_ATTEMPT', 'PASTE_ATTEMPT', 'CONTEXT_MENU'])->count();
+            $warnings = DB::table('attempt_events')->join(DB::source('attempt_event_types'), 'attempt_event_types.id', '=', 'attempt_events.attempt_event_type_id')->where('exam_attempt_id', $attempt->id)->whereIn('code', ['FULLSCREEN_EXIT', 'TAB_HIDDEN', 'WINDOW_BLUR', 'COPY_ATTEMPT', 'PASTE_ATTEMPT', 'CONTEXT_MENU'])->count();
             $threshold = $attempt->snapshot['policies']['auto_submit_threshold'] ?? 0;
             if ($threshold > 0 && $warnings >= $threshold) {
                 $this->finish($attempt, 'AUTO_SUBMIT');
@@ -401,7 +401,7 @@ class AttemptService
         if (! $typeId) {
             $typeId = DB::table('attempt_event_types')->insertGetId(['code' => $type, 'name' => $type]);
         }
-        DB::table('attempt_events')->insertOrIgnore(['exam_attempt_id' => $attempt->id, 'attempt_event_type_id' => $typeId, 'event_key' => $key, 'item_key' => $itemKey, 'occurred_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('attempt_events')->insertOrIgnore(['exam_attempt_id' => $attempt->id, 'attempt_event_type_id' => $typeId, 'event_type' => $type, 'event_key' => $key, 'item_key' => $itemKey, 'occurred_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
     }
 
     public function publicSnapshot(array $snapshot, ?ExamAttempt $attempt = null): array

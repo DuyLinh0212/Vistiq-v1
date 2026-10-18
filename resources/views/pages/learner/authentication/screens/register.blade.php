@@ -3,7 +3,7 @@
 <h2>Tạo tài khoản</h2>
 <p>Bắt đầu hành trình học tiếng Anh của bạn.</p>
 
-<form data-auth-feedback class="auth-form" action="{{ route('register.store') }}" method="post">
+<form data-auth-feedback data-pending-label="Đang tạo tài khoản…" class="auth-form" action="{{ route('register.store') }}" method="post">
     @csrf
 
     <div class="auth-field">
@@ -45,7 +45,7 @@
         'fieldPlaceholder' => 'Nhập lại mật khẩu',
         'showForgotLink' => false,
     ])
-    <p class="spotlight-password-help" id="spotlight-password-help">Di chuyển chuột sau khi bật đèn để soi mật khẩu.</p>
+    <p class="auth-password-help" id="auth-password-help">Mật khẩu có ít nhất 8 ký tự, gồm chữ và số. Dùng biểu tượng con mắt để kiểm tra.</p>
 
     <button class="button button-primary button-full auth-submit" type="submit">
         Tạo tài khoản <span aria-hidden="true">@include('pages.dictionary.icon', ['name' => 'arrow-right'])</span>

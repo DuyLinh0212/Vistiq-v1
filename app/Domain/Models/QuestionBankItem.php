@@ -7,12 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['learning_item_id', 'exam_part_id', 'question_type_id', 'question_difficulty_id', 'learning_stimulus_id', 'prompt', 'explanation'])]
+#[Fillable(['learning_item_id', 'status', 'published_at', 'created_by', 'exam_part_id', 'question_type_id', 'question_difficulty_id', 'learning_stimulus_id', 'prompt', 'explanation'])]
 class QuestionBankItem extends Model
 {
+    use \VistiqCore\Models\Concerns\StoresClassifications;
+
+    public function contentStatus(): string
+    {
+        return $this->learningItem?->status ?? $this->status ?? 'draft';
+    }
+
     protected function casts(): array
     {
-        return ['metadata' => 'array'];
+        return ['metadata' => 'array', 'published_at' => 'datetime'];
     }
 
     public function draftRevision(): BelongsTo

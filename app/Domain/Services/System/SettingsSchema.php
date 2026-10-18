@@ -13,12 +13,11 @@ class SettingsSchema
         'media' => ['max_megabytes' => 'required|integer|min:1|max:100', 'cdn_url' => 'nullable|url:https'],
         'storage' => ['disk' => 'required|in:public,s3', 'key' => 'nullable|string|max:2000', 'secret' => 'nullable|string|max:2000', 'region' => 'required|string|max:100', 'bucket' => 'nullable|string|max:100', 'endpoint' => 'nullable|url', 'url' => 'nullable|url'],
         'scoring' => ['estimated' => 'required|boolean', 'scales' => 'sometimes|array|max:20', 'scales.*.name' => 'required|string|max:140', 'scales.*.id' => 'sometimes|integer|exists:score_scales,id', 'scales.*.configuration' => 'required|array', 'scales.*.configuration.tables' => 'required|array', 'scales.*.configuration.tables.*' => 'required|array', 'scales.*.configuration.tables.*.*' => 'required|numeric|min:0|max:990'],
-        'subscription' => ['enabled' => 'required|boolean', 'plans' => 'sometimes|array|max:30', 'plans.*.code' => 'required|alpha_dash|max:40', 'plans.*.name' => 'required|string|max:100', 'plans.*.benefits' => 'present|array|max:30', 'plans.*.benefits.*' => 'nullable|string|max:255', 'plans.*.is_active' => 'required|boolean'],
         'feature_flags' => ['leaderboard' => 'required|boolean', 'ai' => 'required|boolean'],
     ];
 
     public const LABELS = [
-        'general' => 'Thông tin chung', 'exam' => 'Làm đề', 'security' => 'Bảo mật', 'email' => 'Email', 'ai' => 'Trí tuệ nhân tạo', 'media' => 'Tệp đa phương tiện', 'storage' => 'Lưu trữ', 'scoring' => 'Thang điểm', 'subscription' => 'Gói dịch vụ', 'feature_flags' => 'Tính năng',
+        'general' => 'Thông tin chung', 'exam' => 'Làm đề', 'security' => 'Bảo mật', 'email' => 'Email', 'ai' => 'Trí tuệ nhân tạo', 'media' => 'Tệp đa phương tiện', 'storage' => 'Lưu trữ', 'scoring' => 'Thang điểm', 'feature_flags' => 'Tính năng',
         'site_name' => 'Tên website', 'timezone' => 'Múi giờ', 'learner_url' => 'URL học viên', 'admin_url' => 'URL quản trị',
         'duration_minutes' => 'Thời lượng mặc định (phút)', 'allow_mobile' => 'Cho phép điện thoại', 'autosave_seconds' => 'Chu kỳ tự lưu (giây)',
         'admin_otp' => 'OTP khi đăng nhập Admin', 'log_ip' => 'Ghi địa chỉ IP', 'warning_threshold' => 'Ngưỡng cảnh báo', 'auto_submit_threshold' => 'Ngưỡng tự nộp (0 để tắt)',

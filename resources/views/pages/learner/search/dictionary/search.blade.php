@@ -8,13 +8,7 @@
                 @include('pages.learner.search.dictionary.search-form')
             </div>
         </section>
-        <section class="dictionary-discover" aria-labelledby="popular-title">
-            <h2 id="popular-title">Tìm kiếm phổ biến</h2>
-            <div class="dictionary-popular">
-                @foreach (['achieve', 'depend on', 'take into account', 'in order to', 'as a result', 'however', 'although', 'look forward to', 'make up', 'advantage'] as $word)
-                    <a href="{{ route('lookup.index', ['q' => $word]) }}">{{ $word }}</a>
-                @endforeach
-            </div>
+        <section class="dictionary-discover">
             <div class="dictionary-categories">
                 @foreach ([['book', 'Từ vựng', 'Nghĩa, phát âm, ví dụ, từ loại, mức độ', 'vocabulary', 'blue'], ['collocation', 'Collocation', 'Kết hợp từ thường gặp', 'collocation', 'blue'], ['link', 'Phrasal Verb', 'Cụm động từ thông dụng', 'phrasal_verb', 'green'], ['grammar', 'Ngữ pháp', 'Giải thích chi tiết, ví dụ', 'grammar', 'violet'], ['idiom', 'Thành ngữ', 'Idioms, sayings', 'idiom', 'rose']] as [$icon, $name, $text, $category, $color])
                     <a class="dictionary-category" href="{{ route('lookup.index', ['type' => $category]) }}">

@@ -4,7 +4,7 @@ namespace VistiqLearner\Http\Controllers\Knowledge;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use VistiqCore\Services\Knowledge\KnowledgeReaderService;

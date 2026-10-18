@@ -8,7 +8,7 @@
     <div class="auth-alert auth-alert-success" role="status">{{ session('status') }}</div>
 @endif
 
-<form data-auth-feedback class="auth-form" action="{{ route('password.email') }}" method="post">
+<form data-auth-feedback data-pending-label="Đang gửi yêu cầu…" class="auth-form" action="{{ route('password.email') }}" method="post">
     @csrf
 
     <div class="auth-field">

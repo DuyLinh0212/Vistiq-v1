@@ -3,7 +3,7 @@
 namespace Database\Admin\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use VistiqCore\Models\QuestionBankItem;
 
 /** @extends Factory<QuestionBankItem> */

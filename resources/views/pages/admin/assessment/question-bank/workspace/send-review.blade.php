@@ -1,5 +1,5 @@
 @can('content.edit')
-@php($draftQuestions = $entry['questions']->filter(fn ($q) => ($q->draftRevision?->status ?? $q->learningItem?->status) === 'draft'))
+@php($draftQuestions = $entry['questions']->filter(fn ($q) => ($q->draftRevision?->status ?? $q->contentStatus()) === 'draft'))
 @if($draftQuestions->isNotEmpty())
 <form method="post" action="{{ route('admin.questions.bulk') }}" class="assessment-actions" data-pending-label="Đang gửi duyệt…">
     @csrf<input type="hidden" name="action" value="review">

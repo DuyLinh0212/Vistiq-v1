@@ -6,7 +6,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use VistiqCore\Models\ContentRevision;
@@ -116,7 +116,7 @@ class KnowledgeItemService
             ->get(['dictionary_entries.id', 'learning_items.canonical_text', 'learning_item_meanings.translation']);
 
         $relatedItems = LearningItem::query()
-            ->join('learning_item_types', 'learning_item_types.id', '=', 'learning_items.learning_item_type_id')
+            ->join(DB::source('learning_item_types'), 'learning_item_types.id', '=', 'learning_items.learning_item_type_id')
             ->where('learning_item_types.code', '!=', 'question')
             ->when($item->exists, fn ($items) => $items->where('learning_items.id', '!=', $item->id))
             ->orderBy('learning_items.canonical_text')

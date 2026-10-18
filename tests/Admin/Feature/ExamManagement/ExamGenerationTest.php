@@ -5,7 +5,7 @@ namespace Tests\Admin\Feature\ExamManagement;
 use Database\Admin\Factories\QuestionBankItemFactory;
 use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\Admin\TestCase;
 use VistiqAdmin\Models\User;

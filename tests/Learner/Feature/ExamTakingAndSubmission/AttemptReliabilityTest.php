@@ -6,7 +6,7 @@ use Database\Admin\Factories\ExamTemplateFactory;
 use Database\Learner\Seeders\AssessmentCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\Learner\TestCase;
 use VistiqCore\Models\ExamRevision;

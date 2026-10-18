@@ -1,11 +1,9 @@
-import { initializeAuthSpotlights } from './auth-spotlight.js';
 import './confirmation-dialog.js';
 import './ui-feedback.js';
 import './exam-runner.js';
 import './personal-library.js';
 import { initializeDictionarySearch } from './dictionary-search.js';
 
-initializeAuthSpotlights();
 initializeDictionarySearch();
 
 const examCatalog = document.querySelector('[data-exam-catalog]');
@@ -25,17 +23,6 @@ if (examCatalog) {
         select.addEventListener('change', () => filterForm.requestSubmit());
     });
 }
-
-const syncAuthLightScene = (scene, isOn) => {
-    scene.dataset.authLightState = isOn ? 'on' : 'off';
-    const status = scene.querySelector('[data-auth-light-status]');
-
-    if (status) {
-        status.textContent = isOn
-            ? 'Trời đêm · đèn pin đang bật'
-            : 'Trời sáng · đèn pin đang tắt';
-    }
-};
 
 document.addEventListener('change', (event) => {
     if (event.target.matches('.answer-option input[type="radio"]')) {
@@ -65,10 +52,6 @@ document.addEventListener('click', (event) => {
     const passwordButton = event.target.closest('.password-input button, [data-password-toggle]');
 
     if (passwordButton) {
-        if (passwordButton.closest('[data-auth-spotlight]')) {
-            return;
-        }
-
         const controlledInput = passwordButton.getAttribute('aria-controls');
         const passwordInput = controlledInput
             ? document.getElementById(controlledInput)
@@ -83,20 +66,6 @@ document.addEventListener('click', (event) => {
 
         passwordInput.type = isNowVisible ? 'text' : 'password';
         passwordButton.setAttribute('aria-label', isVisible ? 'Hiện mật khẩu' : 'Ẩn mật khẩu');
-        passwordButton.closest('.auth-password-wrap')?.classList.toggle('is-light-on', isNowVisible);
-
-        const authShell = passwordButton.closest('.auth-shell');
-        const authScene = authShell?.querySelector('[data-auth-light-scene]');
-        const hasVisiblePassword = [...(authShell?.querySelectorAll('[data-password-toggle]') ?? [])].some((toggle) => {
-            const inputId = toggle.getAttribute('aria-controls');
-
-            return inputId && document.getElementById(inputId)?.type === 'text';
-        });
-
-        authShell?.classList.toggle('is-flashlight-on', hasVisiblePassword);
-
-        if (authScene) {
-            syncAuthLightScene(authScene, hasVisiblePassword);
-        }
+        passwordButton.setAttribute('aria-pressed', String(isNowVisible));
     }
 });

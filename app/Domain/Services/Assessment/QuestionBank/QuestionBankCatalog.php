@@ -99,7 +99,7 @@ class QuestionBankCatalog
                 $entries[$key] = $this->entry($key, 'question', $q->id, 'Q-'.str_pad((string) $q->id, 5, '0', STR_PAD_LEFT), strip_tags($p['prompt'] ?? ''), 'question', [], null, null, $q->updated_at);
                 $keys[] = $key;
             }
-            $status = $q->learningItem?->status === 'archived' ? 'archived' : ($revision?->status ?? $q->learningItem?->status ?? 'draft');
+            $status = $q->contentStatus() === 'archived' ? 'archived' : ($revision?->status ?? $q->contentStatus() ?? 'draft');
             $kinds = collect($keys)->map(fn ($key) => $entries[$key]['content_kind']);
             $hasAudio = $kinds->contains('audio');
             $hasReading = collect($keys)->contains(fn ($key) => $entries[$key]['kind'] === 'stimulus' && in_array($entries[$key]['content_kind'], ['reading', 'paragraph']));

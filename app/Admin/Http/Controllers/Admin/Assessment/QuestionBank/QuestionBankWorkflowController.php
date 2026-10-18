@@ -4,8 +4,9 @@ namespace VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqAdmin\Http\Requests\Admin\Shared\AdminActionRequest;
@@ -14,6 +15,7 @@ use VistiqCore\Models\ExamPart;
 use VistiqCore\Models\LearningStimulus;
 use VistiqCore\Models\QuestionBankItem;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
+use VistiqCore\Services\Assessment\QuestionBank\QuestionBankCatalog;
 use VistiqCore\Services\System\AuditService;
 
 class QuestionBankWorkflowController extends AdminPageController
@@ -21,6 +23,9 @@ class QuestionBankWorkflowController extends AdminPageController
     public function bulk(AdminActionRequest $request, ContentRevisionService $revisions): mixed
     {
         $data = $request->validated();
+        if (($data['action'] ?? null) === 'review_all') {
+            return $this->reviewAllDrafts($data['draft_signature'], $revisions, app(QuestionBankCatalog::class));
+        }
         $ids = array_values(array_unique(array_merge($data['ids'] ?? [], $data['matching_ids'] ?? [])));
         abort_unless($ids !== [] && ! empty($data['action']), 422);
 
@@ -98,7 +103,7 @@ class QuestionBankWorkflowController extends AdminPageController
             foreach ($ids as $id) {
                 $root = $revisions->root('question', $id);
                 if ($data['action'] === 'review' && ! $root->draft_revision_id) {
-                    abort_unless($root->learningItem->status === 'draft', 409, 'Chỉ gửi duyệt câu hỏi nháp.');
+                    abort_unless($root->contentStatus() === 'draft', 409, 'Chỉ gửi duyệt câu hỏi nháp.');
                     $revisions->save('question', $root, $revisions->payload('question', $root), $root->revision_counter);
                     $root->refresh();
                 }
@@ -107,6 +112,59 @@ class QuestionBankWorkflowController extends AdminPageController
         });
 
         return back()->with('status', $data['action'] === 'review' ? 'Đã gửi '.count($ids).' câu hỏi vào Duyệt nội dung.' : 'Đã xử lý các câu hỏi đã chọn.');
+    }
+
+    private function reviewAllDrafts(string $confirmedSignature, ContentRevisionService $revisions, QuestionBankCatalog $catalog): mixed
+    {
+        Gate::authorize('content.edit');
+        $draftIds = collect($catalog->catalog()['records'])
+            ->filter(fn (array $record): bool => ($record['status'] ?? null) === 'draft')
+            ->keys()
+            ->map(fn ($id): int => (int) $id)
+            ->sort()
+            ->values();
+        $currentSignature = hash('sha256', $draftIds->implode(','));
+        if (! hash_equals($confirmedSignature, $currentSignature)) {
+            throw ValidationException::withMessages(['draft_signature' => 'Danh sách câu hỏi nháp đã thay đổi. Tải lại trang rồi xác nhận lại để gửi đúng số câu.']);
+        }
+        if ($draftIds->isEmpty()) {
+            return back()->with('status', 'Không còn câu hỏi nháp cần gửi duyệt.');
+        }
+
+        DB::transaction(function () use ($draftIds, $revisions): void {
+            $invalid = [];
+            foreach ($draftIds as $id) {
+                $question = QuestionBankItem::with(['learningItem', 'draftRevision'])->findOrFail($id);
+                $revision = $question->draftRevision;
+                if (! $revision && $question->contentStatus() === 'draft') {
+                    $revisions->save('question', $question, $revisions->payload('question', $question), $question->revision_counter);
+                    $question->refresh();
+                    $revision = $question->draftRevision;
+                }
+                abort_unless($revision?->status === 'draft', 409, "Câu hỏi Q-{$id} vừa thay đổi trạng thái. Tải lại trang rồi thử lại.");
+                try {
+                    $revisions->validate('question', $revision->payload);
+                } catch (ValidationException $exception) {
+                    $details = collect($exception->errors())->flatten()->take(2)->implode(' ');
+                    $invalid[] = "Q-{$id}: {$details}";
+                }
+            }
+
+            if ($invalid !== []) {
+                $shown = array_slice($invalid, 0, 10);
+                $remaining = count($invalid) - count($shown);
+                if ($remaining > 0) {
+                    $shown[] = "Còn {$remaining} câu chưa đạt kiểm tra.";
+                }
+                throw ValidationException::withMessages(['review_all' => $shown]);
+            }
+
+            foreach ($draftIds as $id) {
+                $revisions->transition('question', $revisions->root('question', $id), 'review');
+            }
+        });
+
+        return back()->with('status', 'Đã gửi duyệt toàn bộ '.number_format($draftIds->count()).' câu hỏi nháp trong ba ngân hàng.');
     }
 
     public function export(Request $request, ContentRevisionService $revisions): mixed

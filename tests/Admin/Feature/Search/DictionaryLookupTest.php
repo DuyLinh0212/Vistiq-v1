@@ -4,7 +4,7 @@ namespace Tests\Admin\Feature\Search;
 
 use Database\Admin\Seeders\DictionaryGrammarSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Learner\TestCase;
 use VistiqAdmin\Models\LearningItem;

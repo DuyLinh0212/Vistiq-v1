@@ -39,7 +39,5 @@ Desktop.ini
 # Local architecture and assistant output
 **/graphify-out/
 **/docs/architecture/graphify/
-**/.codex/
-**/.agents/
 **/.claude/
 **/.mcp.json

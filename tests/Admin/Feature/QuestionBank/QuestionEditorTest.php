@@ -7,7 +7,7 @@ use Database\Admin\Factories\LearningItemFactory;
 use Database\Admin\Factories\QuestionBankItemFactory;
 use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Tests\Admin\TestCase;
 use VistiqCore\Models\ContentRevision;
 use VistiqCore\Models\MediaAsset;

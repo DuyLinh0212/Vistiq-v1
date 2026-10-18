@@ -11,6 +11,7 @@ use VistiqCore\Services\Assessment\ContentApproval\ContentReviewService;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
 use VistiqCore\Services\Assessment\Exams\ExamPublishingService;
 use VistiqCore\Services\System\AuditService;
+use VistiqCore\Models\Role;
 
 class ReviewQueueTest extends TestCase
 {
@@ -54,6 +55,33 @@ class ReviewQueueTest extends TestCase
         $this->assertDatabaseCount('exam_attempts', 0);
     }
 
+    public function test_queue_opens_review_details_in_modal_with_approve_and_reject_actions(): void
+    {
+        $question = $this->question();
+        $this->actingAs($this->admin('reviewer'));
+
+        $this->get('/admin/content-approval')
+            ->assertOk()
+            ->assertSee('data-review-open', false)
+            ->assertSee('data-review-select-all', false)
+            ->assertSee('data-review-select-row', false)
+            ->assertSee('data-review-bulk-approve', false)
+            ->assertDontSee('Duyệt nhanh')
+            ->assertSee('data-content-review-dialog', false)
+            ->assertSee('Duyệt');
+
+        $this->get('/admin/content-approval/question/'.$question->id.'?modal=1')
+            ->assertOk()
+            ->assertSee('data-review-item', false)
+            ->assertSee('Select the answer.')
+            ->assertSee('Xác nhận duyệt')
+            ->assertSee('data-review-confirm-message', false)
+            ->assertSee('Xác nhận từ chối và trả chỉnh sửa')
+            ->assertSee('name="revision_counter"', false)
+            ->assertSee('name="review_token"', false)
+            ->assertSee('name="note"', false);
+    }
+
     public function test_approve_requires_token_approves_once_and_does_not_publish(): void
     {
         $question = $this->question();
@@ -70,16 +98,138 @@ class ReviewQueueTest extends TestCase
         $this->assertSame(1, DB::table('audit_logs')->where('action', 'content.approve')->count());
     }
 
-    public function test_author_including_super_admin_cannot_approve_on_new_or_legacy_endpoint(): void
+    public function test_super_admin_can_self_approve_from_review_and_legacy_routes_and_is_audited(): void
     {
         $this->actingAs($author = $this->admin());
         $question = QuestionBankItemFactory::new()->create();
         $revision = app(ContentRevisionService::class)->save('question', $question, $this->item(['exam_part_id' => $question->exam_part_id]), 0);
         $revision->update(['status' => 'review']);
-        $question->refresh();
+        $this->postJson('/admin/content-approval/question/'.$question->id.'/approve', $this->decision($question))
+            ->assertOk()
+            ->assertJsonPath('status', 'approved');
+        $audit = DB::table('audit_logs')->where('action', 'content.approve')->where('entity_id', $question->id)->first();
+        $this->assertTrue((bool) json_decode($audit->after, true)['self_review']);
+
+        $legacyQuestion = QuestionBankItemFactory::new()->create();
+        $legacyRevision = app(ContentRevisionService::class)->save('question', $legacyQuestion, $this->item(['exam_part_id' => $legacyQuestion->exam_part_id]), 0);
+        $legacyRevision->update(['status' => 'review']);
+        $this->postJson('/admin/content/question/'.$legacyQuestion->id.'/approve', $this->decision($legacyQuestion))
+            ->assertOk()
+            ->assertJsonPath('status', 'approved');
+    }
+
+    public function test_non_super_admin_still_cannot_self_approve(): void
+    {
+        $author = $this->admin('content-admin');
+        $author->roles()->attach(Role::where('code', 'reviewer')->value('id'));
+        $this->actingAs($author);
+        $question = QuestionBankItemFactory::new()->create();
+        $revision = app(ContentRevisionService::class)->save('question', $question, $this->item(['exam_part_id' => $question->exam_part_id]), 0);
+        $revision->update(['status' => 'review']);
+
         $this->postJson('/admin/content-approval/question/'.$question->id.'/approve', $this->decision($question))->assertForbidden();
-        $this->postJson('/admin/content/question/'.$question->id.'/approve')->assertForbidden();
-        $this->assertSame('review', $revision->fresh()->status);
+    }
+
+    public function test_approve_all_processes_matching_revisions_across_pages_and_reports_blockers(): void
+    {
+        $validQuestions = [];
+        for ($index = 0; $index < 21; $index++) {
+            $validQuestions[] = $this->question();
+        }
+        $blockedQuestion = $this->question();
+        $blockedQuestion->draftRevision->update(['payload' => array_replace($blockedQuestion->draftRevision->payload, ['correct_options' => []])]);
+
+        $this->actingAs($this->admin('reviewer'));
+        $queue = $this->get('/admin/content-approval?kind=question')->assertOk()->getContent();
+        preg_match('/name="selection_snapshot" value="([a-f0-9]{64})"/', $queue, $snapshotMatch);
+        $this->assertNotEmpty($snapshotMatch[1] ?? null);
+        $this->post('/admin/content-approval/approve-all', [
+            'selection_mode' => 'all_filtered',
+            'expected_count' => 22,
+            'selection_snapshot' => $snapshotMatch[1],
+            'kind' => 'question',
+        ])->assertRedirect(route('admin.content-approval.index', ['kind' => 'question']))
+            ->assertSessionHas('review_bulk_batch');
+        $nextUrl = route('admin.content-approval.continue', session('review_bulk_batch'));
+        $this->assertSame(0, DB::table('audit_logs')->where('action', 'content.approve')->count());
+        $processed = 0;
+        do {
+            $response = $this->postJson($nextUrl)->assertOk();
+            $this->assertGreaterThan($processed, $response->json('processed'));
+            $this->assertLessThanOrEqual(5, $response->json('processed') - $processed);
+            $processed = $response->json('processed');
+        } while (! $response->json('done'));
+        $response->assertJsonPath('approved', 21)->assertJsonPath('skipped', 1)
+            ->assertSessionHas('status', 'Đã duyệt 21/22 revision đã chọn. Bỏ qua 1 mục; xem lý do bên dưới.')
+            ->assertSessionHas('review_bulk_skipped', fn ($skipped) => count($skipped) === 1 && str_contains($skipped[0]['label'], '#'.$blockedQuestion->id));
+        $this->postJson($nextUrl)->assertOk()->assertJsonPath('approved', 21)->assertJsonPath('done', true);
+        $this->assertSame(21, DB::table('audit_logs')->where('action', 'content.approve')->count());
+
+        foreach ($validQuestions as $question) {
+            $this->assertSame('approved', $question->draftRevision()->first()->status);
+        }
+        $this->assertSame('review', $blockedQuestion->draftRevision()->first()->status);
+    }
+
+    public function test_approve_all_rejects_a_stale_filtered_queue_before_processing(): void
+    {
+        $this->question();
+        $this->actingAs($this->admin('reviewer'));
+
+        $this->postJson('/admin/content-approval/approve-all', [
+            'selection_mode' => 'all_filtered',
+            'expected_count' => 1,
+            'selection_snapshot' => str_repeat('a', 64),
+            'kind' => 'question',
+        ])->assertUnprocessable()->assertJsonValidationErrors('selection');
+
+        $this->postJson('/admin/content-approval/approve-all', [
+            'selection_mode' => 'all_filtered',
+            'expected_count' => 2,
+            'selection_snapshot' => str_repeat('a', 64),
+            'kind' => 'question',
+        ])->assertUnprocessable()->assertJsonValidationErrors('selection');
+    }
+
+    public function test_bulk_approval_keeps_the_original_selection_and_detects_revision_changes_between_batches(): void
+    {
+        $questions = collect(range(1, 7))->map(fn () => $this->question());
+        $this->actingAs($this->admin('reviewer'));
+        $queue = $this->get('/admin/content-approval?kind=question')->assertOk()->getContent();
+        preg_match('/name="selection_snapshot" value="([a-f0-9]{64})"/', $queue, $snapshot);
+        $start = $this->postJson('/admin/content-approval/approve-all', [
+            'selection_mode' => 'all_filtered', 'expected_count' => 7,
+            'selection_snapshot' => $snapshot[1], 'kind' => 'question',
+            'excluded' => ['question:'.$questions->last()->id],
+        ])->assertOk()->assertJsonPath('processed', 0)->assertJsonPath('total', 6);
+        $nextUrl = $start->json('next_url');
+        $this->postJson($nextUrl)->assertOk()->assertJsonPath('processed', 5)->assertJsonPath('done', false);
+        $changed = $questions[5]->draftRevision;
+        $changed->forceFill(['updated_at' => now()->addMinute()])->save();
+        $this->postJson($nextUrl)->assertOk()->assertJsonPath('done', true)
+            ->assertJsonPath('approved', 5)->assertJsonPath('skipped', 1);
+        $this->assertSame('review', $changed->fresh()->status);
+        $this->assertSame('review', $questions->last()->draftRevision->fresh()->status);
+        $this->assertDatabaseCount('exam_attempts', 0);
+    }
+
+    public function test_only_the_authorized_batch_owner_can_continue_and_expired_batches_are_reported(): void
+    {
+        $question = $this->question();
+        $this->actingAs($this->admin('reviewer'));
+        $queue = $this->get('/admin/content-approval?kind=question')->assertOk()->getContent();
+        preg_match('/name="selection_snapshot" value="([a-f0-9]{64})"/', $queue, $snapshot);
+        $start = $this->postJson('/admin/content-approval/approve-all', [
+            'selection_mode' => 'selected', 'expected_count' => 1,
+            'selection_snapshot' => $snapshot[1], 'kind' => 'question', 'selected' => ['question:'.$question->id],
+        ])->assertOk();
+        $this->get('/admin/content-approval')->assertOk()->assertSee('data-review-resume-url', false);
+        $this->actingAs($this->admin('reviewer'));
+        $this->postJson($start->json('next_url'))->assertForbidden();
+        $this->postJson(route('admin.content-approval.continue', (string) \Illuminate\Support\Str::uuid()))->assertStatus(410);
+        $this->actingAs($this->admin('content-admin'));
+        $this->postJson($start->json('next_url'))->assertForbidden();
+        $this->assertSame('review', $question->draftRevision->fresh()->status);
     }
 
     public function test_reject_trims_reason_and_revision_or_payload_change_conflicts(): void
@@ -125,16 +275,25 @@ class ReviewQueueTest extends TestCase
         $this->assertSame(0, DB::table('audit_logs')->where('action', 'content.approve')->count());
     }
 
-    public function test_exam_author_is_blocked_and_legacy_preview_does_not_pin_content(): void
+    public function test_super_admin_can_approve_own_exam_without_preview_pinning_content(): void
     {
+        $question = $this->question();
         $this->actingAs($author = $this->admin());
+        $revisions = app(ContentRevisionService::class);
+        $revisions->transition('question', $question, 'approve');
+        $revisions->transition('question', $question, 'publish');
         $exam = $this->publishedExam();
-        $exam->update(['created_by' => $author->id, 'draft_status' => 'review', 'revision_counter' => 1]);
+        $exam->update(['created_by' => $author->id, 'draft_status' => 'review', 'revision_counter' => 3, 'draft_payload' => ['sections' => [['exam_part_id' => $question->exam_part_id, 'question_ids' => [$question->id], 'duration_minutes' => 0]], 'policies' => ExamPublishingService::POLICIES]]);
         $review = app(ContentReviewService::class)->preview('exam', $exam->id);
-        $this->postJson('/admin/content-approval/exam/'.$exam->id.'/approve', ['revision_counter' => 1, 'review_token' => $review['token']])->assertForbidden();
-        $this->postJson('/admin/exams/'.$exam->id.'/approve')->assertForbidden();
-        $this->assertDatabaseCount('content_revisions', 0);
-        $this->assertSame('review', $exam->fresh()->draft_status);
+        $this->assertSame([], $review['blockers']);
+        $revisionCount = DB::table('content_revisions')->count();
+        $this->postJson('/admin/exams/'.$exam->id.'/approve', ['revision_counter' => 3, 'review_token' => $review['token']])
+            ->assertOk()
+            ->assertJsonPath('status', 'approved');
+        $this->assertSame($revisionCount, DB::table('content_revisions')->count());
+        $this->assertSame('approved', $exam->fresh()->draft_status);
+        $audit = DB::table('audit_logs')->where('entity_id', $exam->id)->where('action', 'exam.approve')->first();
+        $this->assertTrue((bool) json_decode($audit->after, true)['self_review']);
     }
 
     public function test_valid_exam_uses_published_questions_and_stale_configuration_conflicts(): void
@@ -163,15 +322,17 @@ class ReviewQueueTest extends TestCase
         $this->assertSame(1, DB::table('audit_logs')->where('entity_id', $exam->id)->where('entity_type', 'exam')->where('action', 'exam.approve')->count());
     }
 
-    public function test_revision_writer_of_existing_exam_cannot_self_approve(): void
+    public function test_non_super_admin_revision_writer_cannot_self_approve_exam(): void
     {
         $exam = $this->publishedExam();
         $exam->update(['draft_status' => 'review', 'revision_counter' => 4]);
-        $writer = $this->admin();
+        $writer = $this->admin('content-admin');
+        $writer->roles()->attach(Role::where('code', 'reviewer')->value('id'));
         $this->actingAs($writer);
         app(AuditService::class)->record('exam.save', 'exam', $exam->id, [], ['revision' => 4]);
         $this->assertSame($writer->id, app(ContentReviewService::class)->preview('exam', $exam->id)['author']);
-        $this->postJson('/admin/exams/'.$exam->id.'/approve')->assertForbidden();
+        $review = app(ContentReviewService::class)->preview('exam', $exam->id);
+        $this->postJson('/admin/exams/'.$exam->id.'/approve', ['revision_counter' => 4, 'review_token' => $review['token']])->assertForbidden();
     }
 
     public function test_exam_queue_author_filter_matches_the_current_revision_writer(): void

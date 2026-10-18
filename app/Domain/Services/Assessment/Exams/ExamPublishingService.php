@@ -78,7 +78,7 @@ class ExamPublishingService
                 $ids[] = $questionId;
                 $question = QuestionBankItem::with(['learningItem', 'questionType'])->findOrFail($questionId);
                 $payload = $preview ? $this->revisions->payload('question', $question, empty($draft['generation'])) : $this->revisions->published('question', $question)->payload;
-                if ($question->learningItem->status === 'archived' || (int) $payload['exam_part_id'] !== $part->id) {
+                if ($question->contentStatus() === 'archived' || (int) $payload['exam_part_id'] !== $part->id) {
                     throw ValidationException::withMessages(['sections' => 'Câu hỏi đã archive hoặc không thuộc Part đã chọn.']);
                 }
                 if (! $preview) {

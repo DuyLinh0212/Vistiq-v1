@@ -5,8 +5,10 @@ namespace VistiqCore\Services\Assessment\QuestionBank;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use League\Flysystem\UnableToCheckFileExistence;
 use RuntimeException;
 use VistiqCore\Models\MediaAsset;
 use VistiqCore\Services\System\SettingsService;
@@ -66,6 +68,17 @@ class MediaService
 
     public function available(int $id): bool
     {
+        return $this->checkAvailability($id) === true;
+    }
+
+    /**
+     * Return null when storage could not be checked (for example, a TLS or
+     * network failure). Callers that make publishing decisions should treat
+     * that state as unavailable; read-only review pages can explain it without
+     * failing the whole page.
+     */
+    public function checkAvailability(int $id): ?bool
+    {
         $asset = MediaAsset::find($id);
         if (! $asset) {
             return false;
@@ -75,7 +88,17 @@ class MediaService
             return filled($asset->metadata['secure_url'] ?? null);
         }
 
-        return $this->diskFor($asset)->exists($asset->path);
+        try {
+            return $this->diskFor($asset)->exists($asset->path);
+        } catch (UnableToCheckFileExistence $exception) {
+            Log::warning('Unable to check media asset availability.', [
+                'media_id' => $asset->id,
+                'disk' => $asset->disk,
+                'exception' => $exception::class,
+            ]);
+
+            return null;
+        }
     }
 
     public function delete(MediaAsset $asset): void

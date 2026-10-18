@@ -3,7 +3,7 @@
 namespace Database\Learner\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 
 class DictionaryGrammarSeeder extends Seeder
 {
@@ -47,6 +47,7 @@ class DictionaryGrammarSeeder extends Seeder
                 }
             }
         });
+        DB::fillClassifications();
     }
 
     /** @return array<string, array{title: string, summary: string, formula: string, explanation: string, example: array{string, string}, tags: array<int, string>, words: array<int, string>}> */

@@ -40,7 +40,6 @@ class DemoPageController extends Controller
         'knowledge-list' => KnowledgeController::class,
         'knowledge-review' => KnowledgeController::class,
         'saved-detail' => KnowledgeController::class,
-        'skills' => SkillPracticeController::class,
         'ielts-skills' => SkillPracticeController::class,
         'skill-list' => SkillPracticeController::class,
         'skill-session' => SkillPracticeController::class,
@@ -70,6 +69,10 @@ class DemoPageController extends Controller
 
     public function show(string $screen): View|RedirectResponse
     {
+        if ($screen === 'skills') {
+            return redirect()->route('demo.page', 'skill-list');
+        }
+
         if ($screen === 'history') {
             return redirect()->route('profile.history');
         }

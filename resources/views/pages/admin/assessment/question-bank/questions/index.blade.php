@@ -67,6 +67,7 @@
             <div class="qb-heading-actions">
                 <a class="button button-quiet" href="{{ route('admin.groups.index') }}">@include('pages.dictionary.icon', ['name' => 'collection']) Tạo nhóm đề</a>
                 <a class="button button-quiet" href="#qb-thpt-import">@include('pages.dictionary.icon', ['name' => 'collection']) Import câu hỏi</a>
+                @include('pages.admin.assessment.question-bank.workspace.send-all-review')
                 <a class="button button-primary" href="#qb-thpt-create">@include('pages.dictionary.icon', ['name' => 'plus']) Thêm câu hỏi</a>
                 <a class="button button-quiet qb-export-link" href="{{ route('admin.questions.export') }}">Export CSV</a>
             </div>

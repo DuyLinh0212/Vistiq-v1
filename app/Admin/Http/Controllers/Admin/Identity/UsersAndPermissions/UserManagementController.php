@@ -4,7 +4,7 @@ namespace VistiqAdmin\Http\Controllers\Admin\Identity\UsersAndPermissions;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Gate;
 use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqAdmin\Http\Requests\Admin\Identity\UsersAndPermissions\RoleStoreRequest;
@@ -71,7 +71,7 @@ class UserManagementController extends AdminPageController
         $user->load('roles');
         $reports = DB::table('attempt_reports')
             ->join('exam_attempts', 'exam_attempts.id', '=', 'attempt_reports.exam_attempt_id')
-            ->join('attempt_report_reasons', 'attempt_report_reasons.id', '=', 'attempt_reports.attempt_report_reason_id')
+            ->join(DB::source('attempt_report_reasons'), 'attempt_report_reasons.id', '=', 'attempt_reports.attempt_report_reason_id')
             ->where(function ($query) use ($user): void {
                 $query->where('exam_attempts.user_id', $user->id)
                     ->orWhere('attempt_reports.reported_by', $user->id);
@@ -89,8 +89,6 @@ class UserManagementController extends AdminPageController
             'saved' => DB::table('user_saved_items')->join('learning_items', 'learning_items.id', '=', 'user_saved_items.learning_item_id')->where('user_id', $user->id)->limit(50)->get(),
             'activities' => DB::table('user_activities')->where('user_id', $user->id)->latest('occurred_at')->limit(50)->get(),
             'sessions' => DB::table('sessions')->where('user_id', $user->id)->get(),
-            'plans' => DB::table('subscription_plans')->where('is_active', true)->get(),
-            'subscription' => DB::table('user_subscriptions')->where('user_id', $user->id)->first(),
         ]);
     }
 

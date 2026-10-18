@@ -5,7 +5,7 @@ namespace Tests\Learner\Feature\ExamTakingAndSubmission;
 use Database\Admin\Factories\ExamTemplateFactory;
 use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Tests\Learner\TestCase;
 use VistiqCore\Models\ExamRevision;
 use VistiqCore\Services\Assessment\Attempts\AttemptService;

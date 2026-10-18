@@ -3,7 +3,7 @@
 namespace VistiqAdmin\Http\Controllers\Admin\Assessment\Exams;
 
 use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use VistiqAdmin\Http\Requests\Admin\Assessment\Exams\ExamGenerationRequest;
@@ -87,7 +87,7 @@ class ExamBuilderController extends AdminPageController
             return [];
         }
         $difficultyCodes = DB::table('question_difficulties')->pluck('code', 'id');
-        $revisionFor = fn ($question) => $question->learningItem?->status === 'published' ? $question->publishedRevision : ($question->draftRevision ?? $question->publishedRevision);
+        $revisionFor = fn ($question) => $question->contentStatus() === 'published' ? $question->publishedRevision : ($question->draftRevision ?? $question->publishedRevision);
         $groupIds = $questions->map(fn ($question) => $revisionFor($question)?->payload['group_id'] ?? $question->question_group_id)->filter()->unique();
         $groups = DB::table('question_groups')->whereIn('id', $groupIds)->get()->keyBy('id');
         $resourceIds = $questions->flatMap(fn ($question) => $revisionFor($question)?->payload['stimulus_ids'] ?? [$question->learning_stimulus_id])->merge($groups->flatMap(fn ($group) => json_decode($group->stimulus_ids ?? '[]', true) ?? []))->filter()->unique();
@@ -126,9 +126,9 @@ class ExamBuilderController extends AdminPageController
             $publishedRevision = $question->publishedRevision;
             $hasPublishedContent = $publishedRevision
                 ? $publishedRevision->status === 'published' && $publishedRevision->kind === 'question' && (int) $publishedRevision->entity_id === (int) $question->id
-                : $question->learningItem?->status === 'published';
+                : $question->contentStatus() === 'published';
 
-            return ['id' => $question->id, 'part' => $payload['exam_part_id'] ?? $question->exam_part_id, 'prompt' => strip_tags($payload['prompt'] ?? $question->prompt), 'type' => $payload['type'] ?? $question->questionType?->code, 'options' => $options, 'tags' => $tags, 'status' => $question->learningItem?->status ?? 'draft', 'has_published_content' => $hasPublishedContent, 'difficulty' => $difficultyCodes[$payload['question_difficulty_id'] ?? $question->question_difficulty_id] ?? 'medium', 'units' => $revision ? app(\VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry::class)->units($payload) : 1, 'group' => $groupId, 'passage' => $passage ? ['id' => $passage->id, 'title' => $passage->title, 'body' => strip_tags($passage->body)] : null, 'audio' => $audio !== null || $audioAsset !== null, 'audio_title' => $audioAsset?->title ?? $audio?->title, 'audio_url' => $audioAsset ? route('admin.media.waveform', $audioAsset) : null, 'edit_url' => route('admin.questions.edit', $question)];
+            return ['id' => $question->id, 'part' => $payload['exam_part_id'] ?? $question->exam_part_id, 'prompt' => strip_tags($payload['prompt'] ?? $question->prompt), 'type' => $payload['type'] ?? $question->questionType?->code, 'options' => $options, 'tags' => $tags, 'status' => $question->contentStatus() ?? 'draft', 'has_published_content' => $hasPublishedContent, 'difficulty' => $difficultyCodes[$payload['question_difficulty_id'] ?? $question->question_difficulty_id] ?? 'medium', 'units' => $revision ? app(\VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry::class)->units($payload) : 1, 'group' => $groupId, 'passage' => $passage ? ['id' => $passage->id, 'title' => $passage->title, 'body' => strip_tags($passage->body)] : null, 'audio' => $audio !== null || $audioAsset !== null, 'audio_title' => $audioAsset?->title ?? $audio?->title, 'audio_url' => $audioAsset ? route('admin.media.waveform', $audioAsset) : null, 'edit_url' => route('admin.questions.edit', $question)];
         })->all();
     }
 

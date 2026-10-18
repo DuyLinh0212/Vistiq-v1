@@ -35,7 +35,6 @@ class SettingsController extends AdminPageController
         foreach ($groups['scoring']['scales'] as &$scale) {
             unset($scale['version']);
         } unset($scale);
-        $groups['subscription']['plans'] = DB::table('subscription_plans')->get()->map(fn ($plan) => ['code' => $plan->code, 'name' => $plan->name, 'benefits' => json_decode($plan->benefits ?? '[]', true), 'is_active' => (bool) $plan->is_active])->all();
 
         return $this->page('Cài đặt hệ thống', 'pages.admin.system.workspace.settings', compact('groups', 'selectedGroup', 'configured'));
     }
@@ -90,9 +89,6 @@ class SettingsController extends AdminPageController
                 } else {
                     DB::table('score_scales')->insert([...$attributes, 'version' => 1, 'created_at' => now()]);
                 }
-            }
-            foreach ($value['plans'] ?? [] as $plan) {
-                DB::table('subscription_plans')->updateOrInsert(['code' => $plan['code']], ['name' => $plan['name'], 'benefits' => json_encode($plan['benefits']), 'is_active' => $plan['is_active'], 'created_at' => now(), 'updated_at' => now()]);
             }
             unset($value['scales'],$value['plans']);
             $settings->put($group, $value);

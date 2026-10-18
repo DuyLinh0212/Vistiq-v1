@@ -2,7 +2,7 @@
 
 namespace VistiqCore\Services\Assessment\Attempts;
 
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use VistiqCore\Models\ExamAttempt;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
 

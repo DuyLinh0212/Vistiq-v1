@@ -3,7 +3,7 @@
 namespace Database\Learner\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Str;
 use VistiqLearner\Models\LearningItem;
 

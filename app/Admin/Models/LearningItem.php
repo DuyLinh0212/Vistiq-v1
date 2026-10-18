@@ -9,12 +9,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Str;
 
 #[Fillable(['learning_item_type_id', 'proficiency_level_id', 'canonical_text', 'slug', 'status', 'published_at'])]
 class LearningItem extends Model
 {
+    use \VistiqCore\Models\Concerns\StoresClassifications;
+
     /** @use HasFactory<LearningItemFactory> */
     use HasFactory;
 
@@ -30,8 +32,8 @@ class LearningItem extends Model
     public static function publicLookup(): Builder
     {
         return static::query()
-            ->join('learning_item_types as item_type', 'item_type.id', '=', 'learning_items.learning_item_type_id')
-            ->leftJoin('proficiency_levels as level', 'level.id', '=', 'learning_items.proficiency_level_id')
+            ->join(DB::source('learning_item_types as item_type'), 'item_type.id', '=', 'learning_items.learning_item_type_id')
+            ->leftJoin(DB::source('proficiency_levels as level'), 'level.id', '=', 'learning_items.proficiency_level_id')
             ->where('learning_items.status', 'published')
             ->where(fn (Builder $query): Builder => $query->whereNull('learning_items.published_at')->orWhere('learning_items.published_at', '<=', now()))
             ->whereIn('item_type.code', self::LOOKUP_TYPES)
@@ -134,14 +136,14 @@ class LearningItem extends Model
     {
         $entry = DB::table('dictionary_entries')->where('learning_item_id', $this->id)->first();
         $meanings = DB::table('learning_item_meanings as meaning')
-            ->leftJoin('parts_of_speech as pos', 'pos.id', '=', 'meaning.part_of_speech_id')
+            ->leftJoin(DB::source('parts_of_speech as pos'), 'pos.id', '=', 'meaning.part_of_speech_id')
             ->where('meaning.learning_item_id', $this->id)
             ->select('meaning.id', 'meaning.sense_number', 'meaning.translation', 'meaning.definition', 'meaning.usage_note', 'pos.code as part_of_speech', 'pos.label as part_of_speech_label')
             ->orderBy('meaning.sense_number')->get();
         $examples = DB::table('learning_item_meaning_examples')->whereIn('learning_item_meaning_id', $meanings->pluck('id'))
             ->orderBy('sort_order')->orderBy('id')->get()->groupBy('learning_item_meaning_id');
 
-        $topic = DB::table('grammar_topics as topic')->join('grammar_categories as category', 'category.id', '=', 'topic.grammar_category_id')
+        $topic = DB::table('grammar_topics as topic')->join(DB::source('grammar_categories as category'), 'category.id', '=', 'topic.grammar_category_id')
             ->where('topic.learning_item_id', $this->id)->select('topic.id', 'topic.summary', 'topic.content', 'category.name as category')->first();
         $rules = $topic ? DB::table('grammar_rules')->where('grammar_topic_id', $topic->id)->orderBy('sort_order')->orderBy('id')->get() : collect();
         $grammarExamples = DB::table('grammar_examples')->whereIn('grammar_rule_id', $rules->pluck('id'))->orderBy('sort_order')->orderBy('id')->get()->groupBy('grammar_rule_id');
@@ -189,7 +191,7 @@ class LearningItem extends Model
 
         if ($dictionaryEntryId) {
             $linkedIds = $linkedIds
-                ->merge(DB::table('collocations')->join('collocation_dictionary_entries as pivot', 'pivot.collocation_id', '=', 'collocations.id')->where('pivot.dictionary_entry_id', $dictionaryEntryId)->pluck('learning_item_id'))
+                ->merge(DB::table('collocations')->join(DB::source('collocation_dictionary_entries as pivot'), 'pivot.collocation_id', '=', 'collocations.id')->where('pivot.dictionary_entry_id', $dictionaryEntryId)->pluck('learning_item_id'))
                 ->merge(DB::table('phrasal_verbs')->where('base_dictionary_entry_id', $dictionaryEntryId)->pluck('learning_item_id'));
         }
 

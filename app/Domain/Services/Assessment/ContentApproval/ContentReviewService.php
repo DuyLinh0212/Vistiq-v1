@@ -39,9 +39,10 @@ class ContentReviewService
             $revisionQuery = ContentRevision::where('id', $root->draft_revision_id)->where('kind', 'question')->where('entity_id', $id);
             $revision = ($lock ? $revisionQuery->lockForUpdate() : $revisionQuery)->firstOrFail();
             $payload = $revision->payload;
-            $status = $root->learningItem?->status === 'archived' ? 'archived' : $revision->status;
+            $status = $root->contentStatus() === 'archived' ? 'archived' : $revision->status;
             $author = $revision->created_by;
             $number = $revision->number;
+            $submittedAt = $revision->getRawOriginal('updated_at');
             $previous = ContentRevision::where('kind', 'question')->where('entity_id', $id)->where('number', '<', $number)->orderByDesc('number')->first()?->payload;
             $stimulusIds = $payload['stimulus_ids'] ?? [];
             if (! empty($payload['group_id'])) {
@@ -76,9 +77,11 @@ class ContentReviewService
             foreach ($assetIds as $assetId) {
                 $assetQuery = MediaAsset::where('id', $assetId);
                 $asset = ($lock ? $assetQuery->lockForUpdate() : $assetQuery)->first();
-                $available = $asset && app(MediaService::class)->available((int) $assetId);
-                $dependencies['media'][] = ['id' => $assetId, 'asset' => $asset?->toArray(), 'available' => $available];
-                if (! $available) {
+                $availability = $asset ? app(MediaService::class)->checkAvailability((int) $assetId) : false;
+                $dependencies['media'][] = ['id' => $assetId, 'asset' => $asset?->toArray(), 'available' => $availability === true, 'availability' => $availability];
+                if ($availability === null) {
+                    $errors[] = 'Không thể kiểm tra media #'.$assetId.' do kết nối kho lưu trữ. Kiểm tra cấu hình chứng chỉ CA của PHP rồi thử lại.';
+                } elseif (! $availability) {
                     $errors[] = 'Media #'.$assetId.' không còn tồn tại hoặc không tải được.';
                 }
             }
@@ -86,6 +89,7 @@ class ContentReviewService
             $status = $root->status === 'archived' ? 'archived' : $root->draft_status;
             $author = $this->examAuthor($root);
             $number = (int) $root->revision_counter;
+            $submittedAt = $root->getRawOriginal('updated_at');
             $previous = $root->publishedRevision?->payload;
             // assemble(false) may pin legacy revisions. Never call it on a read
             // until every reference already has a valid published revision.
@@ -136,18 +140,37 @@ class ContentReviewService
         $token = hash_hmac('sha256', json_encode([$kind, $id, $number, $author, $payload, $dependencies, $errors], JSON_THROW_ON_ERROR), (string) config('app.key'));
         $history = DB::table('audit_logs')->where('entity_type', $kind)->where('entity_id', $id)->whereIn('action', $kind === 'exam' ? ['exam.review', 'exam.approve', 'exam.reject'] : ['content.review', 'content.approve', 'content.reject'])->orderByDesc('id')->limit(50)->get();
 
-        return compact('kind', 'root', 'payload', 'dependencies', 'previous', 'status', 'author', 'number', 'token', 'history') + ['blockers' => $errors];
+        return compact('kind', 'root', 'payload', 'dependencies', 'previous', 'status', 'author', 'number', 'submittedAt', 'token', 'history') + ['blockers' => $errors];
     }
 
     public function decide(string $kind, int $id, string $action, array $data): array
     {
+        return $this->decideRevision($kind, $id, $action, $data, true);
+    }
+
+    public function approveCurrentRevision(string $kind, int $id, int $expectedRevision, string $expectedSubmittedAt): array
+    {
+        return $this->decideRevision($kind, $id, 'approve', [], false, ['revision_counter' => $expectedRevision, 'submitted_at' => $expectedSubmittedAt]);
+    }
+
+    private function decideRevision(string $kind, int $id, string $action, array $data, bool $requireSnapshot, ?array $expectedCurrent = null): array
+    {
         Gate::authorize('content.review');
         abort_unless(in_array($action, ['approve', 'reject'], true), 404);
 
-        return DB::transaction(function () use ($kind, $id, $action, $data): array {
+        return DB::transaction(function () use ($kind, $id, $action, $data, $requireSnapshot, $expectedCurrent): array {
             $review = $this->preview($kind, $id, true);
-            abort_unless($review['status'] === 'review' && (int) $review['number'] === (int) $data['revision_counter'] && hash_equals($review['token'], $data['review_token']), 409, 'Revision hoặc nội dung đã thay đổi. Mở lại bản mới trước khi quyết định.');
-            abort_if($action === 'approve' && (int) $review['author'] === (int) auth()->id(), 403, 'Tác giả không được tự duyệt revision của mình.');
+            abort_unless($review['status'] === 'review', 409, 'Revision không còn chờ duyệt.');
+            if ($expectedCurrent !== null) {
+                abort_unless((int) $review['number'] === $expectedCurrent['revision_counter'] && hash_equals((string) $review['submittedAt'], $expectedCurrent['submitted_at']), 409, 'Revision đã thay đổi sau khi chọn. Mục này chưa được duyệt.');
+            }
+            if ($requireSnapshot) {
+                abort_unless((int) $review['number'] === (int) $data['revision_counter'] && hash_equals($review['token'], $data['review_token']), 409, 'Revision hoặc nội dung đã thay đổi. Mở lại bản mới trước khi quyết định.');
+            }
+            $selfReview = $action === 'approve'
+                && (int) $review['author'] === (int) auth()->id()
+                && auth()->user()?->hasRole('super-admin');
+            abort_if($action === 'approve' && (int) $review['author'] === (int) auth()->id() && ! $selfReview, 403, 'Tác giả cần reviewer khác duyệt revision này.');
             if ($action === 'approve' && $review['blockers']) {
                 throw ValidationException::withMessages(['content' => $review['blockers']]);
             }
@@ -161,7 +184,11 @@ class ContentReviewService
             } else {
                 $status = $action === 'approve' ? 'approved' : 'draft';
                 $review['root']->update(['draft_status' => $status, 'review_note' => $note ?: null]);
-                $this->audit->record('exam.'.$action, 'exam', $id, ['status' => 'review', 'revision' => $review['number']], ['status' => $status, 'revision' => $review['number'], 'note' => $note ?: null]);
+                $after = ['status' => $status, 'revision' => $review['number'], 'note' => $note ?: null];
+                if ($selfReview) {
+                    $after['self_review'] = true;
+                }
+                $this->audit->record('exam.'.$action, 'exam', $id, ['status' => 'review', 'revision' => $review['number']], $after);
             }
 
             return ['status' => $status, 'revision_counter' => $review['number']];

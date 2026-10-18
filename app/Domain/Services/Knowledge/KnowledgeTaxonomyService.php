@@ -3,7 +3,7 @@
 namespace VistiqCore\Services\Knowledge;
 
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Symfony\Component\HtmlSanitizer\HtmlSanitizer;
 use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
 

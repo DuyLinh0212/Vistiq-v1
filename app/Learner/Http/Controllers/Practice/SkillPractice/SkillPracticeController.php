@@ -8,7 +8,6 @@ use VistiqLearner\Http\Controllers\StaticPageController;
 class SkillPracticeController extends StaticPageController
 {
     private const SCREENS = [
-        'skills' => ['title' => 'Luyện theo kỹ năng', 'frame' => 'U07', 'view' => 'pages.learner.practice.skill-practice.skills.index', 'section' => 'skills', 'description' => 'Chọn kỹ năng, dạng bài và bắt đầu luyện tập.', 'show_heading' => false],
         'ielts-skills' => ['title' => 'Chọn kỹ năng IELTS', 'frame' => 'U25', 'view' => 'pages.learner.practice.skill-practice.skills.ielts', 'section' => 'skills', 'description' => 'Luyện riêng Listening, Reading, Writing hoặc Speaking.', 'show_heading' => false],
         'skill-list' => ['title' => 'Bài luyện theo kỹ năng', 'frame' => 'U34', 'view' => 'pages.learner.practice.skill-practice.skills.catalog', 'section' => 'skills', 'description' => 'Chọn một bài ngắn, tập trung vào đúng dạng cần luyện.', 'show_heading' => false],
         'skill-session' => ['title' => 'TOEIC Part 5 – Incomplete Sentences', 'frame' => 'U09', 'view' => 'pages.learner.practice.skill-practice.skills.runner', 'section' => 'skills', 'description' => 'Luyện từng câu và xem giải thích ngay sau khi trả lời.', 'variant' => 'toeic', 'show_heading' => false],

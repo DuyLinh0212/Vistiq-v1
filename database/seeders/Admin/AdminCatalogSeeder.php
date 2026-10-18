@@ -3,7 +3,7 @@
 namespace Database\Admin\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
 
 class AdminCatalogSeeder extends Seeder
@@ -32,6 +32,6 @@ class AdminCatalogSeeder extends Seeder
             DB::table('attempt_event_types')->updateOrInsert(['code' => $code], ['name' => $code]);
         }
         DB::table('attempt_report_reasons')->updateOrInsert(['code' => 'content_error'], ['name' => 'Lỗi nội dung', 'is_active' => true]);
-        DB::table('subscription_plans')->updateOrInsert(['code' => 'free'], ['name' => 'Free', 'benefits' => json_encode([]), 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        DB::fillClassifications();
     }
 }

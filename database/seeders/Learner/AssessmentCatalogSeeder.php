@@ -3,7 +3,7 @@
 namespace Database\Learner\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use VistiqCore\Services\Assessment\Exams\ExamGenerationService;
 
 class AssessmentCatalogSeeder extends Seeder

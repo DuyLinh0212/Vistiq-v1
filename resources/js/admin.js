@@ -6,6 +6,7 @@ import './question-workbook-import.js';
 if (document.querySelector('[data-qe-root]')) import('./question-editor.js');
 import './reading-library.js';
 import './exam-runner.js';
+import './content-approval-review.js';
 
 document.querySelector('[data-overview-period]')?.addEventListener('change', event => event.target.form.requestSubmit());
 

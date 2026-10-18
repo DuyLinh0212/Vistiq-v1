@@ -3,7 +3,7 @@
 namespace VistiqLearner\Http\Controllers\Assessment\ExamTakingAndSubmission;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use VistiqCore\Models\ExamAttempt;
 use VistiqCore\Models\ExamTemplate;
 use VistiqCore\Models\MediaAsset;
@@ -74,7 +74,7 @@ class AttemptRunnerController extends Controller
             $filteredExams->orderByDesc('published_at')->orderByDesc('id');
         }
 
-        return view('exam.catalog', [
+        return view('pages.learner.assessment.exam-taking-and-submission.exams.index', [
             'exams' => $filteredExams->paginate(12)->withQueryString(),
             'examTypes' => $examTypes,
             'practiceModes' => $practiceModes,

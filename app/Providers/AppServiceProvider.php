@@ -15,6 +15,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->extend('validation.presence', fn ($verifier, $app) => new \VistiqCore\Services\Shared\CompactPresenceVerifier($app['db']));
         $this->app->singleton(ControllerDispatcher::class, ApiControllerDispatcher::class);
         $this->app->scoped('vistiq.surface', function ($app): string {
             $path = $app->bound('request') ? $app->make('request')->getPathInfo() : null;

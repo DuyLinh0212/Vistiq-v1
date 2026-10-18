@@ -4,14 +4,11 @@
         <a class="{{ $page['section'] === 'home' ? 'is-active' : '' }}" href="{{ route('home') }}">@include('pages.dictionary.icon', ['name' => 'home']) <span>Trang chủ</span></a>
         <a class="{{ $page['section'] === 'lookup' && ($type ?? 'all') !== 'grammar' ? 'is-active' : '' }}" href="{{ route('lookup.index') }}">@include('pages.dictionary.icon', ['name' => 'search']) <span>Tra cứu</span></a>
         <a class="{{ $page['section'] === 'exams' ? 'is-active' : '' }}" href="{{ route('demo.page', 'exams') }}">@include('pages.dictionary.icon', ['name' => 'exam']) <span>Luyện đề</span></a>
-        <a class="{{ $page['section'] === 'skills' ? 'is-active' : '' }}" href="{{ route('demo.page', 'skills') }}">@include('pages.dictionary.icon', ['name' => 'activity']) <span>Luyện theo kỹ năng</span></a>
         <a class="{{ $page['section'] === 'grammar' || ($type ?? 'all') === 'grammar' ? 'is-active' : '' }}" href="{{ route('lookup.index', ['type' => 'grammar']) }}">@include('pages.dictionary.icon', ['name' => 'grammar']) <span>Ngữ pháp</span></a>
         <a class="{{ $page['section'] === 'knowledge' ? 'is-active' : '' }}" href="{{ route('knowledge.index') }}">@include('pages.dictionary.icon', ['name' => 'collection']) <span>Kho kiến thức</span></a>
         <a class="{{ request()->routeIs('attempts.history', 'profile.history') ? 'is-active' : '' }}" href="{{ route('profile.history') }}">@include('pages.dictionary.icon', ['name' => 'profile']) <span>Lịch sử làm đề</span></a>
     </nav>
     <div class="topbar-actions">
-        <a class="icon-button" href="{{ route('lookup.index') }}" aria-label="Tìm kiếm">@include('pages.dictionary.icon', ['name' => 'search'])</a>
-        <button class="icon-button" type="button" aria-label="Thông báo">@include('pages.dictionary.icon', ['name' => 'saved'])</button>
         @guest
             <a class="nav-signin" href="{{ route('login') }}">Đăng nhập</a>
             <a class="button button-primary nav-register" href="{{ route('register') }}">Tạo tài khoản</a>

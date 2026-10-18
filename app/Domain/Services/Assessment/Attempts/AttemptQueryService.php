@@ -3,7 +3,7 @@
 namespace VistiqCore\Services\Assessment\Attempts;
 
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use VistiqCore\Models\ExamAttempt;
 
 class AttemptQueryService
@@ -12,7 +12,7 @@ class AttemptQueryService
     public function profileSummary(int $owner): array
     {
         $attempts = ExamAttempt::where('user_id', $owner)->whereNotNull('snapshot')->whereNotNull('submitted_at')->where('status', '!=', 'cancelled');
-        $results = (clone $attempts)->join('attempt_results as result', 'result.exam_attempt_id', '=', 'exam_attempts.id');
+        $results = (clone $attempts)->join(DB::source('attempt_results as result'), 'result.exam_attempt_id', '=', 'exam_attempts.id');
         $totals = (clone $results)->where('result.grading_status', 'completed')->selectRaw("SUM(COALESCE(JSON_EXTRACT(result.details, '$.correct'),0) + 0) as correct_count, SUM((COALESCE(JSON_EXTRACT(result.details, '$.correct'),0) + 0) + (COALESCE(JSON_EXTRACT(result.details, '$.wrong'),0) + 0) + (COALESCE(JSON_EXTRACT(result.details, '$.unanswered'),0) + 0)) as unit_count")->first();
 
         return ['submitted' => $attempts->count(), 'accuracy' => ($totals->unit_count ?? 0) > 0 ? round($totals->correct_count / $totals->unit_count * 100, 1) : null,
@@ -21,7 +21,7 @@ class AttemptQueryService
 
     public function listing(array $filters = [], ?int $owner = null, ?string $timezone = null): mixed
     {
-        $query = ExamAttempt::with(['user', 'exam'])->select('exam_attempts.*')->leftJoin('attempt_results as result', 'result.exam_attempt_id', '=', 'exam_attempts.id')->addSelect('result.scaled_score', 'result.grading_status');
+        $query = ExamAttempt::with(['user', 'exam'])->select('exam_attempts.*')->leftJoin(DB::source('attempt_results as result'), 'result.exam_attempt_id', '=', 'exam_attempts.id')->addSelect('result.scaled_score', 'result.grading_status');
         if ($owner !== null) {
             $query->where('exam_attempts.user_id', $owner);
         }
@@ -58,7 +58,7 @@ class AttemptQueryService
     public function detail(ExamAttempt $attempt): array
     {
         $attempt->load(['user', 'exam', 'answers']);
-        $events = DB::table('attempt_events')->join('attempt_event_types', 'attempt_event_types.id', '=', 'attempt_events.attempt_event_type_id')->where('exam_attempt_id', $attempt->id)->orderBy('occurred_at')->orderBy('attempt_events.id')->get();
+        $events = DB::table('attempt_events')->join(DB::source('attempt_event_types'), 'attempt_event_types.id', '=', 'attempt_events.attempt_event_type_id')->where('exam_attempt_id', $attempt->id)->orderBy('occurred_at')->orderBy('attempt_events.id')->get();
         $reports = DB::table('attempt_reports')->where('exam_attempt_id', $attempt->id)->orderBy('id')->get();
         $result = DB::table('attempt_results')->where('exam_attempt_id', $attempt->id)->first();
         $answerIds = $attempt->answers->pluck('id');

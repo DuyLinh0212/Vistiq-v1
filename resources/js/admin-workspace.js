@@ -123,7 +123,11 @@ document.querySelectorAll('[data-confirm]').forEach(form => form.addEventListene
     } else {
         form.requestSubmit();
     }
-    form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])').forEach(control => { control.disabled = true; });
+    form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])').forEach(control => {
+        if (form.dataset.pendingLabel) control.textContent = form.dataset.pendingLabel;
+        control.disabled = true;
+        control.setAttribute('aria-busy', 'true');
+    });
 }));
 
 const audioDeleteForm = document.querySelector('[data-audio-delete-form]');

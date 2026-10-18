@@ -5,7 +5,7 @@ namespace Tests\Learner\Feature\KnowledgeBase;
 use Database\Admin\Seeders\AdminCatalogSeeder;
 use Database\Admin\Seeders\DictionaryGrammarSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Tests\Learner\TestCase;
 use VistiqCore\Models\LearningItem;
 

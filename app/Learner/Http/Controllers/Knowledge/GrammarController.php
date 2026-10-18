@@ -3,7 +3,7 @@
 namespace VistiqLearner\Http\Controllers\Knowledge;
 
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\View\View;
 use VistiqCore\Services\Knowledge\KnowledgeReaderService;
 use VistiqLearner\Http\Controllers\StaticPageController;
@@ -30,8 +30,8 @@ class GrammarController extends StaticPageController
 
         $query = DB::table('learning_items')
             ->join('grammar_topics', 'grammar_topics.learning_item_id', '=', 'learning_items.id')
-            ->leftJoin('grammar_categories', 'grammar_categories.id', '=', 'grammar_topics.grammar_category_id')
-            ->leftJoin('proficiency_levels', 'proficiency_levels.id', '=', 'learning_items.proficiency_level_id')
+            ->leftJoin(DB::source('grammar_categories'), 'grammar_categories.id', '=', 'grammar_topics.grammar_category_id')
+            ->leftJoin(DB::source('proficiency_levels'), 'proficiency_levels.id', '=', 'learning_items.proficiency_level_id')
             ->where('learning_items.status', 'published')
             ->where(fn ($sub) => $sub->whereNull('learning_items.published_at')->orWhere('learning_items.published_at', '<=', now()))
             ->when($grammarTypeId, fn ($builder) => $builder->where('learning_items.learning_item_type_id', $grammarTypeId))

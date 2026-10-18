@@ -5,7 +5,7 @@ namespace VistiqAdmin\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 
 class EnsureAccountActive
 {

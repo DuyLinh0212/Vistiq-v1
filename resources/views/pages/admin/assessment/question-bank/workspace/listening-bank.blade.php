@@ -20,6 +20,7 @@
             <a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'listening-xlsx']) }}">@include('pages.dictionary.icon', ['name' => 'saved']) Tải mẫu .xlsx</a>
             @can('content.edit')
                 @include('pages.admin.assessment.question-bank.workspace.question-workbook-import', ['workbookKind'=>'listening'])
+                @include('pages.admin.assessment.question-bank.workspace.send-all-review')
                 <a class="button button-primary" href="{{ route('admin.questions.create', ['exam'=>'toeic']) }}">@include('pages.dictionary.icon', ['name' => 'plus']) Tạo câu hỏi</a>
             @endcan
         </div>

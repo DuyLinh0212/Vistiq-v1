@@ -5,7 +5,7 @@
 <p>Chọn mật khẩu mới có ít nhất 8 ký tự, gồm cả chữ và số.</p>
 @error('token')<div class="auth-alert" role="alert">Liên kết không hợp lệ. <a href="{{ route('password.request') }}">Yêu cầu liên kết mới</a>.</div>@enderror
 
-<form data-auth-feedback class="auth-form" action="{{ route('password.update') }}" method="post">
+<form data-auth-feedback data-pending-label="Đang cập nhật…" class="auth-form" action="{{ route('password.update') }}" method="post">
     @csrf
     <input type="hidden" name="token" value="{{ old('token', $page['token'] ?? '') }}">
 
@@ -20,30 +20,17 @@
         @enderror
     </div>
 
-    <div class="auth-field">
-        <label for="password">Mật khẩu mới</label>
-        <div class="auth-input-wrap auth-password-wrap">
-            <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M6 8V6a4 4 0 1 1 8 0v2m-9.5 0h11A1.5 1.5 0 0 1 17 9.5v6A1.5 1.5 0 0 1 15.5 17h-11A1.5 1.5 0 0 1 3 15.5v-6A1.5 1.5 0 0 1 4.5 8Zm5.5 3v2" /></svg>
-            <input id="password" name="password" type="password" autocomplete="new-password" placeholder="Ít nhất 8 ký tự, gồm chữ và số" required aria-invalid="@error('password') true @else false @enderror" @error('password') aria-describedby="password-error" @enderror>
-            <button class="password-toggle" type="button" data-password-toggle aria-label="Hiện mật khẩu" aria-controls="password">
-                <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M2.5 10s2.7-4.5 7.5-4.5 7.5 4.5 7.5 4.5-2.7 4.5-7.5 4.5S2.5 10 2.5 10Z"/><circle cx="10" cy="10" r="2"/></svg>
-            </button>
-        </div>
-        @error('password')
-            <span class="auth-field-error" id="password-error" role="alert">{{ $message }}</span>
-        @enderror
-    </div>
-
-    <div class="auth-field">
-        <label for="password_confirmation">Nhập lại mật khẩu mới</label>
-        <div class="auth-input-wrap auth-password-wrap">
-            <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M6 8V6a4 4 0 1 1 8 0v2m-9.5 0h11A1.5 1.5 0 0 1 17 9.5v6A1.5 1.5 0 0 1 15.5 17h-11A1.5 1.5 0 0 1 3 15.5v-6A1.5 1.5 0 0 1 4.5 8Zm5.5 3v2" /></svg>
-            <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu" required>
-            <button class="password-toggle" type="button" data-password-toggle aria-label="Hiện mật khẩu" aria-controls="password_confirmation">
-                <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M2.5 10s2.7-4.5 7.5-4.5 7.5 4.5 7.5 4.5-2.7 4.5-7.5 4.5S2.5 10 2.5 10Z"/><circle cx="10" cy="10" r="2"/></svg>
-            </button>
-        </div>
-    </div>
+    @include('pages.auth.password-field', [
+        'fieldId' => 'password', 'fieldLabel' => 'Mật khẩu mới', 'fieldAutocomplete' => 'new-password',
+        'fieldPlaceholder' => 'Ít nhất 8 ký tự, gồm chữ và số', 'showForgotLink' => false,
+        'hasPasswordRules' => true, 'minlength' => 8,
+    ])
+    @include('pages.auth.password-field', [
+        'fieldId' => 'password_confirmation', 'fieldLabel' => 'Nhập lại mật khẩu mới',
+        'fieldAutocomplete' => 'new-password', 'fieldPlaceholder' => 'Nhập lại mật khẩu',
+        'showForgotLink' => false,
+    ])
+    <p class="auth-password-help" id="auth-password-help">Dùng biểu tượng con mắt để kiểm tra mật khẩu trước khi lưu.</p>
 
     <button class="button button-primary button-full auth-submit" type="submit">
         Đổi mật khẩu <span aria-hidden="true">@include('pages.dictionary.icon', ['name' => 'arrow-right'])</span>

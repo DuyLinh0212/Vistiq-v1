@@ -3,7 +3,7 @@
 namespace VistiqCore\Services\Knowledge;
 
 use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use VistiqCore\Models\LearningItem;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
 
@@ -12,8 +12,8 @@ class KnowledgeReaderService
     public function publishedQuery(array $filters = []): Builder
     {
         return DB::table('learning_items as item')
-            ->join('learning_item_types as type', 'type.id', '=', 'item.learning_item_type_id')
-            ->leftJoin('proficiency_levels as level', 'level.id', '=', 'item.proficiency_level_id')
+            ->join(DB::source('learning_item_types as type'), 'type.id', '=', 'item.learning_item_type_id')
+            ->leftJoin(DB::source('proficiency_levels as level'), 'level.id', '=', 'item.proficiency_level_id')
             ->where('item.status', 'published')->where('type.code', '!=', 'question')
             ->where(fn ($q) => $q->whereNull('item.published_at')->orWhere('item.published_at', '<=', now()))
             ->when(! empty($filters['q']), fn ($q) => $q->where('item.canonical_text', 'like', '%'.$filters['q'].'%'))

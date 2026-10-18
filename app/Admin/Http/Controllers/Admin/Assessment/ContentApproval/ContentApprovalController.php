@@ -100,7 +100,7 @@ class ContentApprovalController extends Controller
         Gate::authorize('content.review');
         $service = app(ContentReviewService::class);
         $review = $service->preview($kind, $id);
-        abort_if($action === 'approve' && (int) $review['author'] === (int) auth()->id(), 403, 'Tác giả không được tự duyệt revision của mình.');
+        abort_if($action === 'approve' && (int) $review['author'] === (int) auth()->id() && ! auth()->user()?->hasRole('super-admin'), 403, 'Tác giả cần reviewer khác duyệt revision này.');
         abort_unless($review['status'] === 'review', 409, 'Revision không còn chờ duyệt.');
         abort_unless($request->filled(['revision_counter', 'review_token']), 409, 'Mở hàng đợi duyệt và đọc lại revision trước khi quyết định.');
         $data = $request->validate([

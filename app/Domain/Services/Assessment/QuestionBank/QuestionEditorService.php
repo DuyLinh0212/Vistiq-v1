@@ -2,7 +2,7 @@
 
 namespace VistiqCore\Services\Assessment\QuestionBank;
 
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use VistiqCore\Models\ContentRevision;
@@ -24,7 +24,7 @@ class QuestionEditorService
             return DB::table('tags')->when($search !== '', fn ($q) => $q->where('name', 'like', '%'.$search.'%'))->orderBy('name')->limit(30)->get(['id', 'name'])->toArray();
         }
         if ($kind === 'knowledge') {
-            return LearningItem::query()->join('learning_item_types', 'learning_item_types.id', '=', 'learning_items.learning_item_type_id')
+            return LearningItem::query()->join(DB::source('learning_item_types'), 'learning_item_types.id', '=', 'learning_items.learning_item_type_id')
                 ->where('learning_items.status', '!=', 'archived')->where('learning_item_types.code', '!=', 'question')
                 ->when($search !== '', fn ($q) => $q->where('canonical_text', 'like', '%'.$search.'%'))
                 ->orderBy('canonical_text')->limit(30)->get(['learning_items.id', 'canonical_text', 'learning_item_types.label'])
@@ -97,7 +97,7 @@ class QuestionEditorService
             abort_if($exam->status === 'archived', 409, 'Đề đã lưu trữ.');
             $payload = app(ContentRevisionService::class)->payload('question', $question);
             $part = ExamPart::findOrFail($payload['exam_part_id']);
-            if ($attach && ($exam->exam_type_id !== $part->exam_type_id || $question->learningItem->status === 'archived')) {
+            if ($attach && ($exam->exam_type_id !== $part->exam_type_id || $question->contentStatus() === 'archived')) {
                 throw ValidationException::withMessages(['exam' => 'Câu hỏi không phù hợp kỳ thi hoặc đã lưu trữ.']);
             }
             $draft = $exam->draft_payload ?? [];

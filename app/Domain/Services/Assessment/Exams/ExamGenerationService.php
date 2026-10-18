@@ -2,7 +2,7 @@
 
 namespace VistiqCore\Services\Assessment\Exams;
 
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Validation\ValidationException;
 use VistiqCore\Models\ExamPart;
 use VistiqCore\Models\ExamType;
@@ -244,7 +244,7 @@ class ExamGenerationService
     {
         $difficulties = DB::table('question_difficulties')->pluck('code', 'id');
         $parts = ExamPart::with(['skill', 'examType'])->where('exam_type_id', $data['exam_type_id'])->get()->keyBy('id');
-        $questions = QuestionBankItem::with(['publishedRevision', 'learningItem', 'difficulty', 'questionType'])->whereHas('learningItem', fn ($query) => $query->where('status', '!=', 'archived'))->where(fn ($query) => $query->whereNotNull('published_revision_id')->orWhereHas('learningItem', fn ($items) => $items->where('status', 'published')))->get();
+        $questions = QuestionBankItem::with(['publishedRevision', 'learningItem', 'difficulty', 'questionType'])->where(fn ($query) => $query->where(fn ($q) => $q->whereNull('learning_item_id')->where('status', '!=', 'archived'))->orWhereHas('learningItem', fn ($items) => $items->where('status', '!=', 'archived')))->where(fn ($query) => $query->whereNotNull('published_revision_id')->orWhereHas('learningItem', fn ($items) => $items->where('status', 'published'))->orWhere(fn ($q) => $q->whereNull('learning_item_id')->where('status', 'published')))->get();
         $pool = [];
         $stimulusCache = [];
         foreach ($questions as $question) {

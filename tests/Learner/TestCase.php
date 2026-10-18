@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Http;
 
 abstract class TestCase extends BaseTestCase
 {
+    use \Tests\Concerns\AssertsCompactStorage;
+
     public function createApplication()
     {
         $_SERVER['HTTP_X_VISTIQ_SURFACE'] = 'learner';

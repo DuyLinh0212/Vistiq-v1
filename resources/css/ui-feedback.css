@@ -1,5 +1,11 @@
-.admin-toast { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 14px; padding:12px 14px; border:1px solid var(--line); border-radius:9px; color:var(--ink); background:var(--card, #fff); font-size:13px; }
-.admin-toast button, [data-ui-feedback] button { flex-shrink:0; padding:4px 8px; background:transparent; color:inherit; cursor:pointer; }
+.admin-toast { position:fixed; z-index:1100; top:84px; right:24px; display:flex; align-items:center; justify-content:space-between; gap:12px; width:max-content; max-width:min(520px,calc(100vw - 32px)); margin:0; padding:13px 16px; border:1px solid #b9e4ce; border-radius:12px; color:#176b45; background:#f0fbf5; box-shadow:0 12px 32px rgba(18,52,39,.18); font-size:13px; font-weight:650; opacity:1; transform:translateY(0); transition:opacity .22s ease,transform .22s ease; }
+.admin-toast.is-leaving { opacity:0; transform:translateY(-7px); }
+.admin-toast button, [data-ui-feedback] button { flex:none; padding:0 2px; border:0; background:transparent; color:inherit; font-size:20px; line-height:1; cursor:pointer; }
+.admin-toast-warning { border-color:#f0d49a; color:#8a5a00; background:#fff8e7; box-shadow:0 12px 32px rgba(112,76,5,.16); }
+.admin-toast .import-errors { flex:none; font-size:12px; font-weight:500; }
+.admin-toast .import-errors summary { cursor:pointer; font-weight:700; }
+.admin-toast .import-errors ul { max-height:180px; margin:8px 0 0; padding-left:18px; overflow:auto; font-weight:500; }
+@media(max-width:600px) { .admin-toast { right:12px; left:12px; width:auto; max-width:none; } }
 .table-responsive { max-width:100%; overflow-x:auto; }
 .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .form-field { display:flex; flex-direction:column; gap:6px; min-width:0; color:var(--ink); font-weight:600; }

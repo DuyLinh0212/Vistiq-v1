@@ -6,7 +6,7 @@ use Database\Admin\Factories\QuestionBankItemFactory;
 use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use VistiqAdmin\Models\User;

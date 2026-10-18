@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ExamTemplate extends Model
 {
+    use \VistiqCore\Models\Concerns\StoresClassifications;
+
     protected $fillable = ['exam_type_id', 'practice_mode_id', 'score_scale_id', 'created_by', 'title', 'slug', 'provider', 'description', 'status', 'published_at', 'variant', 'mode', 'draft_status', 'draft_payload', 'revision_counter', 'published_revision_id', 'opens_at', 'closes_at', 'leaderboard_reset_at', 'review_note'];
 
     protected function casts(): array

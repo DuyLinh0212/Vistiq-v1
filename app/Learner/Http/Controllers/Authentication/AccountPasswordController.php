@@ -13,7 +13,7 @@ class AccountPasswordController extends Controller
 {
     public function edit(): mixed
     {
-        return view('shared.demo-page', ['page' => ['title' => 'Đổi mật khẩu', 'view' => 'pages.learner.authentication.account-password', 'section' => 'profile', 'shell' => 'user', 'slug' => 'account-password', 'show_heading' => false]]);
+        return view('shared.demo-page', ['page' => ['title' => 'Đổi mật khẩu', 'view' => 'pages.learner.authentication.account-password', 'section' => 'profile', 'shell' => 'auth', 'slug' => 'account-password', 'show_heading' => false]]);
     }
 
     public function update(Request $request, AuditService $audit): mixed

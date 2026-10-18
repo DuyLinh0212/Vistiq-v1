@@ -110,7 +110,7 @@ class QuestionUpsertRequest extends FormRequest
                 if ($asset && ! str_starts_with($asset->mime_type, $mime)) $validator->errors()->add('metadata.'.$field, 'Tài nguyên không đúng loại.');
             }
             if ($this->filled('question_group_id') && \Illuminate\Support\Facades\DB::table('question_groups')->where('id', $this->integer('question_group_id'))->value('exam_part_id') != $part->id) $validator->errors()->add('question_group_id', 'Nhóm câu hỏi phải thuộc cùng phần / kỹ năng.');
-            $knowledge = \VistiqCore\Models\LearningItem::query()->join('learning_item_types', 'learning_item_types.id', '=', 'learning_items.learning_item_type_id')->whereIn('learning_items.id', $this->input('metadata.knowledge_ids') ?? [])->where(fn ($q) => $q->where('learning_items.status', 'archived')->orWhere('learning_item_types.code', 'question'))->exists();
+            $knowledge = \VistiqCore\Models\LearningItem::query()->whereIn('learning_items.id', $this->input('metadata.knowledge_ids') ?? [])->where(fn ($q) => $q->where('learning_items.status', 'archived')->orWhere('learning_items.type', 'question'))->exists();
             if ($knowledge) $validator->errors()->add('metadata.knowledge_ids', 'Chọn kiến thức còn hoạt động trong kho kiến thức.');
         });
     }

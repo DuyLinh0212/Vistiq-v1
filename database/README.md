@@ -12,30 +12,11 @@ The dictionary is derived from Skypedia's `english-vietnamese-dictionary`, based
 
 ## Table count
 
-The migrations define **63 application and Laravel runtime tables**. Laravel also creates its migration-history table, `migrations`, so a freshly migrated database contains **64 physical tables**:
+The current schema contains **43 physical tables, including `migrations`**. See [CONSOLIDATION.md](CONSOLIDATION.md) for the complete retained-table list, source-to-destination mapping, verified migration command and rollback procedure.
 
-- **55 Vistiq tables** for accounts, dictionary and grammar content, exam authoring, attempts, grading, knowledge saves, notifications, and achievements.
-- **8 Laravel infrastructure tables** for users, password resets, sessions, cache, and queues.
-- **1 Laravel migration-history table:** `migrations`.
+The supplied October 18 SQL dump has 78 tables, or 76 after excluding the discontinued subscription feature. The October 19 forward migration transfers all remaining child/catalog data before removing 35 source tables, including the two subscription tables. Dictionary examples, meanings, IPA, audio, revisions, attempt snapshots and scores remain available through the updated storage contract.
 
-The framework tables are `users`, `password_reset_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, and `failed_jobs`.
-
-### Vistiq tables by feature
-
-- **Accounts (4):** `roles`, `role_user`, `user_profiles`, `user_preferences`.
-- **Learning content and saved knowledge (20):** `proficiency_levels`, `parts_of_speech`, `learning_item_types`, `grammar_categories`, `tags`, `learning_items`, `dictionary_entries`, `learning_item_meanings`, `learning_item_meaning_examples`, `collocations`, `collocation_dictionary_entries`, `phrasal_verbs`, `idioms`, `learning_item_relations`, `grammar_topics`, `grammar_rules`, `grammar_examples`, `learning_item_tags`, `user_saved_items`, `saved_item_reviews`.
-- **Exam authoring and question bank (16):** `exam_types`, `skills`, `practice_modes`, `question_types`, `question_difficulties`, `exam_parts`, `learning_stimuli`, `question_bank_items`, `question_options`, `question_accepted_answers`, `score_scales`, `score_scale_ranges`, `exam_templates`, `exam_sections`, `exam_section_questions`, `exam_policies`.
-- **Attempts, grading, and moderation (12):** `attempt_event_types`, `attempt_report_reasons`, `grading_rubrics`, `grading_criteria`, `exam_attempts`, `attempt_answers`, `attempt_answer_options`, `attempt_events`, `attempt_results`, `question_rubrics`, `answer_grades`, `attempt_reports`.
-- **Notifications and achievements (3):** `user_notifications`, `achievement_definitions`, `user_achievements`.
-
-## 3NF design
-
-- Fixed classifications such as proficiency levels, parts of speech, exam types, question types, and skills have lookup tables.
-- Dictionary, collocation, phrasal verb, idiom, grammar, and question content share `learning_items`; type-specific fields live in one-to-one detail tables.
-- Meanings and examples use one-to-many tables. Exam choices, accepted text answers, and multi-select responses are stored as rows rather than JSON arrays.
-- Many-to-many relations use explicit pivot tables. A user's saved item points to one learning item and is unique per user.
-- Attempt totals are isolated in `attempt_results`; scaled scores and bands are resolved through the exam's score scale and its ranges. Leaderboards are derived from approved attempts instead of copied into a separate ranking table.
-- Attempt events, human grading criteria, grades, and moderation reports are stored separately from the exam definition and answer rows.
+`data.sql` is a legacy dictionary seed for the old schema. Do not import it directly into the consolidated schema. Existing installations migrate their already-imported dictionary in place; the original legacy seed and its attribution are retained unchanged.
 
 ## Migrations
 
@@ -47,4 +28,6 @@ The framework tables are `users`, `password_reset_tokens`, `sessions`, `cache`, 
 | `2026_10_02_121100_create_attempt_review_and_grading_tables` | 12 attempt, grading, and report tables |
 | `2026_10_02_121101_create_user_engagement_tables` | user_notifications, achievement_definitions, user_achievements |
 
-The three original Laravel migrations create the 8 infrastructure tables listed above.
+The three original Laravel migrations create the initial user, cache, and queue infrastructure.
+
+The subsequent migration `2026_10_19_120000_consolidate_vistiq_tables` consolidates the complete historical migration chain to 43 physical tables.

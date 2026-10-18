@@ -12,9 +12,16 @@ export function notify(message, failure = false) {
     close.type = 'button';
     close.textContent = '×';
     close.setAttribute('aria-label', 'Đóng thông báo');
-    close.addEventListener('click', () => notice.remove());
+    let timeout;
+    const dismiss = () => {
+        window.clearTimeout(timeout);
+        notice.classList.add('is-leaving');
+        window.setTimeout(() => notice.remove(), 240);
+    };
+    close.addEventListener('click', dismiss);
     notice.append(text, close);
     (document.querySelector('.admin-page') ?? document.querySelector('main') ?? document.body).prepend(notice);
+    if (!failure) timeout = window.setTimeout(dismiss, 6000);
 }
 
 document.addEventListener('click', async event => {
@@ -160,7 +167,16 @@ window.addEventListener('pageshow', () => {
 
 document.querySelectorAll('.icon-button[aria-label]:not([title])').forEach(control => control.title = control.getAttribute('aria-label'));
 if (!document.body.classList.contains('admin-mode')) {
-    document.querySelectorAll('[data-dismiss-admin-toast]').forEach(button => button.addEventListener('click', () => button.closest('[data-admin-toast]')?.remove()));
+    document.querySelectorAll('[data-admin-toast]').forEach(toast => {
+        const dismiss = () => {
+            toast.classList.add('is-leaving');
+            window.setTimeout(() => toast.remove(), 240);
+        };
+
+        toast.querySelector('[data-dismiss-admin-toast]')?.addEventListener('click', dismiss);
+        const timeout = Number(toast.dataset.adminToastTimeout ?? 6000);
+        if (timeout > 0) window.setTimeout(dismiss, timeout);
+    });
 }
 
 const avatarForm = document.querySelector('[data-avatar-form]');

@@ -12,7 +12,7 @@
     if ($options === []) $options = ['A' => '', 'B' => '', 'C' => '', 'D' => ''];
     $correctOptions = old('correct_options', $payload['correct_options'] ?? []);
     $currentTags = old('tags', $tags);
-    $status = $question?->learningItem?->status === 'archived' ? 'archived' : ($revision?->status ?? $question?->learningItem?->status ?? 'draft');
+    $status = $question?->contentStatus() === 'archived' ? 'archived' : ($revision?->status ?? $question?->contentStatus() ?? 'draft');
     $statusLabels = ['draft' => 'Bản nháp', 'review' => 'Chờ duyệt', 'approved' => 'Đã duyệt', 'published' => 'Đã xuất bản', 'archived' => 'Đã lưu trữ'];
     $difficultyLabels = ['easy' => 'Dễ', 'medium' => 'Trung bình', 'hard' => 'Khó'];
     $selectedKnowledge = \VistiqCore\Models\LearningItem::whereIn('id', $metadata['knowledge_ids'] ?? [])->get();
