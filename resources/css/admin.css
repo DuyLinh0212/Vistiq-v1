@@ -2586,3 +2586,5 @@ body.admin-mode { background: #f5f8fe; }
     .role-permission-form__footer { align-items: stretch; flex-direction: column; }
     .role-permission-form__footer .button { width: 100%; }
 }
+
+@media(max-width:900px) { .admin-nav-overview > .admin-nav-link-label { display:none; } }

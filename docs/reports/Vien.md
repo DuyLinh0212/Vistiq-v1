@@ -24,3 +24,10 @@ Commit sửa độc lập: `6d06ab7`. Các thay đổi AGENTS.md, migration cũ 
 - Sau sửa: **42/42 đạt, 131 assertions**; bổ sung confirm không tin client/chỉ dùng một lần và ownership ghi chú/lưu/bỏ lưu.
 - Pint, `git diff --check`, `graphify update .` hoàn tất.
 - Browser, XLSX, MySQL và kiểm thử contract Analytics/Attempts được ghi tiếp trong báo cáo tích hợp.
+
+## Kết quả trên develop sau tích hợp
+
+- `4d7e6a0`: CSV/XLSX thực, permission cố định results.export đồng thời results.view, Admin/Super Admin giữ toàn quyền. Export leaderboard dùng toàn bộ tập lọc, cùng best attempt/rank/reset/time/ẩn danh; 31 bản ghi qua hai trang đều có trong export. Query thống kê thống nhất mode/legacy variant/cancelled và các filter. MySQL kiểm chứng cả migration mới và nâng cấp quyền khi role đã tồn tại.
+- Sau khi siết GET editor sang content.edit, browser phát hiện link của reviewer vẫn trỏ vào editor và trả 403. Sửa tích hợp `4883a1c` thêm trang xem/duyệt chỉ cần content.view, giữ kiểm tra quyền mutation; không cấp quyền edit cho reviewer. Thêm regression test và E2E create → review → publish → learner save → Profile.
+- Chuẩn hóa preview Knowledge, confirm xóa, pending và notification chung. Shared layout tránh biến điều hướng ghi đè dữ liệu item; các sửa này thuộc tích hợp sau merge như kế hoạch cho phép.
+- Không còn phát hiện chức năng đang mở trong các mục đã kiểm tra trên develop. Toàn suite **442/442, 2.433 assertions**, JS **4/4**, build/Pint/diff, MySQL và E2E responsive đạt. Chi tiết và giới hạn môi trường: `Integration.md`.

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use VistiqLearner\Http\Controllers\Authentication\AccountPasswordController;
 use VistiqLearner\Http\Controllers\Authentication\AuthController;
 
 Route::middleware('guest.learner')->group(function (): void {
@@ -18,3 +19,8 @@ Route::middleware('guest.learner')->group(function (): void {
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+Route::middleware(['auth', 'active.learner'])->group(function (): void {
+    Route::get('/account/password', [AccountPasswordController::class, 'edit'])->name('account.password');
+    Route::put('/account/password', [AccountPasswordController::class, 'update'])->middleware('throttle:5,1')->name('account.password.update');
+});

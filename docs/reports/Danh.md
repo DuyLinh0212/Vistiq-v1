@@ -26,3 +26,9 @@ Commit sửa code: `c916a98`. Audit role update bổ sung số thành viên bị
 ## Tích hợp
 
 Asset auth và partial password dùng chung đã thay đổi ngoài scope module ở các commit gốc; integration owner tiếp nhận review và kiểm thử hồi quy. Kết quả browser/E2E cuối được ghi trong báo cáo tích hợp.
+
+## Kết quả trên develop sau tích hợp
+
+- E2E Chrome đã kiểm chứng đăng nhập, chặn URL thiếu quyền, CSRF, luồng duyệt/xuất bản/làm/chấm bài, history/export, Profile và System Operations. Lỗi throttle dùng chung bộ đếm giữa autosave/start và backup/restore đã được integration owner tách theo action, web/API cùng action vẫn chung budget.
+- Contract đổi mật khẩu có xác thực cho learner được hoàn thiện trong phần tích hợp Khoa (`4d162c6`): current password, policy, remember/session version và audit; không đặt credentials trong Profile.
+- Không còn phát hiện chức năng đang mở trong các mục đã kiểm tra trên develop. Toàn suite **442/442, 2.433 assertions**, JS **4/4**, build/Pint/diff, MySQL cô lập và E2E đạt. Kết quả và giới hạn dịch vụ ngoài mạng: `Integration.md`.

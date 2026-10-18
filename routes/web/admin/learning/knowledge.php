@@ -16,4 +16,5 @@ Route::middleware('can:content.edit')->group(function (): void {
 });
 
 Route::get('/knowledge', [KnowledgeAdminController::class, 'index'])->middleware('can:content.view')->name('knowledge.index');
+Route::get('/knowledge/{knowledge}/preview', [KnowledgeAdminController::class, 'preview'])->middleware('can:content.view')->name('knowledge.preview');
 Route::resource('/knowledge', KnowledgeAdminController::class)->except(['index', 'show', 'destroy'])->middleware('can:content.edit');

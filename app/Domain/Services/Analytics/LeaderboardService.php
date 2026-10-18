@@ -43,6 +43,14 @@ class LeaderboardService
         return $this->rankedQuery($exam)->paginate(30)->withQueryString()->through(fn ($row) => $this->present($row));
     }
 
+    public function bestRankForUser(int $owner): ?array
+    {
+        $row = $this->rankedQuery()->where('user_id', $owner)->whereIn('exam_template_id', ExamTemplate::where('status', 'published')->whereNotNull('published_revision_id')->select('id'))
+            ->reorder('rank_position')->orderByDesc('submitted_at')->first();
+
+        return $row ? ['rank' => (int) $row->rank_position, 'exam_id' => (int) $row->exam_template_id, 'title' => $row->title] : null;
+    }
+
     public function exportRankings(?ExamTemplate $exam = null): Collection
     {
         $rows = $this->rankedQuery($exam)->limit(ExportService::MAX_ROWS + 1)->get();

@@ -1,5 +1,6 @@
 export function notify(message, failure = false) {
     document.querySelector('[data-ui-feedback]')?.remove();
+    document.querySelectorAll('[data-admin-toast]').forEach(notice => notice.remove());
     const notice = document.createElement('div');
     notice.className = failure ? 'admin-alert admin-alert-error' : 'admin-toast';
     notice.dataset.uiFeedback = '';
@@ -66,6 +67,72 @@ document.addEventListener('submit', async event => {
         return;
     }
     delete form.dataset.uiConfirmed;
+    if (form.hasAttribute('data-preserve-upload')) {
+        event.preventDefault();
+        if (form.dataset.uiSubmitting) return;
+        form.dataset.uiSubmitting = 'true';
+        form.setAttribute('aria-busy', 'true');
+        const body = new FormData(form);
+        const buttons = [...form.querySelectorAll('button[type="submit"]')];
+        const contents = buttons.map(button => [...button.childNodes]);
+        buttons.forEach(button => { button.disabled = true; button.textContent = form.dataset.pendingLabel; });
+        form.querySelectorAll('.form-field-error').forEach(field => field.textContent = '');
+        form.querySelectorAll('[aria-invalid]').forEach(field => field.removeAttribute('aria-invalid'));
+        try {
+            const response = await fetch(form.action, { method: 'POST', body, headers: { Accept: 'application/json' } });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                for (const [field, messages] of Object.entries(result.errors ?? {})) {
+                    const error = document.getElementById(`${field}-error`);
+                    if (error) error.textContent = messages.join(' ');
+                    form.elements.namedItem(field)?.setAttribute('aria-invalid', 'true');
+                }
+                form.querySelector('[aria-invalid="true"]')?.focus();
+                throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || 'Chưa lưu được hồ sơ. Kiểm tra kết nối và thử lại; ảnh đã chọn được giữ trên trang.');
+            }
+            if (!result.redirect) throw new Error('Phiên đăng nhập đã hết hiệu lực. Hãy đăng nhập lại.');
+            window.location.assign(result.redirect);
+        } catch (error) { notify(error.message, true); }
+        finally {
+            delete form.dataset.uiSubmitting;
+            form.removeAttribute('aria-busy');
+            buttons.forEach((button, index) => { button.disabled = false; button.replaceChildren(...contents[index]); });
+        }
+        return;
+    }
+    if (form.hasAttribute('data-download')) {
+        event.preventDefault();
+        if (form.dataset.uiSubmitting) return;
+        form.dataset.uiSubmitting = 'true';
+        form.setAttribute('aria-busy', 'true');
+        const buttons = [...form.querySelectorAll('button[type="submit"]')];
+        const labels = buttons.map(button => button.textContent);
+        const body = new FormData(form);
+        buttons.forEach(button => { button.disabled = true; button.textContent = form.dataset.pendingLabel ?? 'Đang tải…'; });
+        try {
+            const response = await fetch(form.action, { method: 'POST', body, headers: { Accept: 'application/json' } });
+            if (!response.ok) {
+                const result = await response.json().catch(() => ({}));
+                const message = Object.values(result.errors ?? {}).flat().join(' ') || 'Không thể tạo hoặc tải bản sao. Kiểm tra quyền, mật khẩu và thử lại.';
+                throw new Error(message);
+            }
+            if (!(response.headers.get('content-type') ?? '').includes('application/sql')) throw new Error('Phiên đăng nhập đã hết hiệu lực. Hãy đăng nhập lại.');
+            const url = URL.createObjectURL(await response.blob());
+            const download = document.createElement('a');
+            download.href = url;
+            download.download = /filename="([^"]+)"/.exec(response.headers.get('content-disposition') ?? '')?.[1] ?? 'vistiq-backup.sql';
+            download.click();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+            form.querySelectorAll('input[type="password"]').forEach(input => input.value = '');
+            notify('Đã kiểm tra integrity và tải bản sao lưu. Tải lại trang để cập nhật danh sách.');
+        } catch (error) { notify(error.message, true); }
+        finally {
+            delete form.dataset.uiSubmitting;
+            form.removeAttribute('aria-busy');
+            buttons.forEach((button, index) => { button.disabled = false; button.textContent = labels[index]; });
+        }
+        return;
+    }
     if (!form.hasAttribute('data-pending-label')) return;
     if (form.dataset.uiSubmitting) {
         event.preventDefault();
@@ -94,4 +161,63 @@ window.addEventListener('pageshow', () => {
 document.querySelectorAll('.icon-button[aria-label]:not([title])').forEach(control => control.title = control.getAttribute('aria-label'));
 if (!document.body.classList.contains('admin-mode')) {
     document.querySelectorAll('[data-dismiss-admin-toast]').forEach(button => button.addEventListener('click', () => button.closest('[data-admin-toast]')?.remove()));
+}
+
+const avatarForm = document.querySelector('[data-avatar-form]');
+document.querySelector('[data-profile-section]')?.addEventListener('change', event => { window.location.assign(event.target.value); });
+if (avatarForm) {
+    const input = avatarForm.querySelector('[name="avatar"]');
+    const preview = avatarForm.querySelector('[data-avatar-preview]');
+    const error = avatarForm.querySelector('#avatar-error');
+    const remove = avatarForm.querySelector('[name="remove_avatar"]');
+    const original = preview.getAttribute('src');
+    const fallback = avatarForm.querySelector('[data-avatar-fallback]');
+    avatarForm.querySelectorAll('[data-avatar-open]').forEach(link => link.addEventListener('click', event => {
+        event.preventDefault();
+        const controls = avatarForm.querySelector('#profile-avatar-controls');
+        if (controls) { controls.open = true; controls.scrollIntoView({ block: 'nearest' }); input.focus({ preventScroll: true }); }
+    }));
+    preview.addEventListener('error', () => { preview.hidden = true; if (fallback) fallback.hidden = false; });
+    const bio = avatarForm.querySelector('[data-profile-bio]');
+    bio?.addEventListener('input', () => { avatarForm.querySelector('[data-profile-bio-count]').textContent = [...bio.value].length; });
+    let objectUrl;
+    input.addEventListener('change', () => {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        const file = input.files[0];
+        error.textContent = '';
+        input.setCustomValidity('');
+        if (file && (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 2*1024*1024)) {
+            error.textContent = 'Chọn ảnh JPEG, PNG hoặc WebP tối đa 2 MB.';
+            input.setCustomValidity(error.textContent);
+            return;
+        }
+        if (remove && file) remove.checked = false;
+        objectUrl = file ? URL.createObjectURL(file) : null;
+        preview.src = objectUrl ?? original;
+        preview.hidden = !file && !original;
+        if (fallback) fallback.hidden = !preview.hidden;
+    });
+    remove?.addEventListener('change', () => {
+        if (remove.checked) { input.value = ''; input.setCustomValidity(''); error.textContent = ''; preview.hidden = true; if (fallback) fallback.hidden = false; }
+        else { preview.src = original; preview.hidden = !original; if (fallback) fallback.hidden = !!original; }
+    });
+}
+
+const sidebarGroups = [...document.querySelectorAll('[data-sidebar-nav-group]')];
+if (sidebarGroups.length) {
+    const mobileNavigation = matchMedia('(max-width: 680px)');
+    const adaptNavigation = () => sidebarGroups.forEach(group => { group.open = !mobileNavigation.matches && group.classList.contains('is-active'); });
+    adaptNavigation();
+    mobileNavigation.addEventListener('change', adaptNavigation);
+    sidebarGroups.forEach(group => group.addEventListener('toggle', () => {
+        if (mobileNavigation.matches && group.open) sidebarGroups.filter(other => other !== group).forEach(other => other.open = false);
+    }));
+    document.addEventListener('click', event => {
+        if (mobileNavigation.matches && !event.target.closest('.admin-nav')) sidebarGroups.forEach(group => group.open = false);
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || !mobileNavigation.matches) return;
+        const opened = sidebarGroups.find(group => group.open);
+        if (opened) { opened.open = false; opened.querySelector('summary').focus(); }
+    });
 }

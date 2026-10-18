@@ -17,6 +17,15 @@ export const reconcileAnswers = (pending, serverAnswers) => {
 
 export const recordingFilename = mime => mime.includes('mp4') ? 'recording.mp4' : mime.includes('ogg') ? 'recording.ogg' : 'recording.webm';
 
+// Submitting and background autosave must await the same write, rather than treating it as a failed sync.
+export const singleFlight = operation => {
+    let inFlight;
+    return (...args) => {
+        inFlight ??= Promise.resolve().then(() => operation(...args)).finally(() => { inFlight = null; });
+        return inFlight;
+    };
+};
+
 const root = typeof document === 'undefined' ? null : document.querySelector('[data-exam-runner]');
 if (root) {
     const config = JSON.parse(root.querySelector('[data-exam-config]').textContent);
@@ -70,8 +79,9 @@ if (root) {
             transaction.onabort = () => reject(transaction.error);
         });
     };
-    const flushRecordings = async () => {
+    const flushRecordings = singleFlight(async () => {
         if (uploadingRecordings || config.preview || !navigator.onLine || state.paused || state.status === 'expired' || submitting) { return; }
+        if (!recordings.size) { return; }
         uploadingRecordings = true;
         try {
             for (const [itemKey, recording] of recordings) {
@@ -90,7 +100,7 @@ if (root) {
             if (await flush()) { const answer = savedAnswers.get(current()?.key); if (answer?.recording_url) { root.querySelector('[data-recording]')?.setAttribute('src', answer.recording_url); } }
         } catch (error) { showWarning(`Recording đang chờ đồng bộ: ${error.message}`); }
         finally { uploadingRecordings = false; }
-    };
+    });
     const restoreRecordings = async () => {
         if (config.preview) { return; }
         try {
@@ -206,7 +216,7 @@ if (root) {
         pending[item.key] = { item_key: item.key, version: savedAnswers.get(item.key)?.version ?? 0, response, spent_seconds: spent, flagged: !!root.querySelector('[data-flag]')?.checked, recording_url: pending[item.key]?.recording_url ?? savedAnswers.get(item.key)?.recording_url };
         persist(); status.textContent = config.preview ? 'Preview · đáp án được giữ trong phiên này' : 'Đã lưu cục bộ · chờ đồng bộ'; syncProgress(); countWords();
     };
-    const flush = async () => {
+    const flush = singleFlight(async () => {
         if (conflicting || saving || submitting || state.paused || state.status === 'expired' || !Object.keys(pending).length) { return !saving && !conflicting; }
         if (config.preview) { return true; }
         saving = true; const batch = JSON.parse(JSON.stringify(pending));
@@ -234,7 +244,7 @@ if (root) {
             }
             status.textContent = 'Chưa đồng bộ · giữ đáp án cục bộ'; return false;
         } finally { saving = false; }
-    };
+    });
     const refresh = async () => {
         if (config.preview || submitting) { return; }
         try {

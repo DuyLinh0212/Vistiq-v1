@@ -37,6 +37,11 @@ class KnowledgeAdminController extends AdminPageController
         return $this->page('Biên soạn kiến thức', 'pages.admin.learning.knowledge.workspace.editor', $payload);
     }
 
+    public function preview(LearningItem $knowledge, KnowledgeItemService $service): mixed
+    {
+        return $this->page('Xem kiến thức', 'pages.admin.learning.knowledge.workspace.read', $service->editorPayload($knowledge));
+    }
+
     public function store(KnowledgeUpsertRequest $request, KnowledgeItemService $service): mixed
     {
         $item = $service->store($request->validated());

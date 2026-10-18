@@ -23,16 +23,10 @@
         </div>
     </header>
 
-    @if($errors->any())
-        <div class="knowledge-validation-errors" role="alert">
-            <strong>Kiểm tra lại thông tin:</strong>
-            <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
-        </div>
-    @endif
 
     <a class="button button-quiet" href="#knowledge-preview">Xem trước bản nháp</a>
     <div class="workspace-with-preview">
-    <form class="knowledge-editor" method="post" action="{{ $item->exists ? route('admin.knowledge.update', $item) : route('admin.knowledge.store') }}" data-unsaved-form>
+    <form class="knowledge-editor" method="post" action="{{ $item->exists ? route('admin.knowledge.update', $item) : route('admin.knowledge.store') }}" data-unsaved-form data-pending-label="Đang lưu…">
         @csrf
         @if($item->exists)@method('PUT')@endif
         <input type="hidden" name="type" value="{{ $selectedType }}">
