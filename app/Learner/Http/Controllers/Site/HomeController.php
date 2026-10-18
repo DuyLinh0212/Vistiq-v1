@@ -11,8 +11,17 @@ class HomeController extends StaticPageController
         'home' => ['title' => 'Trang chủ', 'frame' => 'U01', 'view' => 'pages.home.index', 'section' => 'home', 'description' => 'Tra cứu nhanh. Luyện đúng trọng tâm.', 'show_heading' => false],
     ];
 
-    public function index(): View
+    public function index(): mixed
     {
+        if ((! auth('web')->check() || auth('web')->user()->isAdmin()) && auth('admin')->user()?->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+        if (auth('web')->user()?->isAdmin()) {
+            auth('web')->logout();
+
+            return redirect()->route('admin.login');
+        }
+
         return $this->show('home');
     }
 

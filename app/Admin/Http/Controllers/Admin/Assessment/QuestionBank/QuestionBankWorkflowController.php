@@ -96,11 +96,17 @@ class QuestionBankWorkflowController extends AdminPageController
 
         DB::transaction(function () use ($data, $ids, $revisions): void {
             foreach ($ids as $id) {
-                $revisions->transition('question', $revisions->root('question', $id), $data['action'], $data['note'] ?? null);
+                $root = $revisions->root('question', $id);
+                if ($data['action'] === 'review' && ! $root->draft_revision_id) {
+                    abort_unless($root->learningItem->status === 'draft', 409, 'Chỉ gửi duyệt câu hỏi nháp.');
+                    $revisions->save('question', $root, $revisions->payload('question', $root), $root->revision_counter);
+                    $root->refresh();
+                }
+                $revisions->transition('question', $root, $data['action'], $data['note'] ?? null);
             }
         });
 
-        return back()->with('status', 'Đã xử lý các câu hỏi đã chọn.');
+        return back()->with('status', $data['action'] === 'review' ? 'Đã gửi '.count($ids).' câu hỏi vào Duyệt nội dung.' : 'Đã xử lý các câu hỏi đã chọn.');
     }
 
     public function export(Request $request, ContentRevisionService $revisions): mixed

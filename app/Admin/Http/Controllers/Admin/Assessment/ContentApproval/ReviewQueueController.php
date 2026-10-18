@@ -57,8 +57,12 @@ class ReviewQueueController extends AdminPageController
 
             return $entry;
         });
+        $draftCount = DB::table('question_bank_items as q')->join('learning_items as item', 'item.id', '=', 'q.learning_item_id')
+            ->leftJoin('content_revisions as r', 'r.id', '=', 'q.draft_revision_id')
+            ->where('item.status', '!=', 'archived')
+            ->where(fn ($q) => $q->where('r.status', 'draft')->orWhere(fn ($q) => $q->whereNull('r.id')->where('item.status', 'draft')))->count();
 
-        return $this->page('Duyệt nội dung', 'pages.admin.assessment.content-approval.index', ['entries' => $entries, 'filters' => $filters,
+        return $this->page('Duyệt nội dung', 'pages.admin.assessment.content-approval.index', ['entries' => $entries, 'filters' => $filters, 'draftCount' => $draftCount,
             'examTypes' => DB::table('exam_types')->orderBy('name')->get(['id', 'name']),
             'parts' => DB::table('exam_parts')->join('exam_types', 'exam_types.id', '=', 'exam_parts.exam_type_id')->orderBy('exam_parts.sort_order')->get(['exam_parts.id', 'exam_parts.name', 'exam_types.name as exam_type_name']),
         ]);

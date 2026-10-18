@@ -95,6 +95,7 @@
                         <div class="listening-detail-meta"><div><small>Mã bài:</small><b>{{ $entry['code'] }}</b></div><span class="badge {{ $entryStatusClass }}">{{ $statusLabels[$entryStatus] ?? $entryStatus }}</span></div>
                         <div class="listening-detail-tags">@foreach($entry['parts']->pluck('examType')->filter()->unique('id') as $examType)<span class="listening-exam-tag {{ $examType->code === 'ielts' ? 'is-ielts' : '' }}">{{ strtoupper($examType->code) }}</span>@endforeach @foreach($entry['parts'] as $part)<span class="badge badge-soft">{{ $part->name }}</span>@endforeach</div>
                         @include('shared.workflow-actions', ['kind'=>'stimulus', 'entityId'=>$selectedStimulus->id, 'revision'=>$workflowRevision])
+                        @include('pages.admin.assessment.question-bank.workspace.send-review')
                     @endif
 
                     @if($canEdit && $editing)
@@ -180,3 +181,5 @@
         @endif
     </div>
 </div>
+
+@include('pages.admin.assessment.question-bank.workspace.standalone-questions')

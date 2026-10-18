@@ -30,7 +30,7 @@ class User extends Authenticatable
 
     public function hasRole(string $code): bool
     {
-        return $this->roles()->where('code', $code)->exists();
+        return $this->accessSnapshot()['roles']->contains($code);
     }
 
     public function hasPermission(string $code): bool
@@ -39,7 +39,22 @@ class User extends Authenticatable
             return false;
         }
 
-        return $this->hasRole('super-admin') || $this->roles()->whereHas('permissions', fn ($query) => $query->where('code', $code))->exists();
+        $access = $this->accessSnapshot();
+
+        return $access['roles']->contains('super-admin') || $access['permissions']->contains($code);
+    }
+
+    private function accessSnapshot(): array
+    {
+        // Only cache the authenticated principal, for this HTTP request. Never cache across requests.
+        $request = request();
+        $key = 'vistiq.access.'.spl_object_id($this);
+        if (! $request->attributes->has($key)) {
+            $roles = $this->roles()->with('permissions')->get();
+            $request->attributes->set($key, ['roles' => $roles->pluck('code'), 'permissions' => $roles->flatMap(fn ($role) => $role->permissions->pluck('code'))->unique()]);
+        }
+
+        return $request->attributes->get($key);
     }
 
     public function isAdmin(): bool

@@ -88,7 +88,8 @@ try:
     learner_ctx,learner=login(browser,'learner')
     assert review_ctx.request.get('/admin/settings').status==403
     assert author_ctx.request.get('/admin/roles').status==403
-    assert learner_ctx.request.get('/admin/settings').status==403
+    denied=learner_ctx.request.get('/admin/settings',max_redirects=0)
+    assert denied.status==302 and '/admin/login' in denied.headers['location']
     assert admin_ctx.request.post('/admin/settings/exam',form={'_method':'PUT'}).status==419
     check('Authentication, direct URL permissions and real CSRF rejection')
 
@@ -113,12 +114,26 @@ try:
     submit(review,review.get_by_role('button',name='Duyệt',exact=True))
     goto(admin,f'/admin/knowledge/{knowledge_id}/preview')
     submit(admin,admin.get_by_role('button',name='Xuất bản',exact=True))
-    goto(learner,'/knowledge?q=E2E')
-    learner.get_by_role('link',name='E2E shared knowledge',exact=True).click()
-    learner.locator('[name="personal_note"]').fill('My private E2E note')
-    submit(learner,learner.get_by_role('button',name='Lưu kiến thức',exact=True))
+    goto(learner,'/lookup?q=E2E')
+    knowledge_slug=learner.locator('.dictionary-word-header form').get_attribute('action').split('/')[-2]
+    with learner.expect_response(lambda response: '/knowledge/' in response.url and response.request.method=='POST' and response.status==200):
+        learner.get_by_role('button',name='Lưu vào kho kiến thức',exact=True).click()
+    expect(learner.get_by_role('button',name='Bỏ lưu khỏi kho kiến thức',exact=True)).to_be_visible()
+    goto(learner,'/knowledge?item='+knowledge_slug)
+    learner.locator('.library-collections summary').click()
+    learner.locator('#collection-name').fill('E2E private collection')
+    submit(learner,learner.locator('.library-collections form button'))
+    learner.locator('#library-collection').select_option(label='E2E private collection')
+    learner.locator('#library-note').fill('My private E2E note')
+    submit(learner,learner.get_by_role('button',name='Lưu thay đổi',exact=True))
     goto(learner,'/profile/saved'); expect(learner.get_by_text('My private E2E note')).to_be_visible()
     check('Knowledge create → review → publish → learner reads/saves → profile saved contract')
+    goto(learner,'/knowledge')
+    learner.locator('[data-library-select]').filter(has_text='commitment').first.click()
+    expect(learner.locator('#knowledge-detail h3')).to_have_text('commitment')
+    expect(learner.locator('#knowledge-detail')).to_be_focused()
+    assert 'item=e2e-library-0' in learner.url
+    check('Personal library detail selection loads without a full page navigation')
 
     goto(admin,'/admin/knowledge/import?type=idiom')
     admin.locator('input[type="file"]').set_input_files({'name':'invalid.csv','mimeType':'text/csv','buffer':'english,meaning_vi\nInvalid missing meaning,\n'.encode()})
@@ -194,6 +209,7 @@ try:
     check('Profile avatar preview/persistence, field validation/preservation, responsive and reduced motion')
 
     for page,path,name in [
+        (admin,'/admin','admin-overview'),(admin,'/admin/content-approval','admin-review-queue'),
         (admin,'/admin/roles','admin-roles'),(admin,'/admin/users','admin-users'),
         (admin,'/admin/readings','admin-reading-bank'),(admin,f'/admin/exams/{reading}/edit','admin-exam-builder'),
         (admin,f'/admin/content-approval/question/{question}','admin-review'),

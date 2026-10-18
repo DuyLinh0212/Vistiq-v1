@@ -12,12 +12,12 @@ use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Admin\TestCase;
 use VistiqAdmin\Models\User;
-use VistiqCore\Models\User as CoreUser;
 use VistiqCore\Models\ExamTemplate;
 use VistiqCore\Models\QuestionBankItem;
+use VistiqCore\Models\User as CoreUser;
 use VistiqCore\Services\Analytics\AnalyticsService;
-use VistiqCore\Services\Assessment\Attempts\AttemptService;
 use VistiqCore\Services\Analytics\LeaderboardService;
+use VistiqCore\Services\Assessment\Attempts\AttemptService;
 
 class AdminOperationsTest extends TestCase
 {
@@ -31,7 +31,7 @@ class AdminOperationsTest extends TestCase
 
     public static function screens(): array
     {
-        return array_map(fn ($path) => [$path], ['/admin', '/admin/analytics', '/admin/questions', '/admin/questions/create', '/admin/readings', '/admin/audio', '/admin/groups', '/admin/media', '/admin/exams', '/admin/exams/create', '/admin/attempts', '/admin/grading', '/admin/knowledge', '/admin/knowledge/create', '/admin/leaderboard', '/admin/users', '/admin/roles', '/admin/settings', '/admin/settings/database', '/admin/audit', '/admin/search?q=test']);
+        return array_map(fn ($path) => [$path], ['/admin', '/admin/analytics', '/admin/questions/listening', '/admin/questions/create', '/admin/readings', '/admin/audio', '/admin/groups', '/admin/media', '/admin/exams', '/admin/exams/create', '/admin/attempts', '/admin/grading', '/admin/knowledge', '/admin/knowledge/create', '/admin/leaderboard', '/admin/users', '/admin/roles', '/admin/settings', '/admin/settings/database', '/admin/audit', '/admin/search?q=test']);
     }
 
     #[DataProvider('screens')]
@@ -47,7 +47,7 @@ class AdminOperationsTest extends TestCase
         $learner = User::factory()->create();
         $this->post('/admin/users/'.$learner->id.'/revoke-sessions')->assertRedirect();
         $this->assertSame(1, $learner->fresh()->session_version);
-        $this->actingAs($learner->fresh())->withSession(['user_session_version' => 0])->getJson('/admin')->assertUnauthorized();
+        $this->actingAs($learner->fresh(), 'admin')->withSession(['admin_session_version' => 0])->getJson('/admin')->assertUnauthorized();
         $this->actingAs($super)->post('/admin/users/'.$learner->id.'/lock')->assertRedirect();
         $this->assertSame('locked', $learner->fresh()->status);
     }

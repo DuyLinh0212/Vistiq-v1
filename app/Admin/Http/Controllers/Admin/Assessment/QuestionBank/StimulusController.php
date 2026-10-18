@@ -2,24 +2,28 @@
 
 namespace VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank;
 
-use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
-use VistiqCore\Services\Assessment\QuestionBank\QuestionBankCatalog;
-use VistiqCore\Models\ExamPart;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqAdmin\Http\Requests\Admin\Assessment\QuestionBank\AudioBatchUploadRequest;
 use VistiqAdmin\Http\Requests\Admin\Assessment\QuestionBank\AudioBulkDeleteRequest;
 use VistiqAdmin\Http\Requests\Admin\Assessment\QuestionBank\StimulusStoreRequest;
 use VistiqCore\Models\ContentRevision;
+use VistiqCore\Models\ExamPart;
 use VistiqCore\Models\LearningStimulus;
 use VistiqCore\Models\MediaAsset;
-use VistiqCore\Services\Assessment\QuestionBank\AudioQuestionService;
-use VistiqCore\Services\System\AuditService;
+use VistiqCore\Models\QuestionDifficulty;
+use VistiqCore\Models\QuestionType;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
+use VistiqCore\Services\Assessment\QuestionBank\AudioQuestionService;
 use VistiqCore\Services\Assessment\QuestionBank\MediaService;
+use VistiqCore\Services\Assessment\QuestionBank\QuestionBankCatalog;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
+use VistiqCore\Services\Assessment\QuestionBank\ResourceLibraryService;
+use VistiqCore\Services\System\AuditService;
 
 class StimulusController extends AdminPageController
 {
@@ -54,13 +58,12 @@ class StimulusController extends AdminPageController
                 'duration_seconds' => $duration,
             ];
         };
-        $allLessons = $bankData['entries']->filter(fn (array $entry): bool =>
-            $entry['kind'] === 'group'
+        $allLessons = $bankData['entries']->filter(fn (array $entry): bool => $entry['kind'] === 'group'
             && filled($entry['payload']['metadata']['lesson_code'] ?? null)
             && $entry['questions']->isNotEmpty()
+            && $entry['parts']->contains(fn ($part): bool => $part->skill?->code === 'listening')
         )->map($withAudio)->values();
-        $rows = $allLessons->filter(fn (array $entry): bool =>
-            ($search === '' || str_contains(mb_strtolower($entry['code'].' '.$entry['title']), $search))
+        $rows = $allLessons->filter(fn (array $entry): bool => ($search === '' || str_contains(mb_strtolower($entry['code'].' '.$entry['title']), $search))
             && ($status === '' || $entry['question_status'] === $status)
             && ($exam === '' || $entry['parts']->contains(fn ($part): bool => $part->examType?->code === $exam))
             && (! $partId || $entry['parts']->contains('id', $partId))
@@ -79,8 +82,7 @@ class StimulusController extends AdminPageController
         $questionIds = $entry ? $entry['questions']->keys()->values() : collect();
         $selectedQuestionIndex = $selectedQuestion ? $questionIds->search($selectedQuestion->id) + 1 : 0;
         $listeningQuestions = collect($bankData['records'])->filter(fn (array $record): bool => $record['question']->examPart?->skill?->code === 'listening');
-        $audioGroupCount = $bankData['entries']->filter(fn (array $candidate): bool =>
-            $candidate['kind'] === 'group'
+        $audioGroupCount = $bankData['entries']->filter(fn (array $candidate): bool => $candidate['kind'] === 'group'
             && $candidate['parts']->contains(fn ($part): bool => $part->skill?->code === 'listening')
         )->count();
         $examOptions = $allLessons->flatMap(fn (array $lesson) => $lesson['parts']->map(fn ($part): array => [
@@ -94,6 +96,7 @@ class StimulusController extends AdminPageController
         ]))->unique('id')->sortBy(fn (array $option): string => $option['exam'].' '.$option['name'])->values();
 
         return $this->page('Câu hỏi Listening', 'pages.admin.assessment.question-bank.workspace.listening-bank', [
+            'standaloneQuestions' => $this->standaloneQuestions($request, $bankData, $allLessons, 'listening'),
             'lessons' => $lessons,
             'entry' => $entry,
             'bankData' => $bankData,
@@ -129,8 +132,7 @@ class StimulusController extends AdminPageController
         $parts = ExamPart::with(['examType', 'skill'])->whereHas('skill', fn ($query) => $query->where('code', 'reading'))->get();
         $examOptions = $parts->pluck('examType')->filter()->unique('id')->sortBy('name')->values();
         $rows = $readingEntries
-            ->filter(fn (array $entry): bool =>
-                ($search === '' || str_contains(mb_strtolower($entry['code'].' '.$entry['title'].' '.strip_tags($entry['payload']['body'] ?? '')), $search))
+            ->filter(fn (array $entry): bool => ($search === '' || str_contains(mb_strtolower($entry['code'].' '.$entry['title'].' '.strip_tags($entry['payload']['body'] ?? '')), $search))
                 && ($exam === '' || $entry['parts']->contains(fn ($part): bool => $part->examType?->code === $exam))
                 && (! $partId || $entry['parts']->contains('id', $partId))
                 && ($status === '' || $entry['status'] === $status)
@@ -149,6 +151,7 @@ class StimulusController extends AdminPageController
         $selectedQuestionIndex = $selectedQuestion ? $questionIds->search($selectedQuestion->id) + 1 : 0;
 
         return $this->page('Câu hỏi Reading', 'pages.admin.assessment.question-bank.workspace.readings', [
+            'standaloneQuestions' => $this->standaloneQuestions($request, $bankData, $readingEntries, 'reading'),
             'readings' => $readings,
             'entry' => $entry,
             'bankData' => $bankData,
@@ -168,9 +171,9 @@ class StimulusController extends AdminPageController
                 'approved' => $readingQuestions->whereIn('status', ['approved', 'published'])->count(),
             ],
             'creating' => $request->boolean('create'),
-            'importQuestionTypeId' => \VistiqCore\Models\QuestionType::where('code', 'multiple_choice')->value('id'),
-            'importDifficultyId' => \VistiqCore\Models\QuestionDifficulty::where('code', 'medium')->value('id'),
-            'workflowRevision' => $entry ? \VistiqCore\Models\ContentRevision::find($entry['stimulus']->draft_revision_id) : null,
+            'importQuestionTypeId' => QuestionType::where('code', 'multiple_choice')->value('id'),
+            'importDifficultyId' => QuestionDifficulty::where('code', 'medium')->value('id'),
+            'workflowRevision' => $entry ? ContentRevision::find($entry['stimulus']->draft_revision_id) : null,
         ]);
     }
 
@@ -180,8 +183,9 @@ class StimulusController extends AdminPageController
         $request->validate(['question' => 'nullable|integer|exists:question_bank_items,id']);
         $entry = app(QuestionBankCatalog::class)->entryFor('stimulus', $stimulus->id);
         $question = $request->integer('question') ? $entry['questions']->get($request->integer('question')) : null;
-        abort_if($request->integer('question') && !$question, 404);
+        abort_if($request->integer('question') && ! $question, 404);
         $data = app(QuestionController::class)->editorData($question, $stimulus);
+
         return view('pages.admin.assessment.question-bank.questions.editor', $data + ['embeddedStimulus' => $stimulus]);
     }
 
@@ -190,7 +194,7 @@ class StimulusController extends AdminPageController
         if (! $request->filled('stimulus')) {
             $request->merge(['type' => 'audio']);
 
-            return app(MediaController::class)->index($request, app(\VistiqCore\Services\Assessment\QuestionBank\ResourceLibraryService::class));
+            return app(MediaController::class)->index($request, app(ResourceLibraryService::class));
         }
 
         return $this->index($request, 'audio', $audioQuestions);
@@ -341,8 +345,8 @@ class StimulusController extends AdminPageController
             $data = $this->payload($request);
             $data['stimulus_type'] = $type;
             $root = LearningStimulus::create(['created_by' => auth()->id(), 'title' => $data['title'], 'stimulus_type' => $type, 'body' => app(QuestionRegistry::class)->sanitize($data['body'] ?? ''), 'status' => 'draft']);
-            if ($type === 'reading' && !empty($data['metadata']['exam_part_id'])) {
-                $data['metadata']['question_group_id'] = app(QuestionController::class)->createStimulusGroup($root, (int)$data['metadata']['exam_part_id']);
+            if ($type === 'reading' && ! empty($data['metadata']['exam_part_id'])) {
+                $data['metadata']['question_group_id'] = app(QuestionController::class)->createStimulusGroup($root, (int) $data['metadata']['exam_part_id']);
             }
             app(ContentRevisionService::class)->save('stimulus', $root, $data, 0);
 
@@ -357,6 +361,7 @@ class StimulusController extends AdminPageController
         $revision = DB::transaction(function () use ($request, $stimulus, $revisions) {
             $locked = LearningStimulus::query()->lockForUpdate()->findOrFail($stimulus->id);
             $request->route()->setParameter('stimulus', $locked);
+
             return $revisions->save('stimulus', $locked, $this->payload($request), $request->validated('revision_counter'));
         });
 
@@ -371,10 +376,10 @@ class StimulusController extends AdminPageController
             $current = app(ContentRevisionService::class)->payload('stimulus', $root);
             $data['metadata'] = array_replace($current['metadata'] ?? [], $data['metadata'] ?? []);
             $data['stimulus_type'] = $root->stimulus_type;
-            $oldPart = (int)($current['metadata']['exam_part_id'] ?? 0);
-            if ($oldPart && (int)($data['metadata']['exam_part_id'] ?? 0) !== $oldPart) {
+            $oldPart = (int) ($current['metadata']['exam_part_id'] ?? 0);
+            if ($oldPart && (int) ($data['metadata']['exam_part_id'] ?? 0) !== $oldPart) {
                 abort_if(app(QuestionBankCatalog::class)->entryFor('stimulus', $root->id)['questions']->isNotEmpty(), 422, 'Bài đã có câu hỏi. Giữ phần hiện tại để bảo toàn liên kết.');
-                $data['metadata']['question_group_id'] = app(QuestionController::class)->createStimulusGroup($root, (int)$data['metadata']['exam_part_id']);
+                $data['metadata']['question_group_id'] = app(QuestionController::class)->createStimulusGroup($root, (int) $data['metadata']['exam_part_id']);
             }
         }
         if ($request->hasFile('media')) {
@@ -383,6 +388,24 @@ class StimulusController extends AdminPageController
         }
 
         return $data;
+    }
+
+    private function standaloneQuestions(Request $request, array $data, Collection $entries, string $skill): LengthAwarePaginator
+    {
+        $listed = $entries->flatMap(fn ($entry) => $entry['questions']->keys())->unique()->flip();
+        $search = mb_strtolower(trim($request->string('q')->toString()));
+        $rows = collect($data['records'])->filter(function ($record, $id) use ($request, $listed, $skill, $search): bool {
+            $part = $record['question']->examPart;
+
+            return ! $listed->has($id) && $part?->skill?->code === $skill && $part?->examType?->code !== 'thpt'
+                && (! $request->filled('status') || $record['status'] === $request->input('status'))
+                && (! $request->filled('exam') || $part?->examType?->code === $request->input('exam'))
+                && (! $request->integer('part') || $part?->id === $request->integer('part'))
+                && ($search === '' || str_contains(mb_strtolower('Q-'.$id.' '.strip_tags($record['payload']['prompt'] ?? '')), $search));
+        })->sortByDesc(fn ($record) => $record['question']->updated_at)->values();
+        $page = max(1, $request->integer('standalone_page', 1));
+
+        return new LengthAwarePaginator($rows->forPage($page, 15)->values(), $rows->count(), 15, $page, ['path' => $request->url(), 'pageName' => 'standalone_page', 'query' => $request->query()]);
     }
 
     /** @return array<int, int> */

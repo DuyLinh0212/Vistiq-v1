@@ -18,9 +18,11 @@ class PublishedKnowledgeTest extends TestCase
         $this->seed(AdminCatalogSeeder::class);
         $item = LearningItem::create(['learning_item_type_id' => DB::table('learning_item_types')->where('code', 'idiom')->value('id'), 'canonical_text' => 'Visible real knowledge', 'slug' => 'visible-real-knowledge', 'status' => 'published']);
         DB::table('learning_item_meanings')->insert(['learning_item_id' => $item->id, 'sense_number' => 1, 'translation' => 'Nội dung thật', 'created_at' => now(), 'updated_at' => now()]);
-        $this->get('/knowledge?q=Visible')->assertOk()->assertSee('Visible real knowledge')->assertDontSee('186');
+        $this->get('/knowledge?q=Visible')->assertRedirect('/login');
+        $this->actingAs(User::factory()->create())->get('/knowledge?q=Visible')->assertOk()->assertDontSee('Visible real knowledge')->assertSee('Kho kiến thức của bạn đang trống');
         $this->get('/knowledge/visible-real-knowledge')->assertOk()->assertSee('Nội dung thật')->assertDontSee('take into account');
-        $this->get('/knowledge/saved')->assertRedirect('/login');
+        $this->post('/knowledge/visible-real-knowledge/save')->assertRedirect();
+        $this->get('/knowledge/saved')->assertOk()->assertSee('Visible real knowledge');
     }
 
     public function test_saved_items_notes_and_mutations_are_scoped_to_the_authenticated_learner(): void

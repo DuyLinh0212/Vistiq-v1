@@ -25,7 +25,7 @@ class RoleManagementTest extends TestCase
         $this->get('/admin/roles')->assertRedirect('/admin/login');
 
         $learner = User::factory()->create();
-        $this->actingAs($learner)->get('/admin/roles')->assertForbidden();
+        $this->actingAs($learner, 'admin')->get('/admin/roles')->assertForbidden();
 
         $admin = $this->admin('super-admin');
         $this->actingAs($admin)->get('/admin/roles')

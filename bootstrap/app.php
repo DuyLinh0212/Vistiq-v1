@@ -2,8 +2,10 @@
 
 use App\Http\Middleware\ApiResponse;
 use App\Http\Middleware\ConfigureFrontend;
+use App\Http\Middleware\SurfaceIntendedUrl;
 use App\Http\Middleware\ThrottleActionRequests;
 use Dotenv\Dotenv;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -33,6 +35,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'guest.admin' => EnsureAdminGuest::class,
         ]);
         $middleware->prepend(ConfigureFrontend::class);
+        $middleware->web(append: [SurfaceIntendedUrl::class]);
+        $middleware->prependToPriorityList(AuthenticatesRequests::class, SurfaceIntendedUrl::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'value.password', 'value.api_key', 'value.key', 'value.secret', 'value_json']);

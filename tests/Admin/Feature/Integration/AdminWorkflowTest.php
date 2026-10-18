@@ -25,7 +25,7 @@ class AdminWorkflowTest extends TestCase
     {
         $this->seed(AdminCatalogSeeder::class);
         $learner = User::factory()->create();
-        $this->actingAs($learner)->get('/admin/questions')->assertForbidden();
+        $this->actingAs($learner, 'admin')->get('/admin/questions')->assertForbidden();
         $editor = User::factory()->create();
         $editor->roles()->attach(Role::where('code', 'content-admin')->value('id'));
         $this->assertTrue(Gate::forUser($editor)->allows('content.edit'));

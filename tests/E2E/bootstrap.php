@@ -52,6 +52,23 @@ foreach (['reading', 'writing'] as $kind) {
     $exam->update(['published_revision_id' => $revision->id]);
     $exams[$kind] = $exam->id;
 }
+// Representative library records live only in this disposable browser-test database.
+foreach ([
+    ['vocabulary', 'commitment', 'sự cam kết, sự tận tâm', 'She showed great commitment to her work.'],
+    ['grammar', 'be likely to', 'có khả năng, có thể', 'She is likely to succeed in the interview.'],
+    ['collocation', 'take into account', 'xem xét, tính đến', 'We need to take into account all possible risks.'],
+    ['phrasal_verb', 'look forward to', 'mong chờ, trông đợi', 'I am looking forward to meeting you.'],
+    ['vocabulary', 'opportunity', 'cơ hội', 'This is a great opportunity for your professional growth.'],
+    ['grammar', 'not only ... but also ...', 'không chỉ ... mà còn ...', 'She is not only intelligent but also very kind.'],
+] as $index => [$type,$text,$meaning,$example]) {
+    $itemId = DB::table('learning_items')->insertGetId(['learning_item_type_id' => DB::table('learning_item_types')->where('code', $type)->value('id'), 'canonical_text' => $text, 'slug' => 'e2e-library-'.$index, 'status' => 'published', 'created_at' => now(), 'updated_at' => now()]);
+    $meaningId = DB::table('learning_item_meanings')->insertGetId(['learning_item_id' => $itemId, 'sense_number' => 1, 'translation' => $meaning, 'definition' => 'Example content for browser verification.']);
+    DB::table('learning_item_meaning_examples')->insert(['learning_item_meaning_id' => $meaningId, 'english' => $example, 'sort_order' => 0]);
+    if ($type === 'vocabulary') {
+        DB::table('dictionary_entries')->insert(['learning_item_id' => $itemId, 'phonetic' => $index === 0 ? '/kəˈmɪtmənt/' : '/ˌɒpəˈtjuːnɪti/']);
+    }
+    DB::table('user_saved_items')->insert(['user_id' => $actors['learner'], 'learning_item_id' => $itemId, 'created_at' => now()->subDays($index + 1), 'updated_at' => now()]);
+}
 DB::commit();
 $marker = basename(storage_path());
 Storage::disk('public')->put('e2e-isolation.txt', $marker);

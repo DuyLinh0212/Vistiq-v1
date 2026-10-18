@@ -178,7 +178,8 @@ class AuthController extends StaticPageController
     {
         Auth::logout();
 
-        $request->session()->invalidate();
+        $request->session()->forget(['user_session_version', 'learner.intended']);
+        $request->session()->regenerate(true);
         $request->session()->regenerateToken();
 
         return redirect()->route('home');

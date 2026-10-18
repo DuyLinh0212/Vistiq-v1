@@ -18,6 +18,10 @@ class KnowledgeFilterRequest extends FormRequest
             'category' => 'nullable|string|max:80',
             'level' => 'nullable|string|max:30',
             'type' => 'nullable|string|in:vocabulary,collocation,phrasal_verb,idiom,grammar,all',
+            'sort' => 'nullable|in:newest,oldest,alphabetical',
+            'collection' => 'nullable|integer|min:1',
+            'item' => 'nullable|string|max:200',
+            'detail' => 'nullable|in:hidden',
         ];
     }
 }

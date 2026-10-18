@@ -1,5 +1,7 @@
 # Báo cáo tích hợp Vistiq
 
+Phản hồi sau tích hợp ngày 18/10/2026 và kết quả sửa bổ sung: [Feedback-2026-10-18.md](Feedback-2026-10-18.md).
+
 ## Mốc và thứ tự merge
 
 - Gốc `main`: `76793fc`; baseline 285 test, 274 đạt, 9 failure, 2 error.

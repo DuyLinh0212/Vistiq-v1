@@ -1,4 +1,3 @@
-import { initQuestionEditor } from './question-editor';
 const library = document.querySelector('[data-reading-library]');
 if (library?.dataset.editorUrl) {
     const target = library.querySelector('[data-reading-editor]'), heading = library.querySelector('[data-reading-editor-heading]'), feedback = library.querySelector('[data-reading-feedback]');
@@ -12,7 +11,7 @@ if (library?.dataset.editorUrl) {
             const url = new URL(library.dataset.editorUrl, location.origin); if (id) url.searchParams.set('question', id);
             const response = await fetch(url, { signal: current.signal, headers: { Accept: 'text/html' } });
             if (!response.ok || response.redirected) throw new Error('Không tải được câu hỏi. Hãy thử lại hoặc tải lại trang.');
-            const html = await response.text(); if (request !== current) return;
+            const [html, { initQuestionEditor }] = await Promise.all([response.text(), import('./question-editor.js')]); if (request !== current) return;
             controller?.destroy(); target.querySelectorAll('audio').forEach(audio => audio.pause()); target.innerHTML = html; controller = initQuestionEditor(target.querySelector('[data-qe-root]'));
             heading.hidden = false; heading.querySelector('[data-reading-editor-title]').textContent = id ? `Câu hỏi Q-${String(id).padStart(5, '0')}` : 'Thêm câu hỏi';
             library.querySelectorAll('[data-reading-edit-question]').forEach(button => button.classList.toggle('is-active', button.dataset.readingEditQuestion === String(id)));

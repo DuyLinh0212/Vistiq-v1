@@ -86,6 +86,7 @@
             <aside class="listening-detail" aria-label="Chi tiết bài Listening">
                 <header class="listening-detail-heading"><h2>Chi tiết bài Listening</h2><a class="listening-icon-button" href="{{ route('admin.questions.listening', request()->except('group', 'question')) }}" aria-label="Đóng chi tiết">@include('pages.dictionary.icon', ['name'=>'close'])</a></header>
                 <div class="listening-detail-body">
+                    @include('pages.admin.assessment.question-bank.workspace.send-review')
                     <div class="listening-detail-meta"><div><small>Mã bài:</small><b>{{ $entry['code'] }}</b></div><span class="badge {{ in_array($entry['question_status'], ['approved', 'published'], true) ? 'badge-mint' : ($entry['question_status'] === 'review' ? 'badge-amber' : 'badge-soft') }}">{{ $statusLabels[$entry['question_status']] ?? $entry['question_status'] }}</span></div>
                     <div class="listening-detail-tags">@foreach($entry['parts']->pluck('examType')->filter()->unique('id') as $examType)<span class="listening-exam-tag {{ $examType->code === 'ielts' ? 'is-ielts' : '' }}">{{ strtoupper($examType->code) }}</span>@endforeach @foreach($entry['parts'] as $part)<span class="badge badge-soft">{{ $part->name }}</span>@endforeach</div>
 
@@ -95,7 +96,7 @@
                         <div class="listening-audio-label"><span>Nhóm audio</span><b>{{ $entry['audio_group_code'] ?: ($entry['audio_id'] ? 'AUDIO_'.str_pad((string) $entry['audio_id'], 3, '0', STR_PAD_LEFT) : 'Chưa liên kết') }}</b></div>
                         @if($entry['audio_url'])
                             <div class="listening-player" data-listening-player>
-                                <audio src="{{ $entry['audio_url'] }}" preload="metadata" data-listening-audio></audio>
+                                <audio src="{{ $entry['audio_url'] }}" preload="none" data-listening-audio></audio>
                                 <button class="listening-play-button" type="button" data-listening-toggle aria-label="Phát audio">@include('pages.dictionary.icon', ['name'=>'play'])</button>
                                 <div class="listening-player-track">
                                     <div class="listening-waveform" aria-hidden="true">@foreach([13,20,10,25,17,31,22,13,28,18,35,24,14,29,19,37,25,16,30,22,40,27,17,33,22,36,19,12,28,20,39,25,16,32,21,35,18,13,28,20,37,24,15,31,19,34,22,14,29,18,38,26,15,32,20,36,24,13,29,19,33,22,12,27,18,35,24,15] as $height)<i style="--wave-height:{{ $height }}%"></i>@endforeach</div>
@@ -142,8 +143,10 @@
                         <details><summary>Transcript @include('pages.dictionary.icon', ['name'=>'chevron-down'])</summary>@if(filled($transcript))<div class="qb-rich-text">{!! app(\VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry::class)->sanitize($transcript) !!}</div>@else<p>Chưa có transcript cho bài nghe này.</p>@endif</details>
                     </div>
                 </div>
-                @if($selectedQuestion)<footer class="listening-detail-actions">@can('content.edit')<a class="button button-quiet" href="{{ route('admin.questions.edit', $selectedQuestion) }}">@include('pages.dictionary.icon', ['name'=>'edit']) Chỉnh sửa</a>@endcan<a class="button button-primary" href="{{ route('admin.questions.index', ['q'=>'Q-'.str_pad((string) $selectedQuestion->id, 5, '0', STR_PAD_LEFT)]) }}">@include('pages.dictionary.icon', ['name'=>'eye']) Xem chi tiết</a></footer>@endif
+                @if($selectedQuestion)<footer class="listening-detail-actions">@can('content.edit')<a class="button button-quiet" href="{{ route('admin.questions.edit', $selectedQuestion) }}">@include('pages.dictionary.icon', ['name'=>'edit']) Chỉnh sửa</a>@endcan<a class="button button-primary" href="{{ route('admin.questions.edit', $selectedQuestion) }}">@include('pages.dictionary.icon', ['name'=>'eye']) Xem chi tiết</a></footer>@endif
             </aside>
         @endif
     </div>
 </div>
+
+@include('pages.admin.assessment.question-bank.workspace.standalone-questions')

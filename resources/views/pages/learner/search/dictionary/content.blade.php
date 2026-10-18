@@ -32,7 +32,11 @@
         @guest
             <a class="dictionary-save" href="{{ route('login') }}" title="Đăng nhập để quản lý kho kiến thức">@include('pages.dictionary.icon', ['name' => 'heart']) Lưu vào kho kiến thức</a>
         @else
-            <a class="dictionary-save" href="{{ route('demo.page', 'knowledge') }}">@include('pages.dictionary.icon', ['name' => 'book']) Kho kiến thức</a>
+            @php($entrySaved = \Illuminate\Support\Facades\DB::table('user_saved_items')->where('user_id', auth()->id())->where('learning_item_id', $entry['id'])->exists())
+            <form method="post" action="{{ route('knowledge.save', $entry['slug']) }}" data-library-toggle @if($entrySaved) data-confirm="Bỏ lưu {{ $entry['term'] }}? Ghi chú cá nhân của mục này cũng sẽ bị xóa." data-confirm-label="Bỏ lưu kiến thức" @endif>
+                @csrf @if($entrySaved)@method('DELETE')@endif
+                <button class="dictionary-save" type="submit">@include('pages.dictionary.icon', ['name' => 'heart']) {{ $entrySaved ? 'Bỏ lưu khỏi kho kiến thức' : 'Lưu vào kho kiến thức' }}</button>
+            </form>
         @endguest
     </header>
     <nav class="dictionary-tabs" aria-label="Nội dung mục từ">

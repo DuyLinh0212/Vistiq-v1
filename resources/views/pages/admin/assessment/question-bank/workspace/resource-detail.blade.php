@@ -10,7 +10,7 @@
     @if($isAudio && $asset->resourceStimuli->isNotEmpty())<a class="resource-track-link" href="{{ route('admin.audio.index', ['stimulus' => $asset->resourceStimuli->first()->id]) }}"><i data-resource-icon="square-pen"></i>Chi tiết track audio</a>@endif
     @if($isAudio)
         <div class="resource-player" data-resource-player data-resource-wave-url="{{ route('admin.media.waveform', $asset) }}">
-            <audio controls preload="metadata" src="{{ route('admin.media.show', $asset) }}" aria-label="Phát {{ $asset->title }}"></audio>
+            <audio controls preload="none" src="{{ route('admin.media.show', $asset) }}" aria-label="Phát {{ $asset->title }}"></audio>
             <div class="resource-custom-player" hidden><div class="resource-wave-row"><button type="button" class="resource-play" data-resource-play aria-label="Phát audio" title="Phát audio"><i data-resource-icon="play"></i></button><canvas width="480" height="90" data-resource-wave aria-label="Dạng sóng audio"></canvas></div><div class="resource-seek-row"><span data-resource-time>00:00 / --:--</span><input type="range" min="0" max="100" value="0" step="0.1" data-resource-seek aria-label="Vị trí phát audio" disabled><button type="button" class="resource-icon-button" data-resource-mute aria-label="Tắt âm" title="Tắt âm"><i data-resource-icon="volume-2"></i></button></div></div>
             <p class="resource-player-error" data-resource-player-error hidden role="status">Không thể tải audio. <a href="{{ route('admin.media.show', $asset) }}" target="_blank" rel="noopener">Mở tệp gốc</a></p>
         </div>

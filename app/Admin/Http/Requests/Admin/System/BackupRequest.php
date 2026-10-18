@@ -13,6 +13,6 @@ class BackupRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['password' => 'required|current_password:web'];
+        return ['password' => 'required|current_password:admin'];
     }
 }

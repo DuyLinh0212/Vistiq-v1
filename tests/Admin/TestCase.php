@@ -3,16 +3,23 @@
 namespace Tests\Admin;
 
 use Database\Admin\Factories\ExamTemplateFactory;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use VistiqAdmin\Models\User;
 use VistiqCore\Models\ExamRevision;
 use VistiqCore\Models\ExamTemplate;
 use VistiqCore\Models\Role;
+use VistiqCore\Services\Assessment\ContentApproval\ContentReviewService;
 use VistiqCore\Services\Assessment\Exams\ExamPublishingService;
 
 abstract class TestCase extends \Illuminate\Foundation\Testing\TestCase
 {
+    public function actingAs(Authenticatable $user, $guard = null)
+    {
+        return parent::actingAs($user, $guard ?? ($user->isAdmin() ? 'admin' : 'web'));
+    }
+
     public function createApplication()
     {
         $_SERVER['HTTP_X_VISTIQ_SURFACE'] = 'admin';
@@ -42,7 +49,7 @@ abstract class TestCase extends \Illuminate\Foundation\Testing\TestCase
 
     protected function reviewData(string $kind, int $id): array
     {
-        $review = app(\VistiqCore\Services\Assessment\ContentApproval\ContentReviewService::class)->preview($kind, $id);
+        $review = app(ContentReviewService::class)->preview($kind, $id);
 
         return ['revision_counter' => $review['number'], 'review_token' => $review['token']];
     }
