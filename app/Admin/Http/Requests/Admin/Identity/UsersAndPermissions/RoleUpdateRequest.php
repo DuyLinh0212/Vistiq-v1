@@ -56,6 +56,9 @@ class RoleUpdateRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
+            if ($validator->errors()->has('permissions') || ! is_array($this->input('permissions', []))) {
+                return;
+            }
             /** @var Role $role */
             $role = $this->route('role');
 
@@ -88,6 +91,9 @@ class RoleUpdateRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->boolean('permission_matrix') && ! $this->has('permissions')) {
+            $this->merge(['permissions' => []]);
+        }
         if ($this->has('name')) {
             $this->merge([
                 'name' => trim((string) $this->input('name')),

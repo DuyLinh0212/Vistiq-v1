@@ -62,6 +62,19 @@ class UserManagementTest extends TestCase
             ->assertSee('Thao tác tài khoản');
     }
 
+    public function test_created_date_filter_includes_the_entire_selected_day(): void
+    {
+        $admin = $this->admin('super-admin');
+        User::factory()->create(['name' => 'Boundary Before', 'created_at' => '2026-10-01 23:59:59']);
+        User::factory()->create(['name' => 'Boundary Start', 'created_at' => '2026-10-02 00:00:00']);
+        User::factory()->create(['name' => 'Boundary End', 'created_at' => '2026-10-02 23:59:59']);
+        User::factory()->create(['name' => 'Boundary After', 'created_at' => '2026-10-03 00:00:00']);
+
+        $this->actingAs($admin)->get('/admin/users?q=Boundary&created_from=2026-10-02&created_to=2026-10-02')
+            ->assertOk()->assertSee('Boundary Start')->assertSee('Boundary End')
+            ->assertDontSee('Boundary Before')->assertDontSee('Boundary After');
+    }
+
     public function test_lock_and_unlock_user_actions(): void
     {
         $admin = $this->admin('super-admin');

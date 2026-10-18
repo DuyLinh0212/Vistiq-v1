@@ -3,7 +3,6 @@
 namespace VistiqAdmin\Http\Requests\Admin\Identity\UsersAndPermissions;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use VistiqCore\Models\Permission;
 use VistiqCore\Support\PermissionCatalog;
 
@@ -61,6 +60,9 @@ class RoleStoreRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
+            if ($validator->errors()->has('permissions') || ! is_array($this->input('permissions', []))) {
+                return;
+            }
             $permissionIds = array_map('intval', $this->input('permissions', []));
             if ($permissionIds === []) {
                 return;

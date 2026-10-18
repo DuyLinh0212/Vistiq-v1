@@ -5,11 +5,15 @@ namespace VistiqCore\Services\Identity\UsersAndPermissions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use VistiqCore\Models\Permission;
 use VistiqCore\Models\Role;
 use VistiqCore\Models\User;
 use VistiqCore\Services\System\AuditService;
+use VistiqCore\Services\System\SettingsService;
 use VistiqCore\Support\PermissionCatalog;
+use VistiqLearner\Http\Controllers\Authentication\Mail\ResetPasswordEmail;
 
 class UserManagementService
 {
@@ -37,7 +41,19 @@ class UserManagementService
                     $user->roles()->sync($data['roles'] ?? []);
                     break;
                 case 'password-reset':
-                    Password::sendResetLink(['email' => $user->email]);
+                    try {
+                        app(SettingsService::class)->configureMail();
+                        if (in_array(config('mail.default'), ['log', 'array'], true) && ! app()->environment('testing')) {
+                            throw ValidationException::withMessages(['email' => 'Dịch vụ email chưa sẵn sàng. Hãy cấu hình gửi email trước khi thử lại.']);
+                        }
+                        ResetPasswordEmail::configure();
+                        $status = Password::sendResetLink(['email' => $user->email]);
+                    } catch (TransportExceptionInterface $exception) {
+                        throw ValidationException::withMessages(['email' => 'Chưa thể gửi email đặt lại mật khẩu. Vui lòng thử lại sau ít phút.']);
+                    }
+                    if ($status !== Password::RESET_LINK_SENT) {
+                        throw ValidationException::withMessages(['email' => $status === Password::RESET_THROTTLED ? 'Vừa gửi yêu cầu cho tài khoản này. Hãy đợi 60 giây trước khi gửi lại.' : 'Không thể gửi liên kết cho tài khoản này. Vui lòng kiểm tra email.']);
+                    }
                     break;
                 case 'subscription':
                     abort_unless(isset($data['plan_id']) && DB::table('subscription_plans')->where('id', $data['plan_id'])->where('is_active', true)->exists(), 422);

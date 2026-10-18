@@ -50,7 +50,7 @@ class UserManagementController extends AdminPageController
                 $query->whereDate('created_at', '<=', $createdTo);
             });
 
-        $users = $usersQuery->latest()->paginate(20)->withQueryString();
+        $users = $usersQuery->latest()->orderByDesc('id')->paginate(20)->withQueryString();
         $roles = Role::orderBy('name')->get();
 
         return $this->page('Người dùng', 'pages.admin.identity.users-and-permissions.workspace.users', [
@@ -98,7 +98,7 @@ class UserManagementController extends AdminPageController
     {
         $service->action($user, $action, $request->validated());
 
-        return back()->with('status', 'Đã cập nhật tài khoản.');
+        return back()->with('status', $action === 'password-reset' ? 'Đã gửi email đặt lại mật khẩu.' : 'Đã cập nhật tài khoản.');
     }
 
     public function roles(Request $request): mixed
