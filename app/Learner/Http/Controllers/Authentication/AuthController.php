@@ -6,14 +6,21 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\View\View;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use VistiqCore\Models\User as DomainUser;
+use VistiqCore\Services\System\SettingsService;
+use VistiqLearner\Http\Controllers\Authentication\Mail\ResetPasswordEmail;
 use VistiqLearner\Http\Controllers\StaticPageController;
+use VistiqLearner\Http\Requests\Authentication\ForgotPasswordRequest;
+use VistiqLearner\Http\Requests\Authentication\LoginRequest;
+use VistiqLearner\Http\Requests\Authentication\RegisterRequest;
+use VistiqLearner\Http\Requests\Authentication\ResetPasswordRequest;
 use VistiqLearner\Models\User;
 
 class AuthController extends StaticPageController
@@ -65,18 +72,9 @@ class AuthController extends StaticPageController
         return view('shared.demo-page', ['page' => $page]);
     }
 
-    public function authenticate(Request $request): RedirectResponse
+    public function authenticate(LoginRequest $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ], [
-            'email.required' => 'Nhập địa chỉ email của bạn.',
-            'email.email' => 'Email chưa đúng định dạng.',
-            'password.required' => 'Nhập mật khẩu của bạn.',
-        ]);
-
-        $credentials['email'] = Str::lower(trim($credentials['email']));
+        $credentials = $request->safe()->only(['email', 'password']);
         $throttleKey = $this->loginThrottleKey($request);
 
         if (RateLimiter::tooManyAttempts($throttleKey, self::LOGIN_MAX_ATTEMPTS)) {
@@ -112,32 +110,11 @@ class AuthController extends StaticPageController
         return redirect()->intended(route('home'));
     }
 
-    public function register(Request $request): RedirectResponse
+    public function register(RegisterRequest $request): RedirectResponse
     {
-        $request->merge([
-            'email' => Str::lower(trim((string) $request->input('email'))),
-        ]);
-
-        $attributes = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', PasswordRule::min(10)->letters()->numbers(), 'confirmed'],
-        ], [
-            'name.required' => 'Nhập họ và tên của bạn.',
-            'name.max' => 'Họ và tên không được dài quá :max ký tự.',
-            'email.required' => 'Nhập địa chỉ email của bạn.',
-            'email.email' => 'Email chưa đúng định dạng.',
-            'email.max' => 'Email không được dài quá :max ký tự.',
-            'email.unique' => 'Email này đã có tài khoản.',
-            'password.required' => 'Tạo mật khẩu cho tài khoản.',
-            'password.min' => 'Mật khẩu cần ít nhất :min ký tự.',
-            'password.letters' => 'Mật khẩu cần có ít nhất một chữ cái.',
-            'password.numbers' => 'Mật khẩu cần có ít nhất một chữ số.',
-            'password.confirmed' => 'Hai mật khẩu chưa khớp.',
-        ]);
-
-        $attributes['name'] = trim($attributes['name']);
-        $attributes['email'] = Str::lower(trim($attributes['email']));
+        $attributes = $request->validated();
+        $attributes['name'] = trim((string) $attributes['name']);
+        $attributes['email'] = Str::lower(trim((string) $attributes['email']));
 
         $user = User::create($attributes);
 
@@ -147,52 +124,42 @@ class AuthController extends StaticPageController
         return redirect()->intended(route('home'));
     }
 
-    public function sendResetLink(Request $request): RedirectResponse
+    public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
-        ], [
-            'email.required' => 'Nhập địa chỉ email của bạn.',
-            'email.email' => 'Email chưa đúng định dạng.',
-        ]);
-
-        $credentials['email'] = Str::lower(trim($credentials['email']));
-        $status = Password::sendResetLink($credentials);
+        $credentials = $request->validated();
+        try {
+            app(SettingsService::class)->configureMail();
+            if (in_array(config('mail.default'), ['log', 'array'], true) && ! app()->environment('testing')) {
+                return back()->withErrors(['email' => 'Dịch vụ email chưa sẵn sàng. Vui lòng liên hệ quản trị viên để cấu hình gửi email.'])->onlyInput('email');
+            }
+            ResetPasswordEmail::configure();
+            $status = Password::sendResetLink($credentials);
+        } catch (TransportExceptionInterface $exception) {
+            return back()->withErrors(['email' => 'Chưa thể gửi email khôi phục. Vui lòng thử lại sau ít phút hoặc liên hệ quản trị viên.'])->onlyInput('email');
+        }
 
         if (in_array($status, [Password::RESET_LINK_SENT, Password::INVALID_USER, Password::RESET_THROTTLED], true)) {
-            return back()->with('status', 'Nếu email này có tài khoản Vistiq, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư của bạn.');
+            return redirect()->route('password.sent')->with('status', 'Nếu email này có tài khoản Vistiq, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư của bạn.');
         }
 
         return back()
-            ->with('status', 'Nếu email này có tài khoản Vistiq, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư của bạn.')
+            ->withErrors(['email' => 'Chưa thể xử lý yêu cầu khôi phục. Vui lòng thử lại sau ít phút.'])
             ->onlyInput('email');
     }
 
-    public function resetPassword(Request $request): RedirectResponse
+    public function resetPassword(ResetPasswordRequest $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'token' => ['required', 'string'],
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string', PasswordRule::min(10)->letters()->numbers(), 'confirmed'],
-        ], [
-            'email.required' => 'Nhập địa chỉ email của bạn.',
-            'email.email' => 'Email chưa đúng định dạng.',
-            'password.required' => 'Tạo mật khẩu mới.',
-            'password.min' => 'Mật khẩu cần ít nhất :min ký tự.',
-            'password.letters' => 'Mật khẩu cần có ít nhất một chữ cái.',
-            'password.numbers' => 'Mật khẩu cần có ít nhất một chữ số.',
-            'password.confirmed' => 'Hai mật khẩu chưa khớp.',
-        ]);
-
-        $credentials['email'] = Str::lower(trim($credentials['email']));
+        $credentials = $request->validated();
         $status = Password::reset(
             $credentials,
             function (DomainUser $user, string $password): void {
                 $user->forceFill([
                     'password' => Hash::make($password),
+                    'session_version' => $user->session_version + 1,
                 ])->setRememberToken(Str::random(60));
 
                 $user->save();
+                DB::table('sessions')->where('user_id', $user->id)->delete();
 
                 event(new PasswordReset($user));
             },

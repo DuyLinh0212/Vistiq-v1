@@ -1,3 +1,4 @@
+@include('pages.learner.authentication.screens.form-feedback')
 <a class="auth-back" href="{{ route('login') }}"><span aria-hidden="true">@include('pages.dictionary.icon', ['name' => 'arrow-left'])</span> Quay lại đăng nhập</a>
 <span class="eyebrow auth-eyebrow">KHÔI PHỤC TÀI KHOẢN</span>
 <h2>Quên mật khẩu?</h2>
@@ -7,7 +8,7 @@
     <div class="auth-alert auth-alert-success" role="status">{{ session('status') }}</div>
 @endif
 
-<form class="auth-form" action="{{ route('password.email') }}" method="post">
+<form data-auth-feedback class="auth-form" action="{{ route('password.email') }}" method="post">
     @csrf
 
     <div class="auth-field">

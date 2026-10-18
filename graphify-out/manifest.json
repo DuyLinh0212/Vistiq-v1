@@ -684,9 +684,9 @@
     "semantic_hash": ""
   },
   "resources/js/auth-spotlight.js": {
-    "mtime": 1791113646.3062797,
-    "seen": 1791387496.7973325,
-    "ast_hash": "58f4631a57df0a0b8f8a81fc0a2a70d0",
+    "mtime": 1792330240.2242088,
+    "seen": 1792330411.883446,
+    "ast_hash": "503945bb386bb46d6571a582b4983824",
     "semantic_hash": ""
   },
   "resources/js/dictionary-search.js": {
@@ -780,9 +780,9 @@
     "semantic_hash": ""
   },
   "resources/views/pages/auth/password-field.blade.php": {
-    "mtime": 1791111951.8896,
-    "seen": 1791387496.7974024,
-    "ast_hash": "b2e507de473caeeb141d50ce4e246904",
+    "mtime": 1792330240.2852418,
+    "seen": 1792330411.8838608,
+    "ast_hash": "f0c5d5fb64ddf36a1ed7a56234eb8b65",
     "semantic_hash": ""
   },
   "resources/views/pages/auth/shell.blade.php": {
@@ -1662,15 +1662,15 @@
     "semantic_hash": ""
   },
   "app/Admin/Http/Controllers/Admin/Identity/Authentication/AuthController.php": {
-    "mtime": 1791704178.3906283,
-    "seen": 1791704580.5927684,
-    "ast_hash": "baca2151a27d2668f12ab09607c888fc",
+    "mtime": 1792330240.0336158,
+    "seen": 1792330411.8824773,
+    "ast_hash": "663612cae471936e2ceea4c13c7f1a6f",
     "semantic_hash": ""
   },
   "app/Admin/Http/Controllers/Admin/Identity/UsersAndPermissions/UserManagementController.php": {
-    "mtime": 1791704386.2337453,
-    "seen": 1791704580.59277,
-    "ast_hash": "1712997132e0157b92073f1883d10aef",
+    "mtime": 1792330240.0415864,
+    "seen": 1792330411.8824842,
+    "ast_hash": "e44ca9f07d1b877de05fff09e21f7d13",
     "semantic_hash": ""
   },
   "app/Admin/Http/Controllers/Admin/Learning/Knowledge/GrammarController.php": {
@@ -1764,9 +1764,9 @@
     "semantic_hash": ""
   },
   "app/Admin/Http/Requests/Admin/Identity/Authentication/PasswordRequest.php": {
-    "mtime": 1791703876.7891386,
-    "seen": 1791704580.5928109,
-    "ast_hash": "8307ea2278392b61fb5cc791b49297f7",
+    "mtime": 1792330240.0515842,
+    "seen": 1792330411.8826134,
+    "ast_hash": "9122c8af02e4d019b1b367c061df1b67",
     "semantic_hash": ""
   },
   "app/Admin/Http/Requests/Admin/Identity/UsersAndPermissions/UserActionRequest.php": {
@@ -1920,9 +1920,9 @@
     "semantic_hash": ""
   },
   "app/Domain/Services/Identity/UsersAndPermissions/UserManagementService.php": {
-    "mtime": 1791706057.5303068,
-    "seen": 1791706088.301297,
-    "ast_hash": "075af4349abb8319a4822a3f84aab35c",
+    "mtime": 1792330380.6460617,
+    "seen": 1792330411.8829353,
+    "ast_hash": "51a23c9c1e52e631a8e06719aff5f962",
     "semantic_hash": ""
   },
   "app/Domain/Services/Shared/AiService.php": {
@@ -1962,9 +1962,9 @@
     "semantic_hash": ""
   },
   "app/Learner/Http/Controllers/Authentication/AuthController.php": {
-    "mtime": 1791704178.5876222,
-    "seen": 1791704580.5929348,
-    "ast_hash": "cd41003e72df81fc2445ce3982aa22fa",
+    "mtime": 1792330240.0945828,
+    "seen": 1792330411.8830051,
+    "ast_hash": "e1a30eda59736c2b0a8b406a43aa2801",
     "semantic_hash": ""
   },
   "app/Learner/Http/Controllers/Knowledge/GrammarController.php": {
@@ -2256,33 +2256,33 @@
     "semantic_hash": ""
   },
   "resources/views/pages/admin/identity/authentication/screens/password.blade.php": {
-    "mtime": 1791385532.817054,
-    "seen": 1791704580.5931957,
-    "ast_hash": "945920c5f783d99ff9c6c5ee24d0b76a",
+    "mtime": 1792330240.2522814,
+    "seen": 1792330411.883778,
+    "ast_hash": "e1c585d6298aa3e23c72ac7119e0d718",
     "semantic_hash": ""
   },
   "resources/views/pages/admin/identity/authentication/screens/verify.blade.php": {
-    "mtime": 1791385532.83358,
-    "seen": 1791704580.5931973,
-    "ast_hash": "c29264090c981dbccf94a50d5e188f43",
+    "mtime": 1792330240.2582102,
+    "seen": 1792330411.883783,
+    "ast_hash": "4348ea43b8bbd575611c4cadea6f8147",
     "semantic_hash": ""
   },
   "resources/views/pages/admin/identity/users-and-permissions/workspace/roles.blade.php": {
-    "mtime": 1791703353.746238,
-    "seen": 1791704580.5931988,
-    "ast_hash": "b910859c77ac8817fe1d34dd4fe1ce43",
+    "mtime": 1792330353.8763995,
+    "seen": 1792330411.8837981,
+    "ast_hash": "4128530e4e012032be2b4619618af702",
     "semantic_hash": ""
   },
   "resources/views/pages/admin/identity/users-and-permissions/workspace/user.blade.php": {
-    "mtime": 1791222687.5917633,
-    "seen": 1791704580.5932004,
-    "ast_hash": "7ce12337970c26eb694a9ad059908b04",
+    "mtime": 1792330240.2782311,
+    "seen": 1792330411.883803,
+    "ast_hash": "9e591406511217d883172da0b0e8c3bc",
     "semantic_hash": ""
   },
   "resources/views/pages/admin/identity/users-and-permissions/workspace/users.blade.php": {
-    "mtime": 1791214993.8364959,
-    "seen": 1791704580.5932019,
-    "ast_hash": "975796002034aab27478de469e864a8c",
+    "mtime": 1792330240.2822323,
+    "seen": 1792330411.883808,
+    "ast_hash": "996618c63946c878b6ec9bc8138c6948",
     "semantic_hash": ""
   },
   "resources/views/pages/admin/learning/knowledge/legacy/grammar.blade.php": {
@@ -2388,33 +2388,33 @@
     "semantic_hash": ""
   },
   "resources/views/pages/learner/authentication/screens/email-sent.blade.php": {
-    "mtime": 1791118541.9129694,
-    "seen": 1791704580.5932453,
-    "ast_hash": "2184a82c2c5d38cea4b7436d6c49dd42",
+    "mtime": 1792330240.2972343,
+    "seen": 1792330411.8839529,
+    "ast_hash": "b3d41377876ec80f833d2029ccd532ba",
     "semantic_hash": ""
   },
   "resources/views/pages/learner/authentication/screens/forgot.blade.php": {
-    "mtime": 1791118541.9379616,
-    "seen": 1791704580.5932467,
-    "ast_hash": "88a4e6aa357672f65cb91cd7b12fe6f5",
+    "mtime": 1792330240.309253,
+    "seen": 1792330411.8839574,
+    "ast_hash": "e5249bd372158f15604977bc25ac60f9",
     "semantic_hash": ""
   },
   "resources/views/pages/learner/authentication/screens/login.blade.php": {
-    "mtime": 1791118541.94196,
-    "seen": 1791704580.5932484,
-    "ast_hash": "f8e8668792c1e52be4519dfe75c0a7ff",
+    "mtime": 1792330240.3142383,
+    "seen": 1792330411.8839674,
+    "ast_hash": "5253a76ea06566b1b6fd9e193c002deb",
     "semantic_hash": ""
   },
   "resources/views/pages/learner/authentication/screens/register.blade.php": {
-    "mtime": 1791118541.9459608,
-    "seen": 1791704580.5932498,
-    "ast_hash": "98155852fb2afcd3538c73774e8f812c",
+    "mtime": 1792330240.3172076,
+    "seen": 1792330411.8839724,
+    "ast_hash": "a41a4e5ba01bc9e705a3d70fea58896f",
     "semantic_hash": ""
   },
   "resources/views/pages/learner/authentication/screens/reset-password.blade.php": {
-    "mtime": 1791118541.9509878,
-    "seen": 1791704580.5932515,
-    "ast_hash": "03d4dc78d914754095b0233ece117a72",
+    "mtime": 1792330240.3402076,
+    "seen": 1792330411.883978,
+    "ast_hash": "95f30ca2847f766884729b93d63d413d",
     "semantic_hash": ""
   },
   "resources/views/pages/learner/authentication/screens/updated.blade.php": {
@@ -2580,9 +2580,9 @@
     "semantic_hash": ""
   },
   "routes/web/admin/identity/users-and-permissions.php": {
-    "mtime": 1791703987.4674618,
-    "seen": 1791704580.5933075,
-    "ast_hash": "959b8e2e8932508e746a57d9f32167c8",
+    "mtime": 1792330240.3462417,
+    "seen": 1792330411.8841689,
+    "ast_hash": "27b65077d20705984cdac6fd08003224",
     "semantic_hash": ""
   },
   "routes/web/admin/learning/knowledge.php": {
@@ -2616,9 +2616,9 @@
     "semantic_hash": ""
   },
   "routes/web/learner/authentication.php": {
-    "mtime": 1791703997.291789,
-    "seen": 1791704580.593317,
-    "ast_hash": "63d702c59cc9b162c3fde17e4c4a1c8b",
+    "mtime": 1792330240.3492053,
+    "seen": 1792330411.8842032,
+    "ast_hash": "7b9ba050df92fe61b75b93d495f7881c",
     "semantic_hash": ""
   },
   "routes/web/learner/knowledge.php": {
@@ -2790,9 +2790,9 @@
     "semantic_hash": ""
   },
   "tests/Learner/Feature/Authentication/AuthScreensTest.php": {
-    "mtime": 1791705819.0442894,
-    "seen": 1791705844.6577122,
-    "ast_hash": "4c7834a8d44e8d02369279b707e3de3b",
+    "mtime": 1792330240.5472097,
+    "seen": 1792330411.8844125,
+    "ast_hash": "4844a89a993bb308092509c480a612fc",
     "semantic_hash": ""
   },
   "tests/Learner/Feature/ExamTakingAndSubmission/AttemptWorkflowTest.php": {
@@ -2913,6 +2913,150 @@
     "mtime": 1791703793.7098582,
     "seen": 1791704580.5934749,
     "ast_hash": "101a5684014d506c9f355a11e0a1169d",
+    "semantic_hash": ""
+  },
+  "app/Admin/Http/Requests/Admin/Identity/UsersAndPermissions/RoleStoreRequest.php": {
+    "mtime": 1792330380.4860623,
+    "seen": 1792330411.8826199,
+    "ast_hash": "90ab3da1e7d5c21bdc498d186efd9ebf",
+    "semantic_hash": ""
+  },
+  "app/Admin/Http/Requests/Admin/Identity/UsersAndPermissions/RoleUpdateRequest.php": {
+    "mtime": 1792330380.5320904,
+    "seen": 1792330411.8826258,
+    "ast_hash": "490bbdf454fbd58bce7be4682e530b96",
+    "semantic_hash": ""
+  },
+  "app/Admin/Http/Requests/Admin/Identity/UsersAndPermissions/UserIndexRequest.php": {
+    "mtime": 1792330240.0855834,
+    "seen": 1792330411.882637,
+    "ast_hash": "482903055e02fdcaada97eb1606ad005",
+    "semantic_hash": ""
+  },
+  "app/Learner/Http/Controllers/Authentication/Mail/ResetPasswordEmail.php": {
+    "mtime": 1792330240.098585,
+    "seen": 1792330411.8830101,
+    "ast_hash": "8d71f584964d1e7ee8b2a479fd1e7842",
+    "semantic_hash": ""
+  },
+  "app/Learner/Http/Requests/Authentication/ForgotPasswordRequest.php": {
+    "mtime": 1792330240.1465828,
+    "seen": 1792330411.8830898,
+    "ast_hash": "dcddb650aeb83141c6a929fa282444bf",
+    "semantic_hash": ""
+  },
+  "app/Learner/Http/Requests/Authentication/LoginRequest.php": {
+    "mtime": 1792330240.1495845,
+    "seen": 1792330411.8830943,
+    "ast_hash": "1e294bf892ef70c3f25d621a206f79cb",
+    "semantic_hash": ""
+  },
+  "app/Learner/Http/Requests/Authentication/RegisterRequest.php": {
+    "mtime": 1792330240.152614,
+    "seen": 1792330411.8830988,
+    "ast_hash": "8dbddae48d243db5232548f0818a6c0a",
+    "semantic_hash": ""
+  },
+  "app/Learner/Http/Requests/Authentication/ResetPasswordRequest.php": {
+    "mtime": 1792330240.1786203,
+    "seen": 1792330411.8831038,
+    "ast_hash": "717058e15a9f3b18de673105198bd7d5",
+    "semantic_hash": ""
+  },
+  "resources/views/pages/admin/identity/users-and-permissions/workspace/appearance.blade.php": {
+    "mtime": 1792330240.2642083,
+    "seen": 1792330411.8837883,
+    "ast_hash": "96e4253ddd55a186868bdc88ec7e99d5",
+    "semantic_hash": ""
+  },
+  "resources/views/pages/admin/identity/users-and-permissions/workspace/pagination.blade.php": {
+    "mtime": 1792330240.268211,
+    "seen": 1792330411.8837934,
+    "ast_hash": "17c8179dae4a99e5b309cca8c6fe6c94",
+    "semantic_hash": ""
+  },
+  "resources/views/pages/learner/authentication/emails/reset-password-text.blade.php": {
+    "mtime": 1792330240.2902086,
+    "seen": 1792330411.8839438,
+    "ast_hash": "6cdf8c87313d476895a4c64fbf81b02c",
+    "semantic_hash": ""
+  },
+  "resources/views/pages/learner/authentication/emails/reset-password.blade.php": {
+    "mtime": 1792330240.2932377,
+    "seen": 1792330411.8839483,
+    "ast_hash": "1210b4860709fa8856372ab081ae16f0",
+    "semantic_hash": ""
+  },
+  "resources/views/pages/learner/authentication/screens/form-feedback.blade.php": {
+    "mtime": 1792330240.3112314,
+    "seen": 1792330411.8839624,
+    "ast_hash": "9c536232d0a34a6f0abe834a7e10a593",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/Authentication/EmailRecoveryTest.php": {
+    "mtime": 1792330240.354208,
+    "seen": 1792330411.8842437,
+    "ast_hash": "2e8a1e5fda6a32bb100e498e607f46e3",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/UsersAndPermissions/IntegrationReadinessTest.php": {
+    "mtime": 1792330330.1834183,
+    "seen": 1792330411.8843613,
+    "ast_hash": "09e691c8d638c03b5e358e8a99c181dc",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/UsersAndPermissions/RoleManagementTest.php": {
+    "mtime": 1792330240.360254,
+    "seen": 1792330411.884366,
+    "ast_hash": "5c3bc9d858c9054d3744f0d37866a804",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/UsersAndPermissions/StabilityAuditTest.php": {
+    "mtime": 1792330240.3632376,
+    "seen": 1792330411.8843708,
+    "ast_hash": "2d926cfd52d0de3c89042488632a9df7",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/UsersAndPermissions/UiWorkflowTest.php": {
+    "mtime": 1792330240.400209,
+    "seen": 1792330411.8843749,
+    "ast_hash": "df932ed4109e4ddd5e38a5d49f5d69d3",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/UsersAndPermissions/UserManagementTest.php": {
+    "mtime": 1792330240.539212,
+    "seen": 1792330411.8843791,
+    "ast_hash": "4c975f3df56730b26a127f21194fe009",
+    "semantic_hash": ""
+  },
+  "tests/Learner/Feature/Authentication/EmailRecoveryTest.php": {
+    "mtime": 1792330240.6088247,
+    "seen": 1792330411.8844142,
+    "ast_hash": "8af5cad9da9fc12010f8711c8baa4351",
+    "semantic_hash": ""
+  },
+  "tests/Learner/Feature/Authentication/LearnerAuthTest.php": {
+    "mtime": 1792330240.6136918,
+    "seen": 1792330411.8844156,
+    "ast_hash": "5ae9d2a5a21e72ee6feab5e2ac548043",
+    "semantic_hash": ""
+  },
+  "tests/Learner/Feature/Authentication/PasswordResetStabilityAuditTest.php": {
+    "mtime": 1792330240.6167264,
+    "seen": 1792330411.8844173,
+    "ast_hash": "bfd8d8126dd02bae7a0110fda19259f6",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/UsersAndPermissions/AUDIT-2026-10-18.md": {
+    "mtime": 1792330240.3582065,
+    "seen": 1792330411.8845446,
+    "ast_hash": "83afd39a72bd4d243add8915a34b2efa",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/UsersAndPermissions/UI-RECHECK-2026-10-18.md": {
+    "mtime": 1792330240.3962789,
+    "seen": 1792330411.8845463,
+    "ast_hash": "f4c8678e2481ff27277e61c4e4d7eaf8",
     "semantic_hash": ""
   }
 }

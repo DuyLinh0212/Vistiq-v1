@@ -187,12 +187,13 @@ export const initializeAuthSpotlights = () => {
             }
         });
         shell.addEventListener('pointercancel', stopLight);
+        const form = shell.querySelector('form');
         shell.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 stopLight();
             }
         });
-        shell.querySelector('form').addEventListener('submit', () => {
+        form?.addEventListener('submit', () => {
             stopLight();
         });
         window.addEventListener('blur', () => {
@@ -216,5 +217,160 @@ export const initializeAuthSpotlights = () => {
         };
         pointerMedia.addEventListener('change', syncPointerMode);
         syncPointerMode();
+        if (form) {
+            initializePasswordValidation(form);
+        }
     });
+};
+
+export const initializePasswordValidation = (form) => {
+    if (!form) {
+        return;
+    }
+
+    const passwordInput = form.querySelector('input[name="password"]');
+    const confirmInput = form.querySelector('input[name="password_confirmation"]');
+    const tracker = form.querySelector('[data-password-rules]');
+
+    if (!passwordInput || !tracker) {
+        return;
+    }
+
+    const minLength = parseInt(tracker.dataset.min || '8', 10);
+    const countEl = tracker.querySelector('[data-rule-count]');
+    const messageEl = tracker.querySelector('[data-rule-message]');
+    const progressEl = tracker.querySelector('.password-rule-progress');
+
+    const getErrorEl = (input) => {
+        let error = form.querySelector(`#${input.id}-error`);
+        if (!error) {
+            error = document.createElement('span');
+            error.className = 'auth-field-error';
+            error.id = `${input.id}-error`;
+            error.setAttribute('role', 'alert');
+            const field = input.closest('.auth-field');
+            field?.appendChild(error);
+        }
+        return error;
+    };
+
+    const clearError = (input) => {
+        const error = form.querySelector(`#${input.id}-error`);
+        if (error) {
+            error.textContent = '';
+            error.style.display = 'none';
+        }
+        input.setAttribute('aria-invalid', 'false');
+        input.setAttribute('aria-describedby', 'spotlight-password-help');
+    };
+
+    const showError = (input, message) => {
+        const error = getErrorEl(input);
+        error.textContent = message;
+        error.style.display = '';
+        input.setAttribute('aria-invalid', 'true');
+        input.setAttribute('aria-describedby', `spotlight-password-help ${input.id}-error`);
+    };
+
+    const updateStatus = () => {
+        const value = passwordInput.value;
+        const len = value.length;
+        const hasLetter = /[A-Za-z]/.test(value);
+        const hasNumber = /[0-9]/.test(value);
+        const isLengthMet = len >= minLength;
+        const isValid = isLengthMet && hasLetter && hasNumber;
+
+        if (countEl && messageEl && progressEl) {
+            const percent = Math.min(100, Math.round((len / minLength) * 100));
+            progressEl.style.width = `${percent}%`;
+
+            tracker.classList.remove('is-empty', 'is-progress', 'is-warning', 'is-valid');
+
+            if (len === 0) {
+                tracker.classList.add('is-empty');
+                countEl.textContent = `0/${minLength} ký tự`;
+                messageEl.textContent = `Tối thiểu ${minLength} ký tự, gồm cả chữ và số`;
+            } else if (!isLengthMet) {
+                tracker.classList.add('is-progress');
+                countEl.textContent = `${len}/${minLength} ký tự`;
+                const remaining = minLength - len;
+                messageEl.textContent = `Còn thiếu ${remaining} ký tự nữa`;
+            } else if (!hasLetter) {
+                tracker.classList.add('is-warning');
+                countEl.textContent = `${len}/${minLength} ký tự`;
+                messageEl.textContent = 'Cần thêm chữ cái (a-z)';
+            } else if (!hasNumber) {
+                tracker.classList.add('is-warning');
+                countEl.textContent = `${len}/${minLength} ký tự`;
+                messageEl.textContent = 'Cần thêm chữ số (0-9)';
+            } else {
+                tracker.classList.add('is-valid');
+                countEl.textContent = `✓ ${len}/${minLength} ký tự`;
+                messageEl.textContent = 'Mật khẩu đủ điều kiện';
+            }
+        }
+
+        if (isValid) {
+            clearError(passwordInput);
+        }
+
+        if (confirmInput && confirmInput.value) {
+            if (confirmInput.value === value) {
+                clearError(confirmInput);
+            }
+        }
+    };
+
+    passwordInput.addEventListener('input', updateStatus);
+
+    if (confirmInput) {
+        confirmInput.addEventListener('input', () => {
+            if (confirmInput.value && confirmInput.value === passwordInput.value) {
+                clearError(confirmInput);
+            }
+        });
+    }
+
+    form.addEventListener('submit', (event) => {
+        const value = passwordInput.value;
+        const len = value.length;
+        const hasLetter = /[A-Za-z]/.test(value);
+        const hasNumber = /[0-9]/.test(value);
+
+        if (len < minLength) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            showError(passwordInput, `Mật khẩu cần ít nhất ${minLength} ký tự.`);
+            passwordInput.focus();
+            return;
+        }
+
+        if (!hasLetter) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            showError(passwordInput, 'Mật khẩu cần có ít nhất một chữ cái.');
+            passwordInput.focus();
+            return;
+        }
+
+        if (!hasNumber) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            showError(passwordInput, 'Mật khẩu cần có ít nhất một chữ số.');
+            passwordInput.focus();
+            return;
+        }
+
+        if (confirmInput && confirmInput.value !== value) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            showError(confirmInput, 'Hai mật khẩu chưa khớp.');
+            confirmInput.focus();
+            return;
+        }
+    });
+
+    if (passwordInput.value) {
+        updateStatus();
+    }
 };

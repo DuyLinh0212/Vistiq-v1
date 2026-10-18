@@ -1,8 +1,9 @@
+@include('pages.learner.authentication.screens.form-feedback')
 <span class="eyebrow auth-eyebrow">VISTIQ ENGLISH <span>/</span> TÀI KHOẢN MỚI</span>
 <h2>Tạo tài khoản</h2>
 <p>Bắt đầu hành trình học tiếng Anh của bạn.</p>
 
-<form class="auth-form" action="{{ route('register.store') }}" method="post">
+<form data-auth-feedback class="auth-form" action="{{ route('register.store') }}" method="post">
     @csrf
 
     <div class="auth-field">
@@ -31,8 +32,10 @@
         'fieldId' => 'password',
         'fieldLabel' => 'Mật khẩu',
         'fieldAutocomplete' => 'new-password',
-        'fieldPlaceholder' => 'Ít nhất 10 ký tự, gồm chữ và số',
+        'fieldPlaceholder' => 'Ít nhất 8 ký tự, gồm chữ và số',
         'showForgotLink' => false,
+        'hasPasswordRules' => true,
+        'minlength' => 8,
     ])
 
     @include('pages.auth.password-field', [

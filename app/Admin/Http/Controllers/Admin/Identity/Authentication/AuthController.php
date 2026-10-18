@@ -11,10 +11,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use VistiqAdmin\Http\Controllers\StaticPageController;
 use VistiqAdmin\Http\Requests\Admin\Identity\Authentication\PasswordRequest;
 use VistiqCore\Models\User;
 use VistiqCore\Services\System\SettingsService;
+use VistiqLearner\Http\Controllers\Authentication\Mail\ResetPasswordEmail;
 
 class AuthController extends StaticPageController
 {
@@ -48,10 +50,18 @@ class AuthController extends StaticPageController
 
     public function sendReset(PasswordRequest $request): RedirectResponse
     {
-        app(SettingsService::class)->configureMail();
-        Password::sendResetLink($request->safe()->only('email'));
+        try {
+            app(SettingsService::class)->configureMail();
+            if (in_array(config('mail.default'), ['log', 'array'], true) && ! app()->environment('testing')) {
+                return back()->withErrors(['email' => 'Dịch vụ email chưa sẵn sàng. Vui lòng liên hệ quản trị viên để cấu hình gửi email.'])->onlyInput('email');
+            }
+            ResetPasswordEmail::configure();
+            Password::sendResetLink($request->safe()->only('email'));
+        } catch (TransportExceptionInterface $exception) {
+            return back()->withErrors(['email' => 'Chưa thể gửi email khôi phục. Vui lòng thử lại sau ít phút hoặc liên hệ quản trị viên.'])->onlyInput('email');
+        }
 
-        return back()->with('status', 'Nếu tài khoản tồn tại, hướng dẫn khôi phục đã được gửi.');
+        return back()->with('status', 'Nếu tài khoản tồn tại, hướng dẫn khôi phục đã được gửi.')->onlyInput('email');
     }
 
     public function resetPassword(PasswordRequest $request): RedirectResponse
@@ -63,7 +73,7 @@ class AuthController extends StaticPageController
             event(new PasswordReset($user));
         });
 
-        return $status === Password::PasswordReset ? redirect()->route('admin.login')->with('status', 'Đã đổi mật khẩu.') : back()->withErrors(['email' => __($status)]);
+        return $status === Password::PasswordReset ? redirect()->route('admin.login')->with('status', 'Đã đổi mật khẩu. Vui lòng đăng nhập lại trên các thiết bị.') : back()->withErrors(['email' => 'Liên kết này không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.'])->onlyInput('email');
     }
 
     public function logout(Request $request): RedirectResponse

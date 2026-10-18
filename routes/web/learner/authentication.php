@@ -12,6 +12,7 @@ Route::middleware('guest.learner')->group(function (): void {
 
     Route::get('/forgot-password', [AuthController::class, 'forgotPasswordForm'])->name('password.request');
     Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middleware('throttle:3,1')->name('password.email');
+    Route::get('/forgot-password/sent', [AuthController::class, 'show'])->defaults('screen', 'email-sent')->name('password.sent');
     Route::get('/reset-password/{token}', [AuthController::class, 'resetPasswordForm'])->name('password.reset');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:6,1')->name('password.update');
 });
