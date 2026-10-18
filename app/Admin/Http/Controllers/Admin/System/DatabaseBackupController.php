@@ -2,97 +2,71 @@
 
 namespace VistiqAdmin\Http\Controllers\Admin\System;
 
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
-use Throwable;
-use VistiqAdmin\Http\Controllers\StaticPageController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqAdmin\Http\Requests\Admin\System\BackupRequest;
-use VistiqAdmin\Services\Admin\System\DatabaseBackupService;
+use VistiqAdmin\Services\Admin\System\DatabaseOperationsService;
 use VistiqCore\Services\System\AuditService;
 
-class DatabaseBackupController extends StaticPageController
+class DatabaseBackupController extends AdminPageController
 {
-    private const SCREEN = [
-        'title' => 'Sao lưu & phục hồi',
-        'frame' => 'A15',
-        'view' => 'pages.admin.system.legacy.database',
-        'section' => 'admin',
-        'description' => 'Xuất bản sao cơ sở dữ liệu dạng SQL hoặc phục hồi từ file Vistiq.',
-    ];
-
-    public function show(): View
+    public function show(Request $request, DatabaseOperationsService $operations): mixed
     {
-        return $this->renderScreen('admin-settings', self::SCREEN);
+        $pending = null;
+        if ($request->filled('operation')) {
+            $pending = $operations->operation($request->query('operation'));
+            abort_unless($pending['kind'] === 'restore' && $pending['actor_id'] === $request->user()->id, 404);
+        }
+
+        return $this->page('Sao lưu / phục hồi', 'pages.admin.system.workspace.database', ['operations' => $operations->listing((int) $request->query('page', 1)), 'pending' => $pending]);
     }
 
-    public function download(BackupRequest $request, DatabaseBackupService $backup): StreamedResponse|RedirectResponse
+    public function download(BackupRequest $request, DatabaseOperationsService $operations, AuditService $audit): mixed
     {
-        $validated = $request->validate([
-            'include_schema' => ['required', 'boolean'],
-            'include_data' => ['required', 'boolean'],
-        ]);
+        $request->validate(['include_schema' => 'required|boolean', 'include_data' => 'required|boolean']);
+        $artifact = $operations->createBackup($request->user()->id, $request->boolean('include_schema'), $request->boolean('include_data'));
+        $audit->record('database.backup.download', 'database', null, [], ['artifact_id' => $artifact['id']]);
 
-        $includeSchema = $request->boolean('include_schema');
-        $includeData = $request->boolean('include_data');
-
-        if (! $includeSchema && ! $includeData) {
-            return back()->withErrors(['backup' => 'Chọn cấu trúc, dữ liệu hoặc cả hai trước khi xuất file.']);
-        }
-
-        app(AuditService::class)->record('database.backup', 'database', null, [], ['include_schema' => $includeSchema, 'include_data' => $includeData]);
-        $filename = 'vistiq-backup-'.now()->format('Y-m-d-His').'.sql';
-
-        return response()->streamDownload(
-            function () use ($backup, $includeSchema, $includeData): void {
-                $backup->export($includeSchema, $includeData);
-            },
-            $filename,
-            ['Content-Type' => 'application/sql; charset=UTF-8'],
-        );
+        return response()->download($operations->verifiedPath($artifact['id']), $artifact['filename'], ['Content-Type' => 'application/sql; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
     }
 
-    public function restore(BackupRequest $request, DatabaseBackupService $backup): RedirectResponse
+    public function downloadArtifact(BackupRequest $request, string $artifact, DatabaseOperationsService $operations, AuditService $audit): mixed
     {
-        $validated = $request->validate([
-            'file' => ['required', 'file', 'mimes:txt,sql', 'extensions:sql', 'max:102400'],
-        ]);
+        $path = $operations->verifiedPath($artifact);
+        $audit->record('database.backup.download', 'database', null, [], ['artifact_id' => $artifact]);
 
-        $sql = file_get_contents($validated['file']->getRealPath());
+        return response()->download($path, $operations->operation($artifact)['filename'], ['Content-Type' => 'application/sql; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+    }
 
-        if ($sql === false) {
-            return back()->withErrors(['file' => 'Không thể đọc file SQL đã tải lên.']);
+    public function preflight(Request $request, DatabaseOperationsService $operations): mixed
+    {
+        $data = $request->validate(['file' => 'required|file|mimes:txt,sql|extensions:sql|max:102400']);
+        $operation = $operations->preflight($data['file'], $request->user()->id);
+
+        return redirect()->route('admin.settings.database', ['operation' => $operation['id']])->with('status', 'Đã kiểm tra file. Chưa thay đổi database; hãy kiểm tra nguồn và xác nhận bước phục hồi.');
+    }
+
+    public function restore(BackupRequest $request, DatabaseOperationsService $operations): mixed
+    {
+        $data = $request->validate(['preflight_token' => 'required|uuid', 'confirm_restore' => 'accepted']);
+        $operation = $operations->restore($data['preflight_token'], $request->user()->id);
+        if ($operation['state'] === 'succeeded') {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('admin.login')->with('status', $operation['message']);
         }
 
-        ob_start();
-        try {
-            $backup->export(true, true);
-            $recovery = ob_get_contents();
-        } finally {
-            ob_end_clean();
-        }
-        $recoveryPath = 'backups/recovery-'.now()->format('Ymd-His').'-'.bin2hex(random_bytes(4)).'.sql';
-        abort_unless(Storage::disk('local')->put($recoveryPath, $recovery), 503, 'Không thể tạo bản sao phục hồi.');
-        app(AuditService::class)->record('database.restore.request', 'database', null, [], ['recovery_path' => $recoveryPath]);
-        $maintenanceRequested = false;
+        return redirect()->route('admin.settings.database', ['operation' => $operation['id']])->withErrors(['restore' => $operation['message']]);
+    }
 
-        try {
-            $maintenanceRequested = true;
-            Artisan::call('down', ['--render' => 'errors::503', '--retry' => 60]);
+    public function status(Request $request, string $operation, DatabaseOperationsService $operations): mixed
+    {
+        $item = $operations->operation($operation);
+        abort_unless($item['kind'] !== 'restore' || $item['actor_id'] === $request->user()->id, 404);
 
-            $statementCount = $backup->restore($sql);
-
-            return back()->with('status', "Đã phục hồi dữ liệu từ file SQL ({$statementCount} câu lệnh). Vistiq user đã hoạt động trở lại.");
-        } catch (Throwable $exception) {
-            report($exception);
-
-            return back()->withErrors(['file' => 'Phục hồi thất bại. Hãy kiểm tra file SQL hoặc khôi phục từ một bản sao lưu hợp lệ.']);
-        } finally {
-            if ($maintenanceRequested) {
-                Artisan::call('up');
-            }
-        }
+        return response()->json(collect($item)->only(['id', 'kind', 'state', 'created_at', 'started_at', 'finished_at', 'message', 'maintenance_retained', 'recovered']), 200, ['Cache-Control' => 'private, no-store']);
     }
 }

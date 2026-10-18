@@ -8,8 +8,23 @@ use RuntimeException;
 
 class DatabaseBackupService
 {
-    public function export(bool $includeSchema, bool $includeData): void
+    public function export(bool $includeSchema, bool $includeData, mixed $stream = null): void
     {
+        $write = static function (string $text) use ($stream): void {
+            if ($stream === null) {
+                echo $text;
+
+                return;
+            }
+            $offset = 0;
+            while ($offset < strlen($text)) {
+                $written = fwrite($stream, substr($text, $offset));
+                if ($written === false || $written === 0) {
+                    throw new RuntimeException('Không thể ghi file sao lưu.');
+                }
+                $offset += $written;
+            }
+        };
         $connection = DB::connection();
         $driver = $connection->getDriverName();
 
@@ -23,13 +38,13 @@ class DatabaseBackupService
             throw new RuntimeException('Không tìm thấy bảng nào trong cơ sở dữ liệu hiện tại. Không tạo file backup rỗng.');
         }
 
-        echo "-- Vistiq Database Backup v2\n";
-        echo "-- Driver: {$driver}\n";
+        $write("-- Vistiq Database Backup v2\n");
+        $write("-- Driver: {$driver}\n");
 
         if ($driver === 'sqlite') {
-            echo 'PRAGMA foreign_keys = OFF;'.PHP_EOL;
+            $write('PRAGMA foreign_keys = OFF;'.PHP_EOL);
         } else {
-            echo 'SET FOREIGN_KEY_CHECKS=0;'.PHP_EOL;
+            $write('SET FOREIGN_KEY_CHECKS=0;'.PHP_EOL);
         }
 
         if ($includeSchema) {
@@ -37,12 +52,12 @@ class DatabaseBackupService
                 $createStatement = $this->createStatement($connection, $table, $driver);
 
                 if ($createStatement !== null) {
-                    echo $this->makeCreateTableNonDestructive($createStatement).';'.PHP_EOL;
+                    $write($this->makeCreateTableNonDestructive($createStatement).';'.PHP_EOL);
                 }
             }
             if ($driver === 'sqlite') {
                 foreach ($connection->select("SELECT sql FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL ORDER BY name") as $index) {
-                    echo $this->makeCreateIndexNonDestructive($index->sql).';'.PHP_EOL;
+                    $write($this->makeCreateIndexNonDestructive($index->sql).';'.PHP_EOL);
                 }
             }
         }
@@ -55,26 +70,70 @@ class DatabaseBackupService
                     continue;
                 }
 
-                echo 'DELETE FROM '.$this->quoteIdentifier($table, $driver).';'.PHP_EOL;
+                $write('DELETE FROM '.$this->quoteIdentifier($table, $driver).';'.PHP_EOL);
                 $quotedColumns = implode(', ', array_map(fn (string $column): string => $this->quoteIdentifier($column, $driver), $columns));
                 $query = $connection->table($table)->select($columns);
 
                 foreach ($query->cursor() as $row) {
                     $values = array_map(fn (string $column): string => $this->quoteValue($row->{$column}, $connection, $driver), $columns);
 
-                    echo 'INSERT INTO '.$this->quoteIdentifier($table, $driver).' ('.$quotedColumns.') VALUES ('.implode(', ', $values).');'.PHP_EOL;
+                    $write('INSERT INTO '.$this->quoteIdentifier($table, $driver).' ('.$quotedColumns.') VALUES ('.implode(', ', $values).');'.PHP_EOL);
                 }
             }
         }
 
         if ($driver === 'sqlite') {
-            echo 'PRAGMA foreign_keys = ON;'.PHP_EOL;
+            $write('PRAGMA foreign_keys = ON;'.PHP_EOL);
         } else {
-            echo 'SET FOREIGN_KEY_CHECKS=1;'.PHP_EOL;
+            $write('SET FOREIGN_KEY_CHECKS=1;'.PHP_EOL);
         }
     }
 
     public function restore(string $sql): int
+    {
+        $this->preflight($sql);
+        $connection = DB::connection();
+        $driver = $connection->getDriverName();
+        $statements = $this->statements($sql);
+        $statementCount = 0;
+        $dataTransaction = false;
+
+        try {
+            foreach ($statements as $statement) {
+                $isData = preg_match('/\A(?:DELETE\s+FROM|INSERT\s+INTO)\b/i', $statement) === 1;
+                if ($isData && ! $dataTransaction) {
+                    $connection->beginTransaction();
+                    $dataTransaction = true;
+                } elseif (! $isData && $dataTransaction) {
+                    $connection->commit();
+                    $dataTransaction = false;
+                }
+                $connection->unprepared($statement);
+                $statementCount++;
+            }
+            if ($dataTransaction) {
+                $connection->commit();
+                $dataTransaction = false;
+            }
+        } finally {
+            if ($dataTransaction) {
+                $connection->rollBack();
+            }
+            if ($driver === 'sqlite') {
+                $connection->unprepared('PRAGMA foreign_keys = ON');
+            } else {
+                $connection->unprepared('SET FOREIGN_KEY_CHECKS=1');
+            }
+        }
+
+        if ($statementCount === 0) {
+            throw new RuntimeException('File sao lưu không có câu lệnh SQL để phục hồi.');
+        }
+
+        return $statementCount;
+    }
+
+    public function preflight(string $sql): array
     {
         $connection = DB::connection();
         $driver = $connection->getDriverName();
@@ -91,32 +150,26 @@ class DatabaseBackupService
             throw new RuntimeException('Loại cơ sở dữ liệu trong file không khớp với ứng dụng.');
         }
 
-        $statements = iterator_to_array($this->statements($sql));
-        foreach ($statements as $statement) {
-            if (! $this->isAllowedStatement($statement, $driver)) {
+        $knownTables = $this->tableNames($connection, $driver);
+        $count = 0;
+        $tables = [];
+        foreach ($this->statements($sql) as $statement) {
+            $count++;
+            if (! $this->isAllowedStatement($statement, $driver, $knownTables)) {
                 throw new RuntimeException('File chứa câu lệnh SQL không được hỗ trợ.');
             }
-        }
-        $statementCount = 0;
-
-        try {
-            foreach ($statements as $statement) {
-                $connection->unprepared($statement);
-                $statementCount++;
+            if (preg_match('/\ADROP\s+TABLE/i', $statement)) {
+                throw new RuntimeException('Không hỗ trợ bản sao lưu xóa cấu trúc bảng. Hãy xuất lại bằng Vistiq hiện tại.');
             }
-        } finally {
-            if ($driver === 'sqlite') {
-                $connection->unprepared('PRAGMA foreign_keys = ON');
-            } else {
-                $connection->unprepared('SET FOREIGN_KEY_CHECKS=1');
+            if (preg_match('/\A(?:CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?|DELETE\s+FROM|INSERT\s+INTO)\s+[`"]?([a-zA-Z0-9_]+)/i', $statement, $table)) {
+                $tables[$table[1]] = true;
             }
         }
-
-        if ($statementCount === 0) {
-            throw new RuntimeException('File sao lưu không có câu lệnh SQL để phục hồi.');
+        if ($count < 3) {
+            throw new RuntimeException('File sao lưu thiếu dữ liệu hoặc cấu trúc.');
         }
 
-        return $statementCount;
+        return ['driver' => $driver, 'statements' => $count, 'tables' => array_keys($tables)];
     }
 
     private function createStatement(Connection $connection, string $table, string $driver): ?string
@@ -272,18 +325,18 @@ class DatabaseBackupService
         }
     }
 
-    private function isAllowedStatement(string $statement, string $driver): bool
+    private function isAllowedStatement(string $statement, string $driver, array $knownTables): bool
     {
         if (preg_match($driver === 'mysql' ? '/\\ASET\\s+FOREIGN_KEY_CHECKS\\s*=\\s*[01]\\z/i' : '/\\APRAGMA\\s+foreign_keys\\s*=\\s*(?:ON|OFF)\\z/i', $statement)) {
             return true;
         }
         if ($driver === 'sqlite' && preg_match('/\\ACREATE\\s+(?:UNIQUE\\s+)?INDEX\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?["`]?([a-zA-Z0-9_]+)["`]?\\s+ON\\s+["`]?([a-zA-Z0-9_]+)["`]?\\s*\\((["`a-zA-Z0-9_,\\s]+)\\)\\z/i', $statement, $index)) {
-            return in_array($index[2], $this->tableNames(DB::connection(), $driver), true);
+            return in_array($index[2], $knownTables, true);
         }
         if (! preg_match('/\\A(DROP\\s+TABLE\\s+IF\\s+EXISTS|CREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?|DELETE\\s+FROM|INSERT\\s+INTO)\\s+[`"]?([a-zA-Z0-9_]+)[`"]?(?=\\s|\\(|$)(.*)\\z/is', $statement, $matches)) {
             return false;
         }
-        if (! in_array($matches[2], $this->tableNames(DB::connection(), $driver), true)) {
+        if (! in_array($matches[2], $knownTables, true)) {
             return false;
         }
         $tail = $matches[3];

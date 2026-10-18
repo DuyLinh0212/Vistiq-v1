@@ -601,7 +601,7 @@ if (builder) {
         field('.ex-preview-bottom').hidden = activeStep === 0;
         if (activeStep === 3) renderFinalOverview();
         refreshIcons(builder);
-        if (matchMedia('(max-width: 900px)').matches) builder.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (matchMedia('(max-width: 900px)').matches) builder.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
     };
     const validateBeforeContinue = () => {
         if (activeStep === 0) {

@@ -4,14 +4,14 @@ namespace VistiqLearner\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use VistiqLearner\Http\Controllers\Authentication\AuthController;
-use VistiqLearner\Http\Controllers\Search\LookupController;
-use VistiqLearner\Http\Controllers\Knowledge\GrammarController;
-use VistiqLearner\Http\Controllers\Knowledge\KnowledgeController;
 use VistiqLearner\Http\Controllers\Assessment\ExamTakingAndSubmission\ExamController;
 use VistiqLearner\Http\Controllers\Assessment\ExamTakingAndSubmission\ResultController;
+use VistiqLearner\Http\Controllers\Authentication\AuthController;
+use VistiqLearner\Http\Controllers\Knowledge\GrammarController;
+use VistiqLearner\Http\Controllers\Knowledge\KnowledgeController;
 use VistiqLearner\Http\Controllers\Practice\SkillPractice\SkillPracticeController;
 use VistiqLearner\Http\Controllers\Profile\ProfileController;
+use VistiqLearner\Http\Controllers\Search\LookupController;
 use VistiqLearner\Http\Controllers\Site\HomeController;
 
 /**
@@ -70,8 +70,12 @@ class DemoPageController extends Controller
 
     public function show(string $screen): View|RedirectResponse
     {
-        if ($screen === 'history') { return redirect()->route('attempts.history'); }
-        if ($screen === 'exam-leaderboard' && request()->filled('exam')) { return redirect()->route('exams.leaderboard', request()->integer('exam')); }
+        if ($screen === 'history') {
+            return redirect()->route('profile.history');
+        }
+        if ($screen === 'exam-leaderboard' && request()->filled('exam')) {
+            return redirect()->route('exams.leaderboard', request()->integer('exam'));
+        }
         if (in_array($screen, ['exams', 'exam-config', 'exam-detail', 'exam-rules', 'exam-room', 'ielts-reading-room', 'submit', 'exam-result', 'answer-review', 'exam-leaderboard', 'ielts-result', 'ielts-exam-detail', 'ielts-rules'], true)) {
             return redirect()->route('exams.index');
         }

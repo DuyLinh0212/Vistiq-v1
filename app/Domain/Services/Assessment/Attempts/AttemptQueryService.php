@@ -8,7 +8,18 @@ use VistiqCore\Models\ExamAttempt;
 
 class AttemptQueryService
 {
-    public function listing(array $filters = [], ?int $owner = null): mixed
+    /** Owner-only summary; objective accuracy avoids averaging incompatible TOEIC/IELTS scales. */
+    public function profileSummary(int $owner): array
+    {
+        $attempts = ExamAttempt::where('user_id', $owner)->whereNotNull('snapshot')->whereNotNull('submitted_at')->where('status', '!=', 'cancelled');
+        $results = (clone $attempts)->join('attempt_results as result', 'result.exam_attempt_id', '=', 'exam_attempts.id');
+        $totals = (clone $results)->where('result.grading_status', 'completed')->selectRaw("SUM(COALESCE(JSON_EXTRACT(result.details, '$.correct'),0) + 0) as correct_count, SUM((COALESCE(JSON_EXTRACT(result.details, '$.correct'),0) + 0) + (COALESCE(JSON_EXTRACT(result.details, '$.wrong'),0) + 0) + (COALESCE(JSON_EXTRACT(result.details, '$.unanswered'),0) + 0)) as unit_count")->first();
+
+        return ['submitted' => $attempts->count(), 'accuracy' => ($totals->unit_count ?? 0) > 0 ? round($totals->correct_count / $totals->unit_count * 100, 1) : null,
+            'recent' => $results->select('exam_attempts.*', 'result.scaled_score', 'result.grading_status')->orderByDesc('exam_attempts.submitted_at')->orderByDesc('exam_attempts.id')->limit(5)->get()];
+    }
+
+    public function listing(array $filters = [], ?int $owner = null, ?string $timezone = null): mixed
     {
         $query = ExamAttempt::with(['user', 'exam'])->select('exam_attempts.*')->leftJoin('attempt_results as result', 'result.exam_attempt_id', '=', 'exam_attempts.id')->addSelect('result.scaled_score', 'result.grading_status');
         if ($owner !== null) {
@@ -20,10 +31,10 @@ class AttemptQueryService
             }
         }
         if (isset($filters['from'])) {
-            $query->where('exam_attempts.started_at', '>=', $filters['from'].' 00:00:00');
+            $query->where('exam_attempts.started_at', '>=', Carbon::parse($filters['from'], $timezone ?? config('app.timezone'))->startOfDay()->setTimezone(config('app.timezone'))->toDateTimeString());
         }
         if (isset($filters['to'])) {
-            $query->where('exam_attempts.started_at', '<', Carbon::parse($filters['to'])->addDay()->toDateString());
+            $query->where('exam_attempts.started_at', '<', Carbon::parse($filters['to'], $timezone ?? config('app.timezone'))->addDay()->startOfDay()->setTimezone(config('app.timezone'))->toDateTimeString());
         }
         if (isset($filters['min_score'])) {
             $query->where('result.scaled_score', '>=', $filters['min_score']);

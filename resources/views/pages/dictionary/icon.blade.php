@@ -1,5 +1,9 @@
 @php
     $paths = [
+        'camera' => '<path d="M5 7h3l2-3h4l2 3h3a2 2 0 0 1 2 2v10H3V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3"/>',
+        'save' => '<path d="M5 3h12l4 4v14H3V3h2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/>',
+        'globe' => '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>',
+
         'search' => '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/>',
         'book' => '<path d="M12 5v15M3 3l9 2 9-2v15l-9 2-9-2z"/><path d="m6 7 3 .5M6 11l3 .5m6-4 3-.5m-3 4 3-.5"/>',
         'book-open' => '<path d="M12 7v14m0-14C9 4.5 5.8 4 3 5v13c3-1 6-.5 9 2m0-13c3-2.5 6.2-3 9-2v13c-3-1-6-.5-9 2"/>',

@@ -28,4 +28,24 @@
 
 ## Kiểm chứng cuối
 
-Phần Khoa, MySQL cô lập, E2E browser và responsive sẽ được bổ sung sau khi triển khai và chạy thực tế.
+- Khoa hoàn thiện Profile/System Operations trên `codex/khoa-profile-system-operations`; chi tiết chức năng, contract và test ở `Khoa.md`. Profile được dựng lại theo ảnh tham chiếu thứ hai của người dùng; dữ liệu, metric và hoạt động là dữ liệu thật của owner.
+- Toàn bộ PHP suite cuối: **442/442 đạt, 2.433 assertions**, SQLite RAM, 48,4 giây. JS runner **4/4**. Pint và diff check đạt; build frontend đạt với hai warning tùy chọn đã nêu.
+- Một vòng test gặp file font manifest mất tạm thời khi build thay asset. Chạy lại tuần tự sau build đạt toàn bộ; không sửa assertion để che lỗi. Các lần chạy E2E đầu giúp phát hiện throttle dùng chung budget, route storage bị shadow và race autosave/submit; tất cả đã có sửa/hồi quy.
+- E2E Chrome thật: **11 nhóm kiểm tra đạt**, không có JavaScript exception. Luồng gồm URL thiếu quyền/CSRF, gửi/duyệt revision và publish, Knowledge CRUD/publication/saved/import lỗi dòng, offline/autosave/nộp/chấm, history/leaderboard/CSV/XLSX, Profile/avatar/giữ cả file khi form lỗi, settings/audit/backup/preflight/restore/logout.
+- **68 ảnh ở 375/768/1024/1440 px**, thuộc 17 màn đại diện: role, user, Reading bank, exam builder, review, Knowledge editor/preview, catalog Knowledge, runner Reading/Writing, history/saved/Profile, leaderboard, settings/audit/database. Document không tràn ngang; bảng cuộn trong container. Đã xem ảnh desktop/mobile/tablet, kiểm tra focus/Tab/Escape, pending và reduced motion. Menu Admin mobile không tự mở che control.
+- MySQL **8.4.3** trên database ngẫu nhiên có prefix `vistiq_phat_test_`: fresh migrations, upgrade results.export khi role đã tồn tại, review đồng thời 200/409 với một audit, submit đồng thời một kết quả/activity, JSON_TABLE grading/owner history, profile aggregate/rank, backup integrity/restore/session revocation và recovery khi SQL lỗi đều đạt. Database test đã được drop; không dùng migrate:fresh hoặc restore database ứng dụng.
+- Script tái lập: `tests/E2E/README.md`. Log/ảnh cuối browser: `storage/browser-e2e/82fd64f130f946499069498894035887/`; MySQL: `storage/browser-mysql/fecdaa7fd5714208994563d9261790f4/`; PHP: `storage/logs/integration/final-sequential.txt`. Artifact kiểm thử không commit.
+
+## Sửa phát hiện khi kiểm tra tích hợp
+
+- `4883a1c`: trang xem/duyệt Knowledge cho reviewer không cần quyền edit; sửa link và notification/confirm/pending theo shared pattern.
+- `dc6dc93`: submit chờ cùng promise của autosave đang chạy; không báo recording chưa đồng bộ trên bài Writing không có recording. Giữ retry sau lỗi và thêm hai test JavaScript đồng thời.
+- Shared middleware throttle tách action budget, web/API của cùng action dùng cùng budget; nhóm request ghi bài vẫn dùng chung ngân sách. Shared local disk private không chiếm route public avatar. Regression contract tests bảo vệ hai thay đổi này.
+- Shared model/migration/provider/middleware/session, catalog/seeder, layout/asset, route loaders và test contract đã được tiếp nhận ở vai trò integration owner. Feature routes vẫn nằm trong module include, không đưa vào loaders. Shared layouts/tokens/dialog/notification dùng chung, không tạo hệ style Admin riêng.
+- Graphify CLI và cả integration Codex/Antigravity cùng dùng `graphify-out/graph.json`; đã cập nhật AST sau thay đổi code. Nhãn community tự sinh được giữ, không gọi LLM để đổi nhãn.
+
+## Giới hạn và bàn giao
+
+- SMTP/OTP tới hộp thư thật, provider AI/Cloudinary/R2 ngoài mạng chưa được kiểm chứng; mail/HTTP đã giả lập trong feature test. Không bổ sung Skill Practice, mục tiêu học, xóa/ẩn danh hay bộ use case/đặc tả liên module.
+- Restore hỗ trợ SQL Vistiq MySQL/SQLite cùng driver, tối đa 100 MB; cần cấu hình PHP upload/post và quyền ghi private storage tương ứng khi triển khai. Backup có schema tạo không phá bảng; file DROP cấu trúc bị từ chối, không bảo đảm phục hồi backup từ schema tùy ý. Vận hành production cần chạy migration mới theo quy trình triển khai; không tự chạy trên database đang sử dụng.
+- Các phát hiện chức năng trong phạm vi đã sửa và kiểm chứng theo các ca trên. Giữ nguyên main và stash `pre-integration graphify query cache` chứa thay đổi cache Graphify cục bộ trước khi bắt đầu. Không force push hoặc xóa branch nguồn.
