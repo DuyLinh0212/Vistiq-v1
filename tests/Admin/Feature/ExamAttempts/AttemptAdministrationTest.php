@@ -76,7 +76,7 @@ class AttemptAdministrationTest extends TestCase
         $oldToken = hash('sha256', json_encode([], JSON_THROW_ON_ERROR));
         $this->postJson($url, $this->grade(9))->assertUnprocessable();
         $this->postJson($url, $this->grade(9) + ['reason' => 'Correct score', 'grade_token' => $oldToken])->assertConflict();
-        $this->post($url, $this->grade(9) + ['reason' => 'Correct score'])->assertRedirect();
+        $this->post($url, $this->grade(9) + ['reason' => 'Correct score', 'grade_token' => hash('sha256', json_encode($answer->fresh()->grade, JSON_THROW_ON_ERROR))])->assertRedirect();
         $this->assertSame(2, DB::table('audit_logs')->where('action', 'answer.grade')->count());
         $this->assertSame('completed', $attempt->fresh()->status);
     }

@@ -143,6 +143,9 @@ class AttemptService
                     throw ValidationException::withMessages(['answers' => 'Câu hỏi nằm ngoài snapshot của lượt thi.']);
                 }
                 $this->accessibleItem($attempt, $item);
+                if (! ($attempt->snapshot['policies']['review_later'] ?? true) && ($data['flagged'] ?? false)) {
+                    throw ValidationException::withMessages(['answers' => 'Đề không cho phép đánh dấu xem lại.']);
+                }
                 $response = $this->validateResponse($attempt, $item, $data['response'] ?? []);
                 $answer = $attempt->answers()->where('item_key', $item['key'])->first();
                 $sameRetry = $answer && (int) $answer->version === (int) ($data['version'] ?? 0) + 1

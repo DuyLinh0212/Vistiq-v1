@@ -25,7 +25,7 @@ class ManualGradeRequest extends FormRequest
         return [
             'criteria' => 'required|array|size:4', 'criteria.*' => 'required|numeric|min:0|max:9', 'feedback' => 'required|string|max:20000',
             'reason' => ($this->route('answer')?->grade ? 'required' : 'nullable').'|string|max:2000',
-            'grade_token' => 'nullable|string|size:64',
+            'grade_token' => ($this->route('answer')?->grade ? 'required' : 'nullable').'|string|size:64',
         ];
     }
 

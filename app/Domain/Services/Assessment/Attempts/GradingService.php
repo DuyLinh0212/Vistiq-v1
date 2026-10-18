@@ -25,7 +25,7 @@ class GradingService
             $item = collect($attempt->snapshot['items'])->firstWhere('key', $answer->item_key);
             abort_unless($item && in_array($item['type'], ['essay', 'speaking'], true), 422);
             $data['reason'] = trim($data['reason'] ?? '');
-            $data = Validator::make($data, ['criteria' => 'required|array|size:4', 'criteria.*' => 'required|numeric|min:0|max:9', 'feedback' => 'required|string|max:20000', 'reason' => ($answer->grade ? 'required' : 'nullable').'|string|max:2000', 'grade_token' => 'nullable|string|size:64'])->validate();
+            $data = Validator::make($data, ['criteria' => 'required|array|size:4', 'criteria.*' => 'required|numeric|min:0|max:9', 'feedback' => 'required|string|max:20000', 'reason' => ($answer->grade ? 'required' : 'nullable').'|string|max:2000', 'grade_token' => ($answer->grade ? 'required' : 'nullable').'|string|size:64'])->validate();
             if (isset($data['grade_token'])) {
                 abort_unless(hash_equals(hash('sha256', json_encode($answer->grade ?? [], JSON_THROW_ON_ERROR)), $data['grade_token']), 409, 'Điểm đã được reviewer khác cập nhật. Tải lại trước khi chấm.');
             }

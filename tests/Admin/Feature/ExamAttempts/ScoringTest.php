@@ -57,7 +57,7 @@ class ScoringTest extends TestCase
         $details = json_decode(DB::table('attempt_results')->value('details'), true);
         $this->assertEquals(8, $details['bands']['writing']);
         $this->assertSame('completed', $attempt->fresh()->status);
-        $grading->grade($answers[0], ['criteria' => array_fill_keys(QuestionRegistry::WRITING_CRITERIA, 7.5), 'feedback' => 'Revised', 'reason' => 'Correct rubric assessment']);
+        $grading->grade($answers[0], ['criteria' => array_fill_keys(QuestionRegistry::WRITING_CRITERIA, 7.5), 'feedback' => 'Revised', 'reason' => 'Correct rubric assessment', 'grade_token' => hash('sha256', json_encode($answers[0]->fresh()->grade, JSON_THROW_ON_ERROR))]);
         $this->assertSame(3, DB::table('audit_logs')->where('action', 'answer.grade')->count());
     }
 }

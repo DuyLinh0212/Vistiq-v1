@@ -174,4 +174,13 @@ class AttemptReliabilityTest extends TestCase
         $this->postJson('/attempts/'.$attempt->id.'/submit')->assertOk()->assertJsonPath('result.details.duration_seconds', 10);
         $this->assertSame(60, $attempt->fresh()->paused_seconds);
     }
+
+    public function test_disabled_review_later_is_enforced_by_the_answer_endpoint(): void
+    {
+        $attempt = $this->attempt(['review_later' => false]);
+        $this->postJson('/attempts/'.$attempt->id.'/answers', ['answers' => [
+            ['item_key' => 'q1', 'version' => 0, 'response' => ['options' => ['B']], 'flagged' => true],
+        ]])->assertUnprocessable()->assertJsonValidationErrors('answers');
+        $this->assertDatabaseCount('attempt_answers', 0);
+    }
 }
