@@ -108,7 +108,30 @@ class ExamGenerationTest extends TestCase
             'variant' => null,
             'generation' => ['template' => 'thpt-english', 'sections' => $sections],
         ])->assertUnprocessable()->assertJsonValidationErrors('generation.sections.0');
-        $this->assertArrayHasKey('tieng-anh', $catalog['thpt']['subjects']);
+        $this->assertSame(['tieng-anh'], array_keys($catalog['thpt']['subjects']));
+        $this->get('/admin/exams/create?template=thpt-english-2025')->assertOk()
+            ->assertSee('data-quick-filter="short_cloze"', false)
+            ->assertSee('data-quick-filter="arrangement"', false)
+            ->assertSee('data-quick-filter="extended_completion"', false)
+            ->assertSee('data-quick-filter="reading"', false);
+    }
+
+    public function test_thpt_custom_exam_rejects_non_english_parts(): void
+    {
+        $english = ExamPart::where('code', 'tieng-anh')->firstOrFail();
+        $math = ExamPart::create([
+            'exam_type_id' => $english->exam_type_id,
+            'skill_id' => $english->skill_id,
+            'code' => 'toan',
+            'name' => 'Toán',
+            'sort_order' => 99,
+        ]);
+
+        $this->postJson('/admin/exams/generate', [
+            'exam_type_id' => $math->exam_type_id,
+            'variant' => null,
+            'generation' => ['template' => 'custom', 'sections' => [['exam_part_id' => $math->id, 'difficulty' => ['easy' => 1, 'medium' => 0, 'hard' => 0]]]],
+        ])->assertUnprocessable()->assertJsonValidationErrors('generation.sections.0');
     }
 
     public function test_custom_generation_matches_exact_difficulty_and_never_repeats_questions(): void
@@ -125,6 +148,32 @@ class ExamGenerationTest extends TestCase
         $this->assertSame(['easy' => 2, 'medium' => 3, 'hard' => 1], $response->json('summary.0.difficulty'));
         $this->post('/admin/exams', $this->examData($config, $response->json()))->assertRedirect();
         $this->assertSame($response->json('generation'), ExamTemplate::first()->draft_payload['generation']);
+    }
+
+    public function test_approved_draft_questions_are_visible_and_eligible_for_custom_generation(): void
+    {
+        $part = ExamPart::with(['skill', 'examType'])->where('code', 'part-5')->firstOrFail();
+        $difficultyId = DB::table('question_difficulties')->where('code', 'easy')->value('id');
+        $question = QuestionBankItemFactory::new()->create(['exam_part_id' => $part->id, 'question_difficulty_id' => $difficultyId]);
+        $payload = array_replace($this->item(), [
+            'id' => $question->id,
+            'exam_part_id' => $part->id,
+            'part' => $part->code,
+            'exam_type' => $part->examType->code,
+            'skill' => $part->skill->code,
+            'question_difficulty_id' => $difficultyId,
+            'group_id' => null,
+            'stimulus_ids' => [],
+        ]);
+        $revision = ContentRevision::create(['kind' => 'question', 'entity_id' => $question->id, 'number' => 1, 'status' => 'approved', 'payload' => $payload]);
+        $question->forceFill(['draft_revision_id' => $revision->id])->save();
+
+        $this->get('/admin/exams/create')
+            ->assertOk()
+            ->assertSee('"status":"approved"', false)
+            ->assertSee('"has_approved_content":true', false);
+
+        $this->postJson('/admin/exams/generate', $this->config())->assertOk()->assertJsonPath('sections.0.question_ids', [$question->id]);
     }
 
     public function test_insufficient_pool_has_actionable_error_and_no_partial_exam(): void

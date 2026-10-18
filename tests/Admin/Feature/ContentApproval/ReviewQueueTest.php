@@ -286,12 +286,14 @@ class ReviewQueueTest extends TestCase
         $exam->update(['created_by' => $author->id, 'draft_status' => 'review', 'revision_counter' => 3, 'draft_payload' => ['sections' => [['exam_part_id' => $question->exam_part_id, 'question_ids' => [$question->id], 'duration_minutes' => 0]], 'policies' => ExamPublishingService::POLICIES]]);
         $review = app(ContentReviewService::class)->preview('exam', $exam->id);
         $this->assertSame([], $review['blockers']);
-        $revisionCount = DB::table('content_revisions')->count();
+        $revisionCount = DB::table('exam_revisions')->count();
         $this->postJson('/admin/exams/'.$exam->id.'/approve', ['revision_counter' => 3, 'review_token' => $review['token']])
             ->assertOk()
             ->assertJsonPath('status', 'approved');
-        $this->assertSame($revisionCount, DB::table('content_revisions')->count());
+        $this->assertSame($revisionCount + 1, DB::table('exam_revisions')->count());
         $this->assertSame('approved', $exam->fresh()->draft_status);
+        $this->assertSame('approved', $exam->fresh()->status);
+        $this->assertNotNull($exam->fresh()->published_revision_id);
         $audit = DB::table('audit_logs')->where('entity_id', $exam->id)->where('action', 'exam.approve')->first();
         $this->assertTrue((bool) json_decode($audit->after, true)['self_review']);
     }
@@ -316,9 +318,12 @@ class ReviewQueueTest extends TestCase
         $url = '/admin/content-approval/exam/'.$exam->id.'/approve';
         $this->postJson($url, $data)->assertConflict();
         $review = $service->preview('exam', $exam->id);
-        $oldPublishedRevision = $exam->published_revision_id;
+        $oldApprovedRevision = $exam->published_revision_id;
+        $revisionCount = DB::table('exam_revisions')->count();
         $this->postJson($url, ['revision_counter' => 3, 'review_token' => $review['token']])->assertOk()->assertJsonPath('status', 'approved');
-        $this->assertSame($oldPublishedRevision, $exam->fresh()->published_revision_id);
+        $this->assertNotSame($oldApprovedRevision, $exam->fresh()->published_revision_id);
+        $this->assertSame($revisionCount + 1, DB::table('exam_revisions')->count());
+        $this->assertSame('approved', $exam->fresh()->status);
         $this->assertSame(1, DB::table('audit_logs')->where('entity_id', $exam->id)->where('entity_type', 'exam')->where('action', 'exam.approve')->count());
     }
 

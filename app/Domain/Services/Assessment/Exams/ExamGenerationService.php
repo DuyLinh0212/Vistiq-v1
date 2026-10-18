@@ -37,23 +37,7 @@ class ExamGenerationService
     ];
 
     public const THPT_SUBJECTS = [
-        ['code' => 'toan', 'name' => 'Toán', 'count' => 34, 'duration_minutes' => 90],
         ['code' => 'tieng-anh', 'name' => 'Tiếng Anh', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'tieng-nga', 'name' => 'Tiếng Nga', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'tieng-phap', 'name' => 'Tiếng Pháp', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'tieng-duc', 'name' => 'Tiếng Đức', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'tieng-nhat', 'name' => 'Tiếng Nhật', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'tieng-trung', 'name' => 'Tiếng Trung', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'tieng-han', 'name' => 'Tiếng Hàn', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'vat-ly', 'name' => 'Vật lí', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'hoa-hoc', 'name' => 'Hóa học', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'sinh-hoc', 'name' => 'Sinh học', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'lich-su', 'name' => 'Lịch sử', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'dia-ly', 'name' => 'Địa lí', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'giao-duc-kinh-te-phap-luat', 'name' => 'Giáo dục kinh tế và pháp luật', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'tin-hoc', 'name' => 'Tin học', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'cong-nghe-cong-nghiep', 'name' => 'Công nghệ Công nghiệp', 'count' => 40, 'duration_minutes' => 50],
-        ['code' => 'cong-nghe-nong-nghiep', 'name' => 'Công nghệ Nông nghiệp', 'count' => 40, 'duration_minutes' => 50],
     ];
 
     public function __construct(private ContentRevisionService $revisions, private QuestionRegistry $registry) {}
@@ -138,6 +122,9 @@ class ExamGenerationService
             if (! $part || $part->exam_type_id !== (int) $data['exam_type_id']) {
                 throw ValidationException::withMessages(["generation.sections.$index" => 'Phần không thuộc kỳ thi đã chọn.']);
             }
+            if ($part->examType?->code === 'thpt' && $part->code !== 'tieng-anh' && ! str_starts_with($part->code, 'tieng-anh-part-')) {
+                throw ValidationException::withMessages(["generation.sections.$index" => 'Đề THPT hiện chỉ hỗ trợ môn Tiếng Anh.']);
+            }
             $section['difficulty'] = array_map('intval', $section['difficulty']);
             $section['count'] = array_sum($section['difficulty']);
             if ($section['count'] < 1 || $section['count'] > 200) {
@@ -182,7 +169,7 @@ class ExamGenerationService
                         $available[$difficulty] += $bundle['counts'][$i];
                     }
                 }
-                throw ValidationException::withMessages(["generation.sections.$index" => $part->name.': không đủ câu hoặc nhóm nguyên vẹn để đạt cơ cấu đã chọn. Cần dễ/vừa/khó '.implode('/', $rule['difficulty']).'; khả dụng '.implode('/', $available).'. Kiểm tra nhóm câu, biến thể và nội dung đã xuất bản.']);
+                throw ValidationException::withMessages(["generation.sections.$index" => $part->name.': không đủ câu hoặc nhóm nguyên vẹn để đạt cơ cấu đã chọn. Cần dễ/vừa/khó '.implode('/', $rule['difficulty']).'; khả dụng '.implode('/', $available).'. Kiểm tra nhóm câu, biến thể và trạng thái duyệt.']);
             }
             $ids = [];
             foreach ($selected as $bundle) {
@@ -198,6 +185,14 @@ class ExamGenerationService
 
     public function validateSelection(array $data): void
     {
+        if (ExamType::whereKey($data['exam_type_id'] ?? null)->where('code', 'thpt')->exists()) {
+            foreach ($data['sections'] ?? [] as $index => $section) {
+                $part = ExamPart::find($section['exam_part_id'] ?? null);
+                if (! $part || ($part->code !== 'tieng-anh' && ! str_starts_with($part->code, 'tieng-anh-part-'))) {
+                    throw ValidationException::withMessages(["sections.$index" => 'Đề THPT hiện chỉ hỗ trợ môn Tiếng Anh.']);
+                }
+            }
+        }
         if (empty($data['generation'])) {
             if (($data['mode'] ?? null) === 'full' && ExamType::whereKey($data['exam_type_id'] ?? null)->where('code', 'thpt')->exists()) {
                 throw ValidationException::withMessages(['generation' => 'Đề THPT cần tạo bằng template môn thi để giữ đúng số câu và thời gian.']);
@@ -244,15 +239,24 @@ class ExamGenerationService
     {
         $difficulties = DB::table('question_difficulties')->pluck('code', 'id');
         $parts = ExamPart::with(['skill', 'examType'])->where('exam_type_id', $data['exam_type_id'])->get()->keyBy('id');
-        $questions = QuestionBankItem::with(['publishedRevision', 'learningItem', 'difficulty', 'questionType'])->where(fn ($query) => $query->where(fn ($q) => $q->whereNull('learning_item_id')->where('status', '!=', 'archived'))->orWhereHas('learningItem', fn ($items) => $items->where('status', '!=', 'archived')))->where(fn ($query) => $query->whereNotNull('published_revision_id')->orWhereHas('learningItem', fn ($items) => $items->where('status', 'published'))->orWhere(fn ($q) => $q->whereNull('learning_item_id')->where('status', 'published')))->get();
+        $questions = QuestionBankItem::with(['draftRevision', 'publishedRevision', 'learningItem', 'difficulty', 'questionType'])
+            ->where(fn ($query) => $query->where(fn ($q) => $q->whereNull('learning_item_id')->where('status', '!=', 'archived'))->orWhereHas('learningItem', fn ($items) => $items->where('status', '!=', 'archived')))
+            ->where(fn ($query) => $query->whereNotNull('published_revision_id')
+                ->orWhereHas('learningItem', fn ($items) => $items->where('status', 'published'))
+                ->orWhere(fn ($q) => $q->whereNull('learning_item_id')->where('status', 'published'))
+                ->orWhereHas('draftRevision', fn ($revision) => $revision->where('status', 'approved')->where('kind', 'question')))
+            ->get();
         $pool = [];
         $stimulusCache = [];
         foreach ($questions as $question) {
-            $revision = $question->publishedRevision;
-            if ($revision && ($revision->status !== 'published' || $revision->kind !== 'question' || $revision->entity_id !== $question->id)) {
+            $revision = $this->revisions->approvedOrPublishedRevision('question', $question);
+            if ($revision && ($revision->kind !== 'question' || (int) $revision->entity_id !== (int) $question->id)) {
                 continue;
             }
-            $payload = $revision ? $revision->payload : $this->revisions->payload('question', $question, false);
+            if (! $revision && ($question->published_revision_id || $question->contentStatus() !== 'published')) {
+                continue;
+            }
+            $payload = $revision?->payload ?? $this->revisions->payload('question', $question, false);
             $part = $parts[(int) ($payload['exam_part_id'] ?? 0)] ?? null;
             $difficulty = $difficulties[$payload['question_difficulty_id'] ?? $question->question_difficulty_id] ?? null;
             if (! $part || ! in_array($difficulty, ['easy', 'medium', 'hard'], true) || ($part->examType->code === 'ielts' && in_array($part->skill->code, ['reading', 'writing'], true) && ($payload['metadata']['variant'] ?? null) !== ($data['variant'] ?? null))) {
@@ -273,7 +277,12 @@ class ExamGenerationService
             foreach ($stimuli as $stimulusId) {
                 if (! array_key_exists($stimulusId, $stimulusCache)) {
                     $stimulus = LearningStimulus::find($stimulusId);
-                    $stimulusCache[$stimulusId] = $stimulus && $stimulus->status !== 'archived' && ($stimulus->published_revision_id || $stimulus->status === 'published') ? $this->revisions->payload('stimulus', $stimulus, false) : null;
+                    if (! $stimulus || $stimulus->status === 'archived') {
+                        $stimulusCache[$stimulusId] = null;
+                    } else {
+                        $stimulusRevision = $this->revisions->approvedOrPublishedRevision('stimulus', $stimulus);
+                        $stimulusCache[$stimulusId] = $stimulusRevision?->payload ?? $this->revisions->payload('stimulus', $stimulus, true);
+                    }
                 }
                 if (! $stimulusCache[$stimulusId]) {
                     continue 2;

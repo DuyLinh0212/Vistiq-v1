@@ -64,7 +64,7 @@ class ContentApprovalController extends Controller
                 $note = trim($request->validated('note') ?? '');
                 abort_if($action === 'approve' && (int) app(ContentReviewService::class)->examAuthor($exam) === (int) auth()->id(), 403, 'Tác giả không được tự duyệt revision của mình.');
                 abort_if($exam->status === 'archived' && $action !== 'archive', 409);
-                $states = ['review' => 'draft', 'approve' => 'review', 'reject' => 'review', 'archive' => 'published'];
+                $states = ['review' => 'draft', 'approve' => 'review', 'reject' => 'review', 'archive' => 'approved'];
                 abort_unless(($action === 'archive' ? $exam->status : $exam->draft_status) === $states[$action], 409);
 
                 if ($action === 'reject' && $note === '') {

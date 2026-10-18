@@ -22,7 +22,7 @@ class ExamBuilderController extends AdminPageController
 {
     public function index(Request $request): mixed
     {
-        $query = ExamTemplate::with('examType');
+        $query = ExamTemplate::with('examType')->where('status', '!=', 'archived');
         $types = ExamType::all();
         $typeCounts = ExamTemplate::selectRaw('exam_type_id, count(*) as total')->groupBy('exam_type_id')->pluck('total', 'exam_type_id');
         $creators = DB::table('users')->whereIn('id', ExamTemplate::whereNotNull('created_by')->select('created_by'))->pluck('name', 'id');
@@ -32,9 +32,9 @@ class ExamBuilderController extends AdminPageController
         if ($types->contains('id', (int) $request->input('type'))) {
             $query->where('exam_type_id', $request->integer('type'));
         }
-        if (in_array($request->input('status'), ['published', 'archived'], true)) {
-            $query->where('status', $request->input('status'));
-        } elseif (in_array($request->input('status'), ['draft', 'review', 'approved'], true)) {
+        if ($request->input('status') === 'approved') {
+            $query->where(fn ($status) => $status->where('draft_status', 'approved')->orWhere('status', 'published'));
+        } elseif (in_array($request->input('status'), ['draft', 'review'], true)) {
             $query->where('draft_status', $request->input('status'))->where('status', '!=', 'archived');
         }
         if (in_array($request->input('days'), ['7', '30', '90'], true)) {
@@ -87,7 +87,9 @@ class ExamBuilderController extends AdminPageController
             return [];
         }
         $difficultyCodes = DB::table('question_difficulties')->pluck('code', 'id');
-        $revisionFor = fn ($question) => $question->contentStatus() === 'published' ? $question->publishedRevision : ($question->draftRevision ?? $question->publishedRevision);
+        $revisionFor = fn ($question) => $question->draftRevision?->status === 'approved'
+            ? $question->draftRevision
+            : ($question->contentStatus() === 'published' ? $question->publishedRevision : ($question->draftRevision ?? $question->publishedRevision));
         $groupIds = $questions->map(fn ($question) => $revisionFor($question)?->payload['group_id'] ?? $question->question_group_id)->filter()->unique();
         $groups = DB::table('question_groups')->whereIn('id', $groupIds)->get()->keyBy('id');
         $resourceIds = $questions->flatMap(fn ($question) => $revisionFor($question)?->payload['stimulus_ids'] ?? [$question->learning_stimulus_id])->merge($groups->flatMap(fn ($group) => json_decode($group->stimulus_ids ?? '[]', true) ?? []))->filter()->unique();
@@ -124,11 +126,16 @@ class ExamBuilderController extends AdminPageController
             $tags = collect($payload['metadata']['tags'] ?? $payload['tags'] ?? [])->map(fn ($tag) => is_array($tag) ? ($tag['name'] ?? '') : (string) $tag)->filter()->values()->all();
 
             $publishedRevision = $question->publishedRevision;
-            $hasPublishedContent = $publishedRevision
+            $isPublished = $publishedRevision
                 ? $publishedRevision->status === 'published' && $publishedRevision->kind === 'question' && (int) $publishedRevision->entity_id === (int) $question->id
                 : $question->contentStatus() === 'published';
+            $isApproved = $question->draftRevision
+                && $question->draftRevision->status === 'approved'
+                && $question->draftRevision->kind === 'question'
+                && (int) $question->draftRevision->entity_id === (int) $question->id;
+            $status = $isApproved ? 'approved' : ($isPublished ? 'published' : ($question->contentStatus() ?? 'draft'));
 
-            return ['id' => $question->id, 'part' => $payload['exam_part_id'] ?? $question->exam_part_id, 'prompt' => strip_tags($payload['prompt'] ?? $question->prompt), 'type' => $payload['type'] ?? $question->questionType?->code, 'options' => $options, 'tags' => $tags, 'status' => $question->contentStatus() ?? 'draft', 'has_published_content' => $hasPublishedContent, 'difficulty' => $difficultyCodes[$payload['question_difficulty_id'] ?? $question->question_difficulty_id] ?? 'medium', 'units' => $revision ? app(\VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry::class)->units($payload) : 1, 'group' => $groupId, 'passage' => $passage ? ['id' => $passage->id, 'title' => $passage->title, 'body' => strip_tags($passage->body)] : null, 'audio' => $audio !== null || $audioAsset !== null, 'audio_title' => $audioAsset?->title ?? $audio?->title, 'audio_url' => $audioAsset ? route('admin.media.waveform', $audioAsset) : null, 'edit_url' => route('admin.questions.edit', $question)];
+            return ['id' => $question->id, 'part' => $payload['exam_part_id'] ?? $question->exam_part_id, 'prompt' => strip_tags($payload['prompt'] ?? $question->prompt), 'type' => $payload['type'] ?? $question->questionType?->code, 'options' => $options, 'tags' => $tags, 'status' => $status, 'has_approved_content' => $isApproved || $isPublished, 'difficulty' => $difficultyCodes[$payload['question_difficulty_id'] ?? $question->question_difficulty_id] ?? 'medium', 'units' => $revision ? app(\VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry::class)->units($payload) : 1, 'group' => $groupId, 'passage' => $passage ? ['id' => $passage->id, 'title' => $passage->title, 'body' => strip_tags($passage->body)] : null, 'audio' => $audio !== null || $audioAsset !== null, 'audio_title' => $audioAsset?->title ?? $audio?->title, 'audio_url' => $audioAsset ? route('admin.media.waveform', $audioAsset) : null, 'edit_url' => route('admin.questions.edit', $question)];
         })->all();
     }
 
@@ -140,9 +147,9 @@ class ExamBuilderController extends AdminPageController
             return ['name' => $part?->name ?? 'Phần thi', 'code' => $part?->code ?? '', 'count' => collect($section['question_ids'] ?? [])->sum(fn ($id) => $questionMap->get($id)['units'] ?? 1)];
         })->all();
         $selected = collect($exam->draft_payload['sections'] ?? [])->flatMap(fn ($section) => $section['question_ids'] ?? [])->map(fn ($id) => $questionMap->get($id))->filter();
-        $status = $exam->status === 'archived' ? 'archived' : ($exam->status === 'published' ? 'published' : ($exam->draft_status ?? 'draft'));
+        $status = $exam->status === 'archived' ? 'archived' : (in_array($exam->status, ['approved', 'published'], true) ? 'approved' : ($exam->draft_status ?? 'draft'));
 
-        return ['code' => strtoupper($exam->examType?->code ?? 'EXAM').'-'.str_pad($exam->id, 4, '0', STR_PAD_LEFT), 'status' => $status, 'status_label' => ['draft' => 'Bản nháp', 'review' => 'Chờ duyệt', 'approved' => 'Đã duyệt', 'published' => 'Đã xuất bản', 'archived' => 'Lưu trữ'][$status] ?? $status, 'creator' => $creators->get($exam->created_by, '—'), 'sections' => $sections, 'count' => array_sum(array_column($sections, 'count')), 'duration' => $exam->draft_payload['policies']['duration_minutes'] ?? 30, 'audio' => $selected->where('audio', true)->count(), 'passages' => $selected->pluck('passage.id')->filter()->unique()->count(), 'generation' => ! empty($exam->draft_payload['generation'])];
+        return ['code' => strtoupper($exam->examType?->code ?? 'EXAM').'-'.str_pad($exam->id, 4, '0', STR_PAD_LEFT), 'status' => $status, 'status_label' => ['draft' => 'Bản nháp', 'review' => 'Chờ duyệt', 'approved' => 'Đã duyệt', 'archived' => 'Bản nháp'][$status] ?? $status, 'creator' => $creators->get($exam->created_by, '—'), 'sections' => $sections, 'count' => array_sum(array_column($sections, 'count')), 'duration' => $exam->draft_payload['policies']['duration_minutes'] ?? 30, 'audio' => $selected->where('audio', true)->count(), 'passages' => $selected->pluck('passage.id')->filter()->unique()->count(), 'generation' => ! empty($exam->draft_payload['generation'])];
     }
 
     public function generate(ExamGenerationRequest $request, ExamGenerationService $service): mixed

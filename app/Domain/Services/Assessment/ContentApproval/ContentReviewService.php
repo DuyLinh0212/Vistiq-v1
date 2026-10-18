@@ -91,8 +91,7 @@ class ContentReviewService
             $number = (int) $root->revision_counter;
             $submittedAt = $root->getRawOriginal('updated_at');
             $previous = $root->publishedRevision?->payload;
-            // assemble(false) may pin legacy revisions. Never call it on a read
-            // until every reference already has a valid published revision.
+            // Resolve source revisions without publishing them during a read.
             $ready = true;
             $ids = collect($root->draft_payload['sections'] ?? [])->flatMap(fn ($section) => $section['question_ids'] ?? [])->unique()->sort()->values();
             $questionQuery = QuestionBankItem::whereIn('id', $ids)->orderBy('id');
@@ -101,28 +100,28 @@ class ContentReviewService
                 $ready = false;
             }
             foreach ($questions as $question) {
-                $published = ContentRevision::where('id', $question->published_revision_id)->where('kind', 'question')->where('entity_id', $question->id)->where('status', 'published')->first();
-                if (! $published) {
+                $sourceRevision = $this->revisions->approvedOrPublishedRevision('question', $question);
+                if (! $sourceRevision) {
                     $ready = false;
 
                     continue;
                 }
-                $stimulusIds = $published->payload['stimulus_ids'] ?? [];
-                if (! empty($published->payload['group_id'])) {
-                    $groupQuery = DB::table('question_groups')->where('id', $published->payload['group_id']);
+                $stimulusIds = $sourceRevision->payload['stimulus_ids'] ?? [];
+                if (! empty($sourceRevision->payload['group_id'])) {
+                    $groupQuery = DB::table('question_groups')->where('id', $sourceRevision->payload['group_id']);
                     $group = ($lock ? $groupQuery->lockForUpdate() : $groupQuery)->first();
                     $stimulusIds = array_merge($stimulusIds, json_decode($group?->stimulus_ids ?? '[]', true) ?: []);
                 }
                 foreach (array_unique($stimulusIds) as $stimulusId) {
                     $stimulusQuery = LearningStimulus::where('id', $stimulusId);
                     $stimulus = ($lock ? $stimulusQuery->lockForUpdate() : $stimulusQuery)->first();
-                    if (! $stimulus || ! ContentRevision::where('id', $stimulus->published_revision_id)->where('kind', 'stimulus')->where('entity_id', $stimulusId)->where('status', 'published')->exists()) {
+                    if (! $stimulus || $stimulus->status === 'archived') {
                         $ready = false;
                     }
                 }
             }
             if (! $ready) {
-                $errors[] = 'Câu hỏi/tài nguyên cần có revision đã xuất bản trước khi duyệt đề. Mở module nguồn để hoàn thiện.';
+                $errors[] = 'Câu hỏi cần được duyệt hoặc đã xuất bản trước khi duyệt đề. Mở ngân hàng câu hỏi để hoàn thiện.';
             }
             try {
                 $payload = $this->exams->assemble($root, ! $ready);
@@ -183,7 +182,14 @@ class ContentReviewService
                 $status = $revision->status;
             } else {
                 $status = $action === 'approve' ? 'approved' : 'draft';
-                $review['root']->update(['draft_status' => $status, 'review_note' => $note ?: null]);
+                if ($action === 'approve') {
+                    $this->exams->approve($review['root'], $review['payload']);
+                } else {
+                    $review['root']->update(['status' => 'draft', 'draft_status' => $status, 'review_note' => $note ?: null]);
+                }
+                if ($action === 'approve') {
+                    $review['root']->update(['review_note' => $note ?: null]);
+                }
                 $after = ['status' => $status, 'revision' => $review['number'], 'note' => $note ?: null];
                 if ($selfReview) {
                     $after['self_review'] = true;

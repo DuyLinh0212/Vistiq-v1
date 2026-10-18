@@ -48,6 +48,7 @@ class ExamPublishingService
             unset($data['visual_template']);
             $exam->fill($data);
             $exam->draft_payload = ['sections' => $data['sections'] ?? [], 'policies' => array_replace(self::POLICIES, $data['policies'] ?? []), 'generation' => $data['generation'] ?? null, 'template_card' => $templateCard];
+            $exam->status = 'draft';
             $exam->draft_status = 'draft';
             $exam->revision_counter++;
             $exam->save();
@@ -77,7 +78,14 @@ class ExamPublishingService
                 }
                 $ids[] = $questionId;
                 $question = QuestionBankItem::with(['learningItem', 'questionType'])->findOrFail($questionId);
-                $payload = $preview ? $this->revisions->payload('question', $question, empty($draft['generation'])) : $this->revisions->published('question', $question)->payload;
+                $questionRevision = $preview ? null : $this->revisions->approvedOrPublishedRevision('question', $question);
+                if (! $preview && ! $questionRevision && ! $question->published_revision_id && $question->contentStatus() === 'published') {
+                    $questionRevision = $this->revisions->published('question', $question);
+                }
+                if (! $preview && ! $questionRevision) {
+                    throw ValidationException::withMessages(['exam' => 'Câu hỏi #'.$question->id.' chưa được duyệt. Hãy duyệt câu hỏi trong ngân hàng câu hỏi trước khi gửi duyệt đề.']);
+                }
+                $payload = $preview ? $this->revisions->payload('question', $question, empty($draft['generation'])) : $questionRevision->payload;
                 if ($question->contentStatus() === 'archived' || (int) $payload['exam_part_id'] !== $part->id) {
                     throw ValidationException::withMessages(['sections' => 'Câu hỏi đã archive hoặc không thuộc Part đã chọn.']);
                 }
@@ -86,7 +94,7 @@ class ExamPublishingService
                 }
                 $payload['key'] = 'q'.$question->id;
                 $payload['section'] = $index;
-                $payload['revision_id'] = $question->published_revision_id;
+                $payload['revision_id'] = $preview ? $question->published_revision_id : $questionRevision->id;
                 $payload['group'] = ! empty($payload['group_id']) ? (array) DB::table('question_groups')->find($payload['group_id']) : null;
                 $stimulusIds = $payload['stimulus_ids'] ?? [];
                 if ($payload['group']) {
@@ -95,11 +103,19 @@ class ExamPublishingService
                 $payload['stimuli'] = [];
                 foreach (array_unique($stimulusIds) as $stimulusId) {
                     $stimulus = LearningStimulus::findOrFail($stimulusId);
-                    $stimulusPayload = $preview ? $this->revisions->payload('stimulus', $stimulus, empty($draft['generation'])) : $this->revisions->published('stimulus', $stimulus)->payload;
+                    $stimulusRevision = $preview ? null : $this->revisions->approvedOrPublishedRevision('stimulus', $stimulus);
+                    if (! $preview && ! $stimulusRevision && ! $stimulus->published_revision_id && $stimulus->status === 'published') {
+                        $stimulusRevision = $this->revisions->published('stimulus', $stimulus);
+                    }
+                    $stimulusPayload = $preview
+                        ? $this->revisions->payload('stimulus', $stimulus, empty($draft['generation']))
+                        : ($stimulusRevision?->payload ?? $this->revisions->payload('stimulus', $stimulus));
                     if (! $preview && $stimulus->status === 'archived') {
                         throw ValidationException::withMessages(['media' => 'Tài nguyên đã archive.']);
                     }
-                    $stimulusPayload['revision_id'] = $stimulus->published_revision_id;
+                    $stimulusPayload['revision_id'] = $preview
+                        ? $stimulus->published_revision_id
+                        : ($stimulusRevision?->id ?? $stimulus->draft_revision_id ?? $stimulus->published_revision_id);
                     $payload['stimuli'][] = $stimulusPayload;
                 }
                 $payload['weight'] = ($payload['part'] ?? '') === 'writing-task-2' ? 2 : 1;
@@ -192,20 +208,35 @@ class ExamPublishingService
                 $errors[] = 'Full Simulation: không pause, phải auto-submit và không hiện đáp án lúc thi.';
             }
             if ($snapshot['exam_type'] === 'thpt') {
-                if (count($sections) !== 1) {
-                    $errors[] = 'Đề mô phỏng THPT cần đúng một môn thi.';
-                }
-                $section = $sections[0] ?? null;
-                $subject = $section ? collect(ExamGenerationService::THPT_SUBJECTS)->firstWhere('code', $section['part']) : null;
-                if (! $subject) {
-                    $errors[] = 'Phần thi không thuộc danh mục môn tốt nghiệp THPT.';
-                } else {
-                    $actual = collect($items)->where('part', $section['part'])->sum(fn ($item) => $this->registry->units($item));
-                    if ($actual !== $subject['count']) {
-                        $errors[] = $subject['name'].': cần '.$subject['count'].' câu, hiện có '.$actual.'.';
+                $englishParts = ['tieng-anh-part-1' => 6, 'tieng-anh-part-2' => 6, 'tieng-anh-part-3' => 5, 'tieng-anh-part-4' => 5, 'tieng-anh-part-5' => 8, 'tieng-anh-part-6' => 10];
+                $isEnglishBlueprint = count($sections) === count($englishParts)
+                    && collect($sections)->every(fn ($section) => array_key_exists($section['part'], $englishParts));
+                if ($isEnglishBlueprint) {
+                    foreach ($englishParts as $part => $count) {
+                        $actual = collect($items)->where('part', $part)->sum(fn ($item) => $this->registry->units($item));
+                        if ($actual !== $count) {
+                            $errors[] = $part.': cần '.$count.' câu, hiện có '.$actual.'.';
+                        }
                     }
-                    if ((int) $section['duration_minutes'] !== $subject['duration_minutes'] || (int) $policies['duration_minutes'] !== $subject['duration_minutes']) {
-                        $errors[] = $subject['name'].': thời gian cần '.$subject['duration_minutes'].' phút.';
+                    if ((int) $policies['duration_minutes'] !== 50) {
+                        $errors[] = 'Tiếng Anh THPT cần 50 phút.';
+                    }
+                } else {
+                    if (count($sections) !== 1) {
+                        $errors[] = 'Đề THPT Tiếng Anh cần một môn hoặc đúng sáu phần theo cấu trúc đề.';
+                    }
+                    $section = $sections[0] ?? null;
+                    $subject = $section && $section['part'] === 'tieng-anh' ? collect(ExamGenerationService::THPT_SUBJECTS)->first() : null;
+                    if (! $subject) {
+                        $errors[] = 'Đề THPT hiện chỉ hỗ trợ môn Tiếng Anh.';
+                    } else {
+                        $actual = collect($items)->where('part', $section['part'])->sum(fn ($item) => $this->registry->units($item));
+                        if ($actual !== $subject['count']) {
+                            $errors[] = $subject['name'].': cần '.$subject['count'].' câu, hiện có '.$actual.'.';
+                        }
+                        if ((int) $section['duration_minutes'] !== $subject['duration_minutes'] || (int) $policies['duration_minutes'] !== $subject['duration_minutes']) {
+                            $errors[] = $subject['name'].': thời gian cần '.$subject['duration_minutes'].' phút.';
+                        }
                     }
                 }
             } elseif ($snapshot['exam_type'] === 'toeic') {
@@ -287,21 +318,76 @@ class ExamPublishingService
     public function publish(ExamTemplate $exam): ExamRevision
     {
         Gate::authorize('content.publish');
+        abort_unless($exam->draft_status === 'approved', 409, 'Đề cần được duyệt trước khi xuất hiện trong kho học viên.');
 
-        return DB::transaction(function () use ($exam): ExamRevision {
+        return $this->approvedRevision($exam);
+    }
+
+    /**
+     * Approval makes the reviewed exam available to learners immediately.
+     * Keep an immutable revision for attempt snapshots, but do not introduce a
+     * separate learner-visible publish state.
+     */
+    public function approve(ExamTemplate $exam, ?array $payload = null): ExamRevision
+    {
+        Gate::authorize('content.review');
+
+        return DB::transaction(function () use ($exam, $payload): ExamRevision {
             $exam = ExamTemplate::lockForUpdate()->findOrFail($exam->id);
-            abort_unless($exam->draft_status === 'approved', 409, 'Đề cần được duyệt trước khi xuất bản.');
-            app(ExamGenerationService::class)->validateSelection(['exam_type_id' => $exam->exam_type_id, 'variant' => $exam->variant, 'mode' => $exam->mode, ...$exam->draft_payload ?? []]);
+            abort_unless($exam->draft_status === 'review', 409, 'Đề không còn ở trạng thái chờ duyệt.');
+
+            $payload ??= $this->assemble($exam);
+            $errors = $this->problems($payload);
+            if ($errors !== []) {
+                throw ValidationException::withMessages(['approve' => $errors]);
+            }
+
+            $revision = ExamRevision::create([
+                'exam_template_id' => $exam->id,
+                'number' => $exam->revision_counter,
+                'payload' => $payload,
+                'published_by' => auth()->id(),
+            ]);
+            $exam->update([
+                'status' => 'approved',
+                'draft_status' => 'approved',
+                'published_revision_id' => $revision->id,
+                'published_at' => now(),
+            ]);
+
+            return $revision;
+        }, 3);
+    }
+
+    /** Create a stable snapshot for exams approved before approval created one. */
+    public function approvedRevision(ExamTemplate $exam): ExamRevision
+    {
+        return DB::transaction(function () use ($exam): ExamRevision {
+            $exam = ExamTemplate::with('publishedRevision')->lockForUpdate()->findOrFail($exam->id);
+            abort_unless(
+                $exam->draft_status === 'approved'
+                    || ($exam->status === 'published' && $exam->publishedRevision),
+                404,
+            );
+
+            if ($exam->publishedRevision) {
+                return $exam->publishedRevision;
+            }
+
             $payload = $this->assemble($exam);
             $errors = $this->problems($payload);
             if ($errors !== []) {
-                throw ValidationException::withMessages(['publish' => $errors]);
+                throw ValidationException::withMessages(['exam' => $errors]);
             }
-            $revision = ExamRevision::create(['exam_template_id' => $exam->id, 'number' => $exam->revision_counter, 'payload' => $payload, 'published_by' => auth()->id()]);
-            $exam->update(['status' => 'published', 'draft_status' => 'published', 'published_revision_id' => $revision->id, 'published_at' => now()]);
-            $this->audit->record('exam.publish', 'exam', $exam->id, [], ['revision' => $revision->number]);
+            $revision = ExamRevision::create([
+                'exam_template_id' => $exam->id,
+                'number' => max(1, (int) $exam->revision_counter),
+                'payload' => $payload,
+                'published_by' => null,
+            ]);
+            $exam->update(['status' => 'approved', 'published_revision_id' => $revision->id]);
 
             return $revision;
-        });
+        }, 3);
     }
 }

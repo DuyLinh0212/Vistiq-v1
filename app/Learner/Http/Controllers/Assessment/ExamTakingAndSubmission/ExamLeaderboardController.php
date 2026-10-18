@@ -11,7 +11,10 @@ class ExamLeaderboardController extends Controller
 {
     public function index(Request $request, ExamTemplate $exam, LeaderboardService $leaderboard): mixed
     {
-        abort_unless($exam->status === 'published' && ($exam->publishedRevision?->payload['policies']['leaderboard'] ?? false), 404);
+        $available = $exam->status !== 'archived'
+            && ($exam->draft_status === 'approved' || $exam->status === 'published')
+            && ($exam->publishedRevision?->payload['policies']['leaderboard'] ?? false);
+        abort_unless($available, 404);
         $rankings = $leaderboard->publicRankings($exam, $request->user()->id);
 
         return $request->expectsJson() ? response()->json($rankings)

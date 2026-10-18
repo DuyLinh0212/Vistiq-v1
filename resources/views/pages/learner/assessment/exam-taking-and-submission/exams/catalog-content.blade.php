@@ -42,7 +42,7 @@
     </form>
 
     <div class="exam-catalog-heading">
-        <div><h2>Đề thi dành cho bạn</h2><p><strong data-exam-count>{{ $exams->total() }}</strong> đề thi đã xuất bản</p></div>
+        <div><h2>Đề thi dành cho bạn</h2><p><strong data-exam-count>{{ $exams->total() }}</strong> đề thi đã duyệt</p></div>
         <span class="exam-catalog-updated">Cập nhật liên tục</span>
     </div>
 
@@ -54,9 +54,12 @@
                 $providerName = $exam->provider ?: ($exam->created_by ? 'Người tạo đề' : config('app.name'));
                 $isUpcoming = $exam->opens_at?->isFuture() ?? false;
                 $isClosed = $exam->closes_at?->isPast() ?? false;
-                $publishedPayload = $exam->publishedRevision?->payload ?? [];
-                $questionCount = count($publishedPayload['items'] ?? []);
-                $durationMinutes = (int) ($publishedPayload['policies']['duration_minutes'] ?? 0);
+                $approvedPayload = $exam->publishedRevision?->payload ?? $exam->draft_payload ?? [];
+                $questionCount = count($approvedPayload['items'] ?? []);
+                if ($questionCount === 0) {
+                    $questionCount = collect($approvedPayload['sections'] ?? [])->sum(fn ($section) => count($section['question_ids'] ?? []));
+                }
+                $durationMinutes = (int) ($approvedPayload['policies']['duration_minutes'] ?? 0);
                 $durationLabel = $durationMinutes >= 60
                     ? floor($durationMinutes / 60).' giờ'.($durationMinutes % 60 ? ' '.($durationMinutes % 60).' phút' : '')
                     : $durationMinutes.' phút';
@@ -101,7 +104,7 @@
                 <form class="exam-catalog-action" method="post" action="{{ route('exams.start', $exam) }}">
                     @csrf
                     <button class="button button-primary" type="submit" @disabled($isUpcoming || $isClosed)>{{ $isUpcoming ? 'Chưa mở' : ($isClosed ? 'Đã đóng' : 'Làm bài') }} @include('pages.dictionary.icon', ['name' => 'arrow-right'])</button>
-                    @if ($publishedPayload['policies']['leaderboard'] ?? false)
+                    @if ($approvedPayload['policies']['leaderboard'] ?? false)
                         <a class="button button-quiet" href="{{ route('exams.leaderboard', $exam) }}">Bảng xếp hạng</a>
                     @endif
                 </form>
@@ -113,7 +116,7 @@
                     <h3>Không tìm thấy đề thi phù hợp</h3>
                     <p>Thử đổi từ khóa hoặc bộ lọc để tìm đề khác.</p>
                 @else
-                    <h3>Chưa có đề thi được xuất bản</h3>
+                    <h3>Chưa có đề thi được duyệt</h3>
                     <p>Các bài thi mới sẽ xuất hiện ở đây khi sẵn sàng.</p>
                 @endif
             </div>

@@ -86,6 +86,10 @@ Runner cần xử lý đầy đủ các cấu hình hiện có trong builder, g�
 
 Trước khi đổi tên, kiểu dữ liệu hoặc ý nghĩa của một cấu hình, hai chủ module thống nhất contract và cách tương thích với đề đã lưu. Bản runner phải dùng đúng cấu hình của đề/revision mà learner bắt đầu; thay đổi builder không được làm đổi hành vi của attempt đã bắt đầu.
 
+### Content Approval ↔ Exam Management: nguồn câu hỏi của đề
+
+Exam Management dùng revision câu hỏi hiện tại nếu revision đó đã được duyệt; nếu chưa có revision được duyệt thì dùng revision đã xuất bản. Việc đưa một câu hỏi đã duyệt vào đề không tự xuất bản câu hỏi độc lập. Tài nguyên được câu hỏi tham chiếu được chụp vào revision đề và kiểm tra khi gửi/duyệt đề; trạng thái publish của tài nguyên riêng không bắt buộc, còn revision đề vẫn phải qua review và publish để learner truy cập.
+
 ### Phát ↔ Viên: lịch sử, xếp hạng và số liệu
 
 Phát sở hữu màn hình learner xem lịch sử lượt làm và bảng xếp hạng trong luồng làm đề. Viên sở hữu truy vấn/tổng hợp và xuất báo cáo thuộc Analytics. Hai bên thống nhất service/response contract để không nhân đôi logic điểm, thời gian làm hoặc điều kiện công bố. Bảng xếp hạng chỉ hiển thị thông tin được phép công bố, tối thiểu gồm tên, điểm và thời gian làm.

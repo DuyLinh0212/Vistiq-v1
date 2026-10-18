@@ -16,7 +16,10 @@ class AttemptRunnerController extends Controller
 {
     public function index(Request $request): mixed
     {
-        $catalogQuery = ExamTemplate::query()->where('status', 'published')->whereNotNull('published_revision_id');
+        $catalogQuery = ExamTemplate::query()
+            ->where('status', '!=', 'archived')
+            ->where(fn ($query) => $query->where('draft_status', 'approved')
+                ->orWhere(fn ($legacy) => $legacy->where('status', 'published')->whereNotNull('published_revision_id')));
         $examTypes = DB::table('exam_types')
             ->where('is_active', true)
             ->whereIn('id', (clone $catalogQuery)->select('exam_type_id'))

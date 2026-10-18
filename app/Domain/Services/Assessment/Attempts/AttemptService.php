@@ -16,12 +16,13 @@ use VistiqCore\Models\MediaAsset;
 use VistiqCore\Models\User;
 use VistiqCore\Services\Assessment\QuestionBank\MediaService;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
+use VistiqCore\Services\Assessment\Exams\ExamPublishingService;
 
 class AttemptService
 {
     public const EVENTS = ['FULLSCREEN_EXIT', 'TAB_HIDDEN', 'WINDOW_BLUR', 'COPY_ATTEMPT', 'PASTE_ATTEMPT', 'CONTEXT_MENU', 'RELOAD', 'NETWORK_DISCONNECT', 'MULTIPLE_SESSION', 'AUDIO_PLAY'];
 
-    public function __construct(private ScoringService $scoring, private QuestionRegistry $registry, private MediaService $media) {}
+    public function __construct(private ScoringService $scoring, private QuestionRegistry $registry, private MediaService $media, private ExamPublishingService $exams) {}
 
     public function start(ExamTemplate $exam, User $user): ExamAttempt
     {
@@ -29,8 +30,9 @@ class AttemptService
             $user = User::lockForUpdate()->findOrFail($user->id);
             abort_unless($user->status === 'active', 403);
             $exam = ExamTemplate::with('publishedRevision')->lockForUpdate()->findOrFail($exam->id);
-            abort_unless($exam->status === 'published' && $exam->publishedRevision, 404);
-            $snapshot = $exam->publishedRevision->payload;
+            abort_unless($exam->status !== 'archived' && ($exam->draft_status === 'approved' || ($exam->status === 'published' && $exam->publishedRevision)), 404);
+            $revision = $this->exams->approvedRevision($exam);
+            $snapshot = $revision->payload;
             $opens = isset($snapshot['opens_at']) ? Carbon::parse($snapshot['opens_at']) : null;
             $closes = isset($snapshot['closes_at']) ? Carbon::parse($snapshot['closes_at']) : null;
             abort_if($opens?->isFuture() || $closes?->lte(now()), 409, 'Đề chưa mở hoặc đã đóng.');
@@ -57,7 +59,7 @@ class AttemptService
                 $expires = $closes;
             }
             $attempt = ExamAttempt::create([
-                'user_id' => $user->id, 'exam_template_id' => $exam->id, 'exam_revision_id' => $exam->publishedRevision->id, 'snapshot' => $snapshot,
+                'user_id' => $user->id, 'exam_template_id' => $exam->id, 'exam_revision_id' => $revision->id, 'snapshot' => $snapshot,
                 'attempt_number' => (int) ExamAttempt::where('user_id', $user->id)->where('exam_template_id', $exam->id)->max('attempt_number') + 1,
                 'status' => 'in_progress', 'leaderboard_status' => ($snapshot['policies']['leaderboard'] ?? false) ? 'approved' : 'private',
                 'started_at' => now(), 'section_started_at' => now(), 'active_section' => 0, 'paused_seconds' => 0, 'expires_at' => $expires, 'client_session' => (string) Str::uuid(),

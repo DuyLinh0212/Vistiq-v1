@@ -26,16 +26,17 @@ class ExamWorkspaceTest extends TestCase
     public function test_list_filters_type_status_search_and_paginate_without_losing_filters(): void
     {
         $type = DB::table('exam_types')->where('code', 'toeic')->value('id');
-        ExamTemplateFactory::new()->count(10)->create(['title'=>'TOEIC practice', 'status'=>'published']);
+        ExamTemplateFactory::new()->count(10)->create(['title'=>'TOEIC practice', 'status'=>'published', 'draft_status'=>'approved']);
         ExamTemplateFactory::new()->create(['title'=>'Draft only']);
         ExamTemplateFactory::new()->create(['title'=>'TOEIC archived', 'status'=>'archived']);
 
-        $response = $this->get('/admin/exams?type='.$type.'&status=published&q=TOEIC&per_page=8');
+        $response = $this->get('/admin/exams?type='.$type.'&status=approved&q=TOEIC&per_page=8');
         $response->assertOk()->assertSee('Danh sách đề thi')->assertSee('Chi tiết đề thi');
         $this->assertSame(10, $response->viewData('exams')->total());
         $this->assertCount(8, $response->viewData('exams'));
-        $this->assertStringContainsString('status=published', $response->viewData('exams')->nextPageUrl());
-        $this->get('/admin/exams?status=archived')->assertOk()->assertViewHas('exams', fn ($exams) => $exams->total() === 1);
+        $this->assertStringContainsString('status=approved', $response->viewData('exams')->nextPageUrl());
+        $this->get('/admin/exams')->assertOk()->assertViewHas('exams', fn ($exams) => $exams->total() === 11);
+        $this->get('/admin/exams?status=archived')->assertOk()->assertViewHas('exams', fn ($exams) => $exams->total() === 11);
         $this->get('/admin/exams?q=no-match')->assertOk()->assertSee('Chưa có đề thi phù hợp');
     }
 

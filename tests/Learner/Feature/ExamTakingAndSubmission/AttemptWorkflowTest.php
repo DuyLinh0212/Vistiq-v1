@@ -59,6 +59,19 @@ class AttemptWorkflowTest extends TestCase
         $this->postJson('/attempts/'.$attempt->id.'/submit')->assertNotFound();
     }
 
+    public function test_approved_exam_is_visible_and_startable_without_a_separate_publish_state(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $exam = $this->exam();
+        $exam->update(['status' => 'approved', 'draft_status' => 'approved', 'published_at' => null]);
+
+        $this->get('/exams')->assertOk()->assertSee($exam->title)->assertSee('đề thi đã duyệt');
+        $response = $this->postJson('/exams/'.$exam->id.'/start')->assertOk();
+        $attempt = ExamAttempt::findOrFail($response->json('id'));
+        $this->assertSame((int) $exam->published_revision_id, (int) $attempt->exam_revision_id);
+        $this->getJson('/exams/'.$exam->id.'/leaderboard')->assertOk();
+    }
+
     public function test_unknown_key_invalid_option_stale_version_and_post_deadline_answers_are_rejected(): void
     {
         $attempt = $this->start(['duration_minutes' => 1]);

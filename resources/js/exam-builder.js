@@ -20,6 +20,20 @@ const thptEnglishPartNames = {
     'tieng-anh-part-6': 'Đọc hiểu · 10 câu',
 };
 const partName = part => part?.code?.startsWith('part-') ? part.code.replace('part-', 'Part ') : thptEnglishPartNames[part?.code] ?? part?.name ?? 'Phần thi';
+const partLabel = part => {
+    if (!part) return 'part';
+    const code = String(part.code || '');
+    if (part.type_code === 'toeic' && /^part-\d+$/.test(code)) return `TOEIC Part ${code.slice(5)}`;
+    if (part.type_code === 'ielts') {
+        const skillName = { listening: 'Listening', reading: 'Reading', writing: 'Writing', speaking: 'Speaking' }[part.skill] || partName(part);
+        const partNumber = code.match(/^(?:listening|reading|speaking)-part-(\d+)$/)?.[1];
+        const taskNumber = code.match(/^writing-task-(\d+)$/)?.[1];
+        if (partNumber) return `IELTS ${skillName} Part ${partNumber}`;
+        if (taskNumber) return `IELTS Writing Task ${taskNumber}`;
+        return `IELTS ${partName(part)}`;
+    }
+    return partName(part);
+};
 
 const list = document.querySelector('[data-exam-list]');
 if (list) {
@@ -85,6 +99,7 @@ if (builder) {
     let bankPage = 1, bankPageSize = 10, quickFilter = 'all', questionTab = 'question', previewCandidateId = null;
     const currentType = () => Number(examType.value);
     const typeCode = () => catalog.parts.find(part => Number(part.type) === currentType())?.type_code ?? 'custom';
+    const isThptEnglishExam = () => typeCode() === 'thpt';
     const partsForType = type => catalog.parts.filter(part => Number(part.type) === Number(type));
     const defaultDifficulty = count => ({ easy: Math.floor(count * .3), medium: count - Math.floor(count * .3) - Math.floor(count * .2), hard: Math.floor(count * .2) });
     const serverTemplate = key => catalog.templates[key] ?? null;
@@ -323,17 +338,30 @@ if (builder) {
     const changeToCustomIfNeeded = () => {
         generation = null;
         template.value = 'custom';
-        if (visualTemplate === 'thpt' || isThptEnglishTemplate()) {
-            visualTemplate = 'custom';
-            field('[data-thpt-subject-field]').hidden = true;
+        const wasThptTemplate = visualTemplate === 'thpt' || isThptEnglishTemplate();
+        visualTemplate = 'custom';
+        field('[data-thpt-subject-field]').hidden = true;
+        showTemplateCategory('custom');
+        if (wasThptTemplate) {
             field('[data-score-scale]').value = '';
-            showTemplateCategory('custom');
         }
         if (mode.value === 'full') mode.value = 'mini';
     };
+    const renderAddSectionControl = () => {
+        const select = field('[data-add-section-part]');
+        const candidates = partsForType(currentType()).filter(part => (!isThptEnglishExam() || part.code === 'tieng-anh' || part.code.startsWith('tieng-anh-part-')) && !sections.some(section => Number(section.exam_part_id) === Number(part.id)));
+        const previous = Number(select.value);
+        select.innerHTML = candidates.map(part => `<option value="${part.id}">${encode(partLabel(part))}</option>`).join('');
+        if (candidates.some(part => Number(part.id) === previous)) select.value = String(previous);
+        const selectedPart = candidates.find(part => Number(part.id) === Number(select.value)) || candidates[0];
+        const enabled = (template.value === 'custom' || visualTemplate === 'custom') && Boolean(selectedPart);
+        field('[data-add-section-controls]').hidden = !enabled;
+        field('[data-add-section]').disabled = !enabled;
+        field('[data-add-section-label]').textContent = selectedPart ? `Thêm ${partLabel(selectedPart)}` : 'Thêm part';
+    };
     const renderSectionCards = () => {
-        field('[data-add-section]').hidden = template.value !== 'custom' && visualTemplate !== 'custom';
-        field('[data-template-note]').textContent = isThptEnglishTemplate() ? `Blueprint ${visualTemplate.endsWith('2026') ? '2026 · mã 1101' : 'tham khảo 2025'}: 40 câu, 50 phút, 10 điểm. Chọn nguyên nhóm văn bản khi tạo đề.` : visualTemplate === 'thpt' ? 'Bản luyện tập dùng câu hỏi trắc nghiệm 4 lựa chọn; chọn một môn và bốc đủ số câu theo cấu trúc.' : generation ? 'Template chỉ dùng câu hỏi có nội dung đã xuất bản; câu nháp cần xuất bản trước khi được chọn.' : template.value === 'custom' ? 'Có thể chỉnh số câu và bốc tự động từ ngân hàng theo phân bố độ khó.' : 'Cấu trúc chuẩn theo template. Bạn vẫn có thể chỉnh cơ cấu khi tạo đề thủ công.';
+        renderAddSectionControl();
+        field('[data-template-note]').textContent = isThptEnglishTemplate() ? `Blueprint ${visualTemplate.endsWith('2026') ? '2026 · mã 1101' : 'tham khảo 2025'}: 40 câu, 50 phút, 10 điểm. Chọn nguyên nhóm văn bản khi tạo đề.` : visualTemplate === 'thpt' ? 'Bản luyện tập dùng câu hỏi trắc nghiệm 4 lựa chọn; chọn một môn và bốc đủ số câu theo cấu trúc.' : generation ? 'Template chỉ dùng câu hỏi đã được duyệt; câu nháp cần duyệt trước khi được chọn.' : template.value === 'custom' ? 'Có thể chỉnh số câu và bốc tự động từ ngân hàng theo phân bố độ khó.' : 'Cấu trúc chuẩn theo template. Bạn vẫn có thể chỉnh cơ cấu khi tạo đề thủ công.';
         field('[data-builder-sections]').innerHTML = sections.length ? sections.map((section, index) => {
             const part = getPart(section), rule = rules[index], target = ruleCount(rule), selected = selectedUnits(section);
             const colorClass = part?.skill === 'reading' ? 'is-reading' : part?.skill === 'listening' ? 'is-listening' : 'is-other';
@@ -354,22 +382,14 @@ if (builder) {
         if (!rows.length && visualTemplate === 'custom') rows = sections.map((section, index) => ({ part: getPart(section), count: ruleCount(rules[index]) }));
         field('[data-template-structure]').innerHTML = rows.map((row, index) => `<tr><td><span class="ex-part-number" style="--part-color:${colors[index % colors.length]}">${encode(partName(row.part))}</span></td><td>${encode(isThptEnglishTemplate() ? (row.part?.code?.includes('part-3') ? 'Arrangement' : row.part?.code?.includes('part-4') ? 'Extended completion' : row.part?.code?.includes('part-5') || row.part?.code?.includes('part-6') ? 'Reading' : 'Short cloze') : row.part?.type_code === 'thpt' ? 'Môn thi' : row.part?.skill || '—')}</td><td>${row.count}</td><td>${isThptEnglishTemplate() ? '—' : `${serverTemplate('thpt')?.subjects?.[row.part?.code]?.duration_minutes ?? ({ 'part-1': 6, 'part-2': 10, 'part-3': 15, 'part-4': 15, 'part-5': 12, 'part-6': 8, 'part-7': 29 })[row.part?.code] ?? 10} phút`}</td><td>${encode(isThptEnglishTemplate() && ['tieng-anh-part-1', 'tieng-anh-part-2', 'tieng-anh-part-4', 'tieng-anh-part-5', 'tieng-anh-part-6'].includes(row.part?.code) ? 'Một văn bản dùng chung cho nhóm câu' : row.part?.name || 'Tùy chỉnh')}</td></tr>`).join('') || '<tr><td colspan="5">Chọn một template để xem cấu trúc.</td></tr>';
         setText('[data-template-count]', rows.reduce((sum, row) => sum + Number(row.count || 0), 0) + ' câu');
-        setText('[data-template-duration]', `${definition.duration || 30} phút`);
+        setText('[data-template-duration]', `${visualTemplate === 'custom' ? Number(duration.value || definition.duration || 30) : definition.duration || 30} phút`);
         setText('[data-template-type]', definition.typeCode?.toUpperCase() || 'Custom');
         setText('[data-template-description]', visualTemplate === 'toeic-full' ? 'Cấu trúc TOEIC Listening & Reading chuẩn ETS.' : visualTemplate.startsWith('ielts') ? 'Đề IELTS mô phỏng đầy đủ bốn kỹ năng.' : isThptEnglishTemplate() ? `${visualTemplate.endsWith('2026') ? 'Mẫu B theo đề 2026 mã 1101' : 'Mẫu A tham khảo 2025'}; 40 câu A–D, 50 phút, thang 10.` : visualTemplate === 'thpt' ? 'Một môn theo số câu và thời gian THPT; mọi câu đều có 4 lựa chọn, quy đổi điểm tuyến tính trên thang 10.' : 'Phần thi và số câu có thể chỉnh sửa theo mục tiêu.');
     };
     const selectedIds = () => new Set(sections.flatMap(section => section.question_ids).map(Number));
-    const ensureSectionForQuestion = q => {
-        let index = sections.findIndex(section => Number(section.exam_part_id) === Number(q.part));
-        if (index >= 0) return index;
-        const part = partById.get(Number(q.part));
-        if (!part || Number(part.type) !== currentType()) return -1;
-        sections.push({ exam_part_id: Number(part.id), question_ids: [] });
-        rules.push(makeRule(part.id, 10));
-        return sections.length - 1;
-    };
+    const sectionIndexForQuestion = q => sections.findIndex(section => Number(section.exam_part_id) === Number(q.part));
     const groupQuestions = q => {
-        if (isThptEnglishTemplate() && q.passage?.id) {
+        if (isThptEnglishExam() && q.passage?.id) {
             return catalog.questions.filter(item => Number(item.part) === Number(q.part) && Number(item.passage?.id) === Number(q.passage.id));
         }
         return q.group ? catalog.questions.filter(item => Number(item.group) === Number(q.group) && Number(item.part) === Number(q.part)) : [q];
@@ -392,13 +412,13 @@ if (builder) {
             return;
         }
         const group = groupQuestions(q);
-        if (checked && generation && group.some(item => !item.has_published_content)) {
-            flash('Template chỉ nhận câu hỏi có nội dung đã xuất bản. Hãy xuất bản câu hỏi trước khi chọn.');
+        if (checked && generation && group.some(item => !item.has_approved_content)) {
+            flash('Template chỉ nhận câu hỏi đã được duyệt. Hãy duyệt câu hỏi trước khi chọn.');
             renderBank();
             return;
         }
         const thptTextParts = ['tieng-anh-part-1', 'tieng-anh-part-2', 'tieng-anh-part-4', 'tieng-anh-part-5', 'tieng-anh-part-6'];
-        if (checked && isThptEnglishTemplate() && thptTextParts.includes(questionPart?.code)) {
+        if (checked && isThptEnglishExam() && thptTextParts.includes(questionPart?.code)) {
             const sourceKey = item => item.passage?.id ? `passage:${item.passage.id}` : null;
             const nextKey = sourceKey(q);
             if (!nextKey) {
@@ -415,8 +435,14 @@ if (builder) {
             }
         }
         if (checked) {
+            const missingPart = group.find(item => sectionIndexForQuestion(item) < 0);
+            if (missingPart) {
+                flash(`Phần ${partName(partById.get(Number(missingPart.part)))} chưa có trong đề. Hãy thêm phần thi trước khi chọn câu hỏi.`);
+                renderBank();
+                return;
+            }
             group.forEach(item => {
-                const index = ensureSectionForQuestion(item);
+                const index = sectionIndexForQuestion(item);
                 if (index >= 0 && !sections[index].question_ids.includes(Number(item.id))) sections[index].question_ids.push(Number(item.id));
             });
         } else {
@@ -448,7 +474,7 @@ if (builder) {
     const questionsForSelectedExam = () => catalog.questions.filter(question => {
         const part = partById.get(Number(question.part));
         if (field('[data-bank-exam]').value && part?.type_code !== field('[data-bank-exam]').value) return false;
-        if (part?.type_code === 'thpt' && (question.type !== 'multiple_choice' || question.options?.length !== 4)) return false;
+        if (part?.type_code === 'thpt' && (question.type !== 'multiple_choice' || question.options?.length !== 4 || (part.code !== 'tieng-anh' && !part.code.startsWith('tieng-anh-part-')))) return false;
         if (visualTemplate === 'thpt' && sections[0] && Number(question.part) !== Number(sections[0].exam_part_id)) return false;
         if (isThptEnglishTemplate() && !serverTemplate(visualTemplate)?.sections?.some(section => Number(section.exam_part_id) === Number(question.part))) return false;
         return true;
@@ -464,9 +490,9 @@ if (builder) {
             if (filters.status && q.status !== filters.status) return false;
             if (filters.tag && !(q.tags || []).includes(filters.tag)) return false;
             if (quickFilter === 'multiple_choice' && q.type !== 'multiple_choice') return false;
-            if (isThptEnglishTemplate() && ['short_cloze', 'arrangement', 'extended_completion', 'reading'].includes(quickFilter) && thptFamilyForPart(part?.code) !== quickFilter) return false;
-            if (!isThptEnglishTemplate() && quickFilter === 'listening' && part?.skill !== 'listening') return false;
-            if (!isThptEnglishTemplate() && quickFilter === 'reading' && part?.skill !== 'reading') return false;
+            if (isThptEnglishExam() && ['short_cloze', 'arrangement', 'extended_completion', 'reading'].includes(quickFilter) && thptFamilyForPart(part?.code) !== quickFilter) return false;
+            if (!isThptEnglishExam() && quickFilter === 'listening' && part?.skill !== 'listening') return false;
+            if (!isThptEnglishExam() && quickFilter === 'reading' && part?.skill !== 'reading') return false;
             if (quickFilter === 'audio' && !q.audio) return false;
             if (quickFilter === 'passage' && !q.passage) return false;
             if (filters.query && !`${q.id} ${q.prompt} ${(q.tags || []).join(' ')} ${partName(part)} ${q.type || ''}`.toLocaleLowerCase().includes(filters.query)) return false;
@@ -476,7 +502,7 @@ if (builder) {
     const renderBankFilterOptions = () => {
         const select = field('[data-bank-part]'), current = select.value;
         const englishPartIds = new Set((serverTemplate(visualTemplate)?.sections ?? []).map(section => Number(section.exam_part_id)));
-        const parts = catalog.parts.filter(part => (!field('[data-bank-exam]').value || part.type_code === field('[data-bank-exam]').value) && (!isThptEnglishTemplate() || englishPartIds.has(Number(part.id))));
+        const parts = catalog.parts.filter(part => (!field('[data-bank-exam]').value || part.type_code === field('[data-bank-exam]').value) && (!isThptEnglishTemplate() || englishPartIds.has(Number(part.id))) && (!isThptEnglishExam() || part.type_code !== 'thpt' || part.code === 'tieng-anh' || part.code.startsWith('tieng-anh-part-')));
         select.innerHTML = '<option value="">Tất cả</option>' + parts.map(part => `<option value="${part.id}">${encode(partName(part))} · ${encode(part.skill || '')}</option>`).join('');
         if (parts.some(part => String(part.id) === current)) select.value = current;
         const tagSelect = field('[data-bank-tag]'), selectedTag = tagSelect.value;
@@ -515,20 +541,20 @@ if (builder) {
             const part = partById.get(Number(q.part));
             const isSelected = selected.has(Number(q.id));
             const status = q.status === 'published' || q.status === 'approved' ? 'Đã duyệt' : q.status === 'review' ? 'Chờ duyệt' : q.status === 'archived' ? 'Đã lưu trữ' : 'Bản nháp';
-            const requiresPublished = Boolean(generation) && !q.has_published_content;
-            const unavailable = q.status === 'archived' || Number(part?.type) !== currentType() || (requiresPublished && !isSelected);
+            const requiresApproval = Boolean(generation) && !q.has_approved_content;
+            const unavailable = q.status === 'archived' || Number(part?.type) !== currentType() || (requiresApproval && !isSelected);
             return `<tr data-bank-row="${q.id}" class="${isSelected ? 'is-selected' : ''}"><td><input type="checkbox" data-bank-pick="${q.id}" ${isSelected ? 'checked' : ''} ${unavailable ? 'disabled' : ''} aria-label="${isSelected ? 'Bỏ câu' : 'Chọn câu'} ${q.id}"></td><td><button type="button" class="ex-text-button" data-bank-preview="${q.id}">Q${q.id}</button></td><td>${encode(part?.type_code?.toUpperCase() || '—')}</td><td>${encode(partName(part))}</td><td><span class="ex-tag">${encode(questionTypeNames[q.type] || q.type || 'Câu hỏi')}</span></td><td class="ex-bank-question-cell"><button type="button" class="ex-text-button" data-bank-preview="${q.id}">${encode(q.prompt)}</button>${q.group ? '<small>Câu thuộc nhóm, sẽ chọn cùng nhóm</small>' : ''}</td><td>${q.passage ? `${icon('files')} Passage` : q.audio ? `${icon('volume-2')} Audio` : 'Question Bank'}</td><td><span class="ex-status is-${q.difficulty}">${encode(difficultyNames[q.difficulty] || 'Trung bình')}</span></td><td><span class="ex-status is-${q.status}">${status}</span></td><td><button type="button" class="ex-icon-button" data-bank-preview="${q.id}" aria-label="Xem câu ${q.id}">${icon('eye')}</button></td></tr>`;
         }).join('') || '<tr><td colspan="10"><div class="ex-empty"><strong>Không tìm thấy câu hỏi</strong><span>Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</span></div></td></tr>';
-        visible.filter(q => generation && !q.has_published_content).forEach(q => {
+        visible.filter(q => generation && !q.has_approved_content).forEach(q => {
             const row = field('[data-bank-rows]').querySelector(`[data-bank-row="${q.id}"]`);
             const cell = row?.querySelector('.ex-bank-question-cell');
             if (cell) {
                 const note = document.createElement('small');
-                note.textContent = 'Template cần nội dung đã xuất bản';
+                note.textContent = 'Template cần câu hỏi đã được duyệt';
                 cell.append(note);
             }
         });
-        const selectableVisible = visible.filter(q => !generation || q.has_published_content);
+        const selectableVisible = visible.filter(q => !generation || q.has_approved_content);
         field('[data-bank-select-visible]').checked = selectableVisible.length > 0 && selectableVisible.every(q => selected.has(Number(q.id)));
         field('[data-bank-select-visible]').disabled = selectableVisible.length === 0;
         setText('[data-bank-result-count]', `${results.length.toLocaleString('vi-VN')} câu hỏi · Hiển thị ${visible.length ? (bankPage - 1) * bankPageSize + 1 : 0}–${Math.min(bankPage * bankPageSize, results.length)}`);
@@ -557,7 +583,7 @@ if (builder) {
             [Boolean(field('[name="title"]').value.trim()), 'Đã nhập tên đề thi'],
             [sections.length > 0, 'Đã cấu hình phần thi'],
             [target > 0 && total === target, `Đủ số câu theo mục tiêu (${total}/${target})`],
-            [questions.length > 0 && questions.every(q => q.has_published_content), 'Câu hỏi có nội dung đã xuất bản'],
+            [questions.length > 0 && questions.every(q => q.has_approved_content), 'Câu hỏi đã được duyệt'],
             [!isThptEnglishTemplate() || questions.every(q => q.type === 'multiple_choice' && q.options?.length === 4), 'Mỗi câu có đúng bốn lựa chọn A–D'],
             [thptPassagesPreserved, 'Mỗi nhóm điền / đọc hiểu giữ nguyên một văn bản'],
             [questions.every(q => !q.group || groupQuestions(q).every(item => selectedIds().has(Number(item.id)))), 'Đã chọn đủ câu trong nhóm'],
@@ -575,7 +601,7 @@ if (builder) {
         field('[data-thpt-guidance]').hidden = !isThptEnglishTemplate();
         duration.readOnly = isThptEnglishTemplate();
         if (isThptEnglishTemplate() && Number(duration.value) !== 50) writePolicies({ duration_minutes: 50 });
-        fields('[data-quick-group]').forEach(button => { button.hidden = isThptEnglishTemplate() ? button.dataset.quickGroup !== 'thpt' : button.dataset.quickGroup === 'thpt'; });
+        fields('[data-quick-group]').forEach(button => { button.hidden = isThptEnglishExam() ? button.dataset.quickGroup !== 'thpt' : button.dataset.quickGroup === 'thpt'; });
         renderBankFilterOptions();
         if (isThptEnglishTemplate() && !field('[data-bank-part]').value) field('[data-bank-part]').value = String(sections[0]?.exam_part_id ?? '');
         renderBankQuickCounts();
@@ -622,6 +648,7 @@ if (builder) {
     fields('[data-template-card]').forEach(card => card.addEventListener('click', () => applyTemplate(card.dataset.templateCard)));
     fields('[data-template-card-link]').forEach(button => button.addEventListener('click', () => applyTemplate(button.dataset.templateCardLink)));
     fields('[data-template-category]').forEach(button => button.addEventListener('click', () => showTemplateCategory(button.dataset.templateCategory)));
+    field('[data-add-section-part]').addEventListener('change', renderAddSectionControl);
     field('[data-template-create]').addEventListener('click', () => {
         fields('[data-template-category]').find(button => button.dataset.templateCategory === 'custom')?.click();
         applyTemplate('custom');
@@ -704,17 +731,19 @@ if (builder) {
         if (event.target.matches('[data-bank-select-visible]')) {
             const visible = filterQuestions().slice((bankPage - 1) * bankPageSize, bankPage * bankPageSize);
             if (generation && event.target.checked) {
-                const selectable = visible.filter(question => question.has_published_content);
+                const selectable = visible.filter(question => question.has_approved_content);
                 selectable.forEach(question => toggleQuestion(question, true));
-                if (selectable.length < visible.length) flash('Một số câu chưa có nội dung xuất bản nên không thể thêm vào template.');
+                if (selectable.length < visible.length) flash('Một số câu chưa được duyệt nên không thể thêm vào template.');
                 return;
             }
             const ids = new Set();
             visible.forEach(q => groupQuestions(q).forEach(item => ids.add(Number(item.id))));
             if (event.target.checked) {
                 if (visible.some(q => Number(partById.get(Number(q.part))?.type) !== currentType())) flash('Câu khác kỳ thi hiện tại không được thêm vào đề.');
+                const omittedPart = catalog.questions.find(question => ids.has(Number(question.id)) && sectionIndexForQuestion(question) < 0 && question.status !== 'archived');
+                if (omittedPart) flash(`Một số câu thuộc phần ${partName(partById.get(Number(omittedPart.part)))} chưa được thêm. Hãy thêm phần thi trước.`);
                 catalog.questions.filter(q => ids.has(Number(q.id)) && q.status !== 'archived').forEach(q => {
-                    const index = ensureSectionForQuestion(q);
+                    const index = sectionIndexForQuestion(q);
                     if (index >= 0 && !sections[index].question_ids.includes(Number(q.id))) sections[index].question_ids.push(Number(q.id));
                 });
             } else {
@@ -751,8 +780,8 @@ if (builder) {
             return;
         }
         if (button.matches('[data-add-section]')) {
-            const part = partsForType(currentType()).find(item => !sections.some(section => Number(section.exam_part_id) === Number(item.id)));
-            if (!part) { flash('Không còn phần thi mới để thêm.'); return; }
+            const part = partById.get(Number(field('[data-add-section-part]').value));
+            if (!part || sections.some(section => Number(section.exam_part_id) === Number(part.id))) { renderAddSectionControl(); return; }
             sections.push({ exam_part_id: Number(part.id), question_ids: [], target_count: 10 }); rules.push(makeRule(part.id, 10)); changeToCustomIfNeeded(); render(); return;
         }
         if (button.matches('[data-quick-filter]')) {
@@ -821,10 +850,10 @@ if (builder) {
             fields('[data-section-duration].is-invalid').at(-1)?.focus();
             return;
         }
-        if (generation && allQuestions().some(question => !question.has_published_content)) {
+        if (generation && allQuestions().some(question => !question.has_approved_content)) {
             event.preventDefault();
             showStep(2);
-            flash('Template không thể lưu với câu hỏi chưa xuất bản. Hãy xuất bản câu hỏi hoặc bỏ câu đó khỏi đề.');
+            flash('Template không thể lưu với câu hỏi chưa được duyệt. Hãy duyệt câu hỏi hoặc bỏ câu đó khỏi đề.');
             return;
         }
         sync(false);

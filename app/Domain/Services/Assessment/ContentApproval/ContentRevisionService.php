@@ -81,6 +81,28 @@ class ContentRevisionService
         return $payload;
     }
 
+    /**
+     * Resolve the current approved revision for use in a published exam, falling
+     * back to the immutable published revision when there is no approved draft.
+     */
+    public function approvedOrPublishedRevision(string $kind, Model $root): ?ContentRevision
+    {
+        $identity = ['kind' => $kind, 'entity_id' => $root->id];
+        $current = $root->draft_revision_id
+            ? ContentRevision::whereKey($root->draft_revision_id)->where($identity)->first()
+            : null;
+
+        if ($current?->status === 'approved') {
+            return $current;
+        }
+
+        $published = $root->published_revision_id
+            ? ContentRevision::whereKey($root->published_revision_id)->where($identity)->where('status', 'published')->first()
+            : null;
+
+        return $published;
+    }
+
     public function save(string $kind, Model $root, array $payload, ?int $expected): ContentRevision
     {
         Gate::authorize('edit', $root);
