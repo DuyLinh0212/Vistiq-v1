@@ -98,7 +98,7 @@ class AttemptRunnerController extends Controller
             return redirect()->route('attempts.result', $attempt);
         }
         $endpoints = [];
-        foreach (['state', 'answers', 'events', 'pause', 'resume', 'section', 'submit', 'result', 'recording', 'audio'] as $action) {
+        foreach (['state', 'answers', 'events', 'pause', 'resume', 'section', 'navigate', 'submit', 'result', 'recording', 'audio'] as $action) {
             $endpoints[$action] = route('attempts.'.$action, $attempt);
         }
 
@@ -154,6 +154,14 @@ class AttemptRunnerController extends Controller
         $service->submit($attempt);
 
         return response()->json(['url' => route('attempts.result', $attempt), 'result' => $service->result($attempt)]);
+    }
+
+    public function navigate(AttemptRequest $request, ExamAttempt $attempt, AttemptService $service): mixed
+    {
+        $service->authorize($attempt, $request->user()->id);
+        abort_unless($request->filled('item_key'), 422);
+
+        return response()->json($service->state($service->navigate($attempt, $request->validated('item_key'))));
     }
 
     public function result(Request $request, ExamAttempt $attempt, AttemptService $service): mixed

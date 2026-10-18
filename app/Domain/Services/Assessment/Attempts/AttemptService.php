@@ -46,7 +46,8 @@ class AttemptService
                     if (in_array($item['type'], ['multiple_choice', 'multiple_response'], true)) {
                         $keys = array_keys($item['options']);
                         shuffle($keys);
-                        $item['options'] = array_replace(array_fill_keys($keys, ''), $item['options']);
+                        // JSON object key order is not preserved by MySQL.
+                        $item['option_order'] = $keys;
                     }
                 }
                 unset($item);
@@ -120,7 +121,7 @@ class AttemptService
                     $this->expire($attempt, $this->deadline($attempt)->timestamp);
                     break;
                 }
-                $attempt->update(['active_section' => $next, 'section_started_at' => $this->deadline($attempt)]);
+                $attempt->update(['active_section' => $next, 'section_started_at' => $this->deadline($attempt), 'current_item_index' => $this->firstItemInSection($attempt, $next)]);
             }
 
             return $attempt->refresh();
@@ -173,7 +174,7 @@ class AttemptService
         abort_if($this->deadline($attempt)?->lte(now()), 409, 'Đã hết thời gian làm bài.');
     }
 
-    private function accessibleItem(ExamAttempt $attempt, array $item): void
+    private function accessibleItem(ExamAttempt $attempt, array $item, bool $checkCursor = true): void
     {
         $sections = $attempt->snapshot['sections'];
         $current = $sections[$attempt->active_section];
@@ -183,7 +184,41 @@ class AttemptService
         }
         if (($attempt->snapshot['policies']['navigation'] ?? 'free') === 'linear' || ($attempt->snapshot['policies']['lock_previous'] ?? false)) {
             abort_unless((int) $item['section'] === (int) $attempt->active_section, 409, 'Chỉ được sửa đáp án trong phần hiện tại.');
+            if ($checkCursor) {
+                abort_unless($item['key'] === ($attempt->snapshot['items'][$attempt->current_item_index]['key'] ?? null), 409, 'Câu hỏi đã khóa hoặc chưa được mở.');
+            }
         }
+    }
+
+    private function firstItemInSection(ExamAttempt $attempt, int $section): int
+    {
+        foreach ($attempt->snapshot['items'] as $index => $item) {
+            if ((int) $item['section'] === $section) {
+                return $index;
+            }
+        }
+
+        return 0;
+    }
+
+    public function navigate(ExamAttempt $attempt, string $itemKey): ExamAttempt
+    {
+        $attempt = $this->synchronize($attempt);
+
+        return DB::transaction(function () use ($attempt, $itemKey): ExamAttempt {
+            $attempt = ExamAttempt::lockForUpdate()->findOrFail($attempt->id);
+            $this->writable($attempt);
+            $items = collect($attempt->snapshot['items']);
+            $index = $items->search(fn ($item) => $item['key'] === $itemKey);
+            abort_if($index === false, 422, 'Câu hỏi không thuộc lượt thi.');
+            $this->accessibleItem($attempt, $items[$index], false);
+            $policies = $attempt->snapshot['policies'];
+            abort_if(($policies['lock_previous'] ?? false) && $index < $attempt->current_item_index, 409, 'Không thể quay lại câu đã khóa.');
+            abort_if(($policies['navigation'] ?? 'free') === 'linear' && abs($index - $attempt->current_item_index) > 1, 409, 'Chuyển lần lượt từng câu.');
+            $attempt->update(['current_item_index' => $index]);
+
+            return $attempt;
+        });
     }
 
     private function canonicalResponse(array $response): array
@@ -321,8 +356,13 @@ class AttemptService
             $next = $attempt->active_section + 1;
             $sections = $attempt->snapshot['sections'];
             abort_unless(isset($sections[$next]), 422, 'Đã đến phần cuối.');
+            if (($attempt->snapshot['policies']['navigation'] ?? 'free') === 'linear') {
+                foreach ($attempt->snapshot['items'] as $index => $item) {
+                    abort_if((int) $item['section'] === (int) $attempt->active_section && $index > $attempt->current_item_index, 409, 'Chuyển lần lượt tới câu cuối của phần trước khi sang phần tiếp theo.');
+                }
+            }
             $sameGroup = ($sections[$next]['timing_group'] ?? $next) === ($sections[$attempt->active_section]['timing_group'] ?? $attempt->active_section);
-            $attempt->update(['active_section' => $next, 'section_started_at' => $sameGroup ? $attempt->section_started_at : now()]);
+            $attempt->update(['active_section' => $next, 'section_started_at' => $sameGroup ? $attempt->section_started_at : now(), 'current_item_index' => $this->firstItemInSection($attempt, $next)]);
 
             return $attempt;
         });
@@ -393,7 +433,7 @@ class AttemptService
     {
         $attempt = $this->synchronize($attempt);
 
-        return ['id' => $attempt->id, 'status' => $attempt->status, 'snapshot' => $this->publicSnapshot($attempt->snapshot, $attempt), 'active_section' => $attempt->active_section, 'paused' => (bool) $attempt->paused_at, 'deadline' => $this->deadline($attempt)?->toIso8601String(), 'server_time' => now()->toIso8601String(), 'answers' => $attempt->answers()->get(['item_key', 'response', 'version', 'flagged', 'spent_seconds'])->map(function ($answer) use ($attempt): array {
+        return ['id' => $attempt->id, 'status' => $attempt->status, 'snapshot' => $this->publicSnapshot($attempt->snapshot, $attempt), 'active_section' => $attempt->active_section, 'current_item_index' => (int) $attempt->current_item_index, 'paused' => (bool) $attempt->paused_at, 'deadline' => $this->deadline($attempt)?->toIso8601String(), 'server_time' => now()->toIso8601String(), 'answers' => $attempt->answers()->get(['item_key', 'response', 'version', 'flagged', 'spent_seconds'])->map(function ($answer) use ($attempt): array {
             $row = $answer->toArray();
             if (! empty($answer->response['asset_id']) && ($asset = MediaAsset::find($answer->response['asset_id']))) {
                 $row['recording_url'] = $this->assetUrl($asset, $attempt);
@@ -504,6 +544,6 @@ class AttemptService
             }
         }
 
-        return ['attempt_id' => $attempt->id, 'title' => $attempt->snapshot['title'], 'raw_score' => $result?->raw_score, 'scaled_score' => $result?->scaled_score, 'grading_status' => $result?->grading_status, 'details' => json_decode($result?->details ?? '{}', true), 'estimated' => true, 'review' => $review, 'feedback' => $attempt->answers()->whereNotNull('grade')->get(['item_key', 'grade'])->toArray()];
+        return ['attempt_id' => $attempt->id, 'exam_id' => $attempt->exam_template_id, 'leaderboard_available' => (bool) ($policies['leaderboard'] ?? false), 'title' => $attempt->snapshot['title'], 'raw_score' => $result?->raw_score, 'scaled_score' => $result?->scaled_score, 'grading_status' => $result?->grading_status, 'details' => json_decode($result?->details ?? '{}', true), 'estimated' => true, 'review' => $review, 'feedback' => $attempt->answers()->whereNotNull('grade')->get(['item_key', 'grade'])->toArray()];
     }
 }

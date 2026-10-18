@@ -1,3 +1,9 @@
+export const orderedOptions = item => (item.option_order ?? Object.keys(item.options ?? {})).filter(key => Object.hasOwn(item.options ?? {}, key)).map(key => [key, item.options[key]]);
+
+export const canNavigateQuestion = (index, currentIndex, policies) =>
+    (!(policies.lock_previous) || index >= currentIndex) &&
+    (policies.navigation !== 'linear' || Math.abs(index - currentIndex) <= 1);
+
 export const remainingSeconds = (deadline, serverOffset = 0, time = Date.now()) => Math.max(0, Math.floor((Date.parse(deadline) - time - serverOffset) / 1000));
 
 export const reconcileAnswers = (pending, serverAnswers) => {
@@ -17,7 +23,7 @@ if (root) {
     const policies = config.snapshot.policies;
     let state = config.state ?? { active_section: 0, answers: [], paused: false, deadline: new Date(Date.now() + policies.duration_minutes * 60000).toISOString(), server_time: new Date().toISOString() };
     let offset = Date.parse(state.server_time) - Date.now();
-    let selected = 0, submitting = false, saving = false, pausedAt = null;
+    let selected = state.current_item_index ?? 0, submitting = false, saving = false, pausedAt = null, navigating = false;
     const storageKey = `vistiq-attempt-${config.state?.id ?? 'preview'}`;
     const savedAnswers = new Map(state.answers.map(answer => [answer.item_key, answer]));
     let pending = {}, conflicting = false, eventQueue = [], activeRecorder = null, recordingPending = false, questionVisitedAt = Date.now();
@@ -43,6 +49,7 @@ if (root) {
         if (active.duration_minutes > 0) { return active.timing_group === section.timing_group; }
         return true;
     };
+    const questionAccessible = (item, index) => sectionAccessible(item) && canNavigateQuestion(index, state.current_item_index ?? selected, policies);
     const audioMarkup = (item, stimulus = null) => {
         const url = stimulus ? stimulus.asset_path : item.metadata.audio_url;
         return `<div class="assessment-audio"><button type="button" class="button button-quiet" data-play-audio data-stimulus="${stimulus?.id ?? ''}" ${config.preview && !url ? 'disabled' : ''}>Phát audio${policies.strict_audio ? ' · một lần' : ''}</button><audio ${policies.strict_audio ? '' : 'controls'} preload="none" ${url ? `src="${escape(url)}"` : ''}></audio><canvas data-waveform height="48" width="500" aria-label="Dạng sóng audio"></canvas></div>`;
@@ -131,7 +138,7 @@ if (root) {
                 if (selected === index) { classes.push('is-current'); }
                 if (hasResponse(saved)) { classes.push('is-answered'); }
                 if (saved?.flagged) { classes.push('is-flagged'); }
-                return `<button class="${classes.join(' ')}" type="button" data-question="${index}" aria-label="Câu ${index + 1}${hasResponse(saved) ? ', đã trả lời' : ', chưa trả lời'}${saved?.flagged ? ', đã đánh dấu' : ''}" ${!sectionAccessible(entry) ? 'disabled' : ''}>${index + 1}</button>`;
+                return `<button class="${classes.join(' ')}" type="button" data-question="${index}" aria-label="Câu ${index + 1}${hasResponse(saved) ? ', đã trả lời' : ', chưa trả lời'}${saved?.flagged ? ', đã đánh dấu' : ''}" ${!questionAccessible(entry, index) ? 'disabled' : ''}>${index + 1}</button>`;
             }).join('')}</div><span class="exam-nav-complete">${complete}/${entries.length} câu đã trả lời</span></details>`;
         }).join('');
         let stimulusHtml = '';
@@ -143,7 +150,7 @@ if (root) {
         const choice = ['multiple_choice', 'multiple_response', 'true_false_not_given', 'yes_no_not_given'].includes(item.type);
         let answerHtml = '';
         if (choice) {
-            answerHtml = Object.entries(item.options).map(([key, value]) => `<label class="assessment-option"><input type="${item.type === 'multiple_response' ? 'checkbox' : 'radio'}" name="answer" value="${escape(key)}" ${(response.options ?? []).includes(key) ? 'checked' : ''}> <b>${escape(key)}</b> ${escape(value)}</label>`).join('');
+            answerHtml = orderedOptions(item).map(([key, value]) => `<label class="assessment-option"><input type="${item.type === 'multiple_response' ? 'checkbox' : 'radio'}" name="answer" value="${escape(key)}" ${(response.options ?? []).includes(key) ? 'checked' : ''}> <b>${escape(key)}</b> ${escape(value)}</label>`).join('');
             if (item.selection_count) { answerHtml += `<p>Chọn ${item.selection_count} đáp án.</p>`; }
         } else if (item.matching_rows?.length) {
             answerHtml = item.matching_rows.map(key => `<label>${escape(item.metadata?.labels?.[key] ?? key)}<select data-matching="${escape(key)}"><option value="">Chưa chọn</option>${Object.entries(item.options).map(([option, label]) => `<option value="${escape(option)}" ${response.matching?.[key] === option ? 'selected' : ''}>${escape(option)} · ${escape(label)}</option>`).join('')}</select></label>`).join('');
@@ -155,8 +162,8 @@ if (root) {
             answerHtml = `<label>Câu trả lời<textarea data-text rows="${item.type === 'essay' ? 16 : 3}">${escape(response.text ?? '')}</textarea></label><p data-word-count></p>`;
         }
         const sectionTitle = escape(config.snapshot.sections[item.section].title);
-        const previousDisabled = selected === 0 ? 'disabled' : '';
-        const nextDisabled = selected === config.snapshot.items.length - 1 ? 'disabled' : '';
+        const previousDisabled = selected === 0 || !questionAccessible(config.snapshot.items[selected - 1], selected - 1) ? 'disabled' : '';
+        const nextDisabled = selected === config.snapshot.items.length - 1 || !questionAccessible(config.snapshot.items[selected + 1], selected + 1) ? 'disabled' : '';
         const html = `<article class="panel assessment-item ${item.stimuli?.length ? 'has-reading-passage' : ''}">
             <section class="assessment-stimulus-panel ${stimulusHtml ? '' : 'is-empty'}">
                 <header class="assessment-reading-heading"><div><span class="badge badge-blue">${sectionTitle}</span><h2>${sectionTitle}</h2></div><span>Câu ${selected + 1} / ${config.snapshot.items.length}</span></header>
@@ -200,7 +207,7 @@ if (root) {
         persist(); status.textContent = config.preview ? 'Preview · đáp án được giữ trong phiên này' : 'Đã lưu cục bộ · chờ đồng bộ'; syncProgress(); countWords();
     };
     const flush = async () => {
-        if (conflicting || saving || submitting || state.paused || state.status === 'expired' || !Object.keys(pending).length) { return !saving; }
+        if (conflicting || saving || submitting || state.paused || state.status === 'expired' || !Object.keys(pending).length) { return !saving && !conflicting; }
         if (config.preview) { return true; }
         saving = true; const batch = JSON.parse(JSON.stringify(pending));
         try {
@@ -233,8 +240,8 @@ if (root) {
         try {
             const updated = await request(config.endpoints.state);
             if (['completed', 'pending_grading', 'submitted'].includes(updated.status)) { localStorage.removeItem(storageKey); location.assign(config.endpoints.result); return; }
-            const changed = updated.active_section !== state.active_section || updated.status !== state.status; state = updated; config.snapshot = updated.snapshot; updated.answers.forEach(answer => savedAnswers.set(answer.item_key, answer)); pending = reconcileAnswers(pending,updated.answers); persist(); offset = Date.parse(state.server_time) - Date.now();
-            if (changed) { selected = Math.max(0, config.snapshot.items.findIndex(item => item.section === state.active_section)); render(); }
+            const changed = updated.active_section !== state.active_section || updated.status !== state.status || ((policies.lock_previous || policies.navigation === 'linear') && updated.current_item_index !== state.current_item_index); state = updated; config.snapshot = updated.snapshot; updated.answers.forEach(answer => savedAnswers.set(answer.item_key, answer)); pending = reconcileAnswers(pending,updated.answers); persist(); offset = Date.parse(state.server_time) - Date.now();
+            if (changed) { selected = state.current_item_index ?? Math.max(0, config.snapshot.items.findIndex(item => item.section === state.active_section)); render(); }
         } catch { status.textContent = 'Mất kết nối · bài được lưu cục bộ'; }
     };
     let sendingEvents = false;
@@ -268,12 +275,27 @@ if (root) {
                 conflicting = false; warning.hidden = true; persist(); render(); await flush(); return;
             }
             if ((activeRecorder?.state === 'recording' || recordingPending) && !target.matches('[data-record]')) { showWarning('Dừng ghi âm trước khi chuyển câu hoặc nộp bài.'); return; }
-            if (target.dataset.question !== undefined) { capture(); selected = Number(target.dataset.question); render(); }
-            if (target.dataset.stepQuestion !== undefined) { capture(); selected = Math.max(0, Math.min(config.snapshot.items.length - 1, selected + Number(target.dataset.stepQuestion))); render(); }
+            if (navigating || submitting || target.disabled) { return; }
+            if (target.dataset.question !== undefined || target.dataset.stepQuestion !== undefined) {
+                const index = target.dataset.question !== undefined ? Number(target.dataset.question) : selected + Number(target.dataset.stepQuestion);
+                if (!config.snapshot.items[index] || !questionAccessible(config.snapshot.items[index], index)) { return; }
+                capture();
+                if (policies.lock_previous || policies.navigation === 'linear') {
+                    navigating = true;
+                    try {
+                        if (!(await flush()) || Object.keys(pending).length && !config.preview) { showWarning('Đồng bộ đáp án trước khi chuyển câu.'); return; }
+                        if (config.preview) { state.current_item_index = index; }
+                        else { state = await request(config.endpoints.navigate, { item_key: config.snapshot.items[index].key }); offset = Date.parse(state.server_time) - Date.now(); }
+                    } finally { navigating = false; }
+                } else { state.current_item_index = index; }
+                selected = index; render();
+            }
             if (target.matches('[data-submit]')) {
-                const confirmationMessage = config.preview ? 'Kết thúc preview?' : 'Nộp bài và khóa câu trả lời?';
+                capture();
+                const answered = config.snapshot.items.filter(item => hasResponse(answerFor(item))).length;
+                const confirmationMessage = config.preview ? 'Kết thúc preview?' : `Đã trả lời ${answered}/${config.snapshot.items.length} câu; còn ${config.snapshot.items.length - answered} câu chưa trả lời. Nộp bài sẽ khóa câu trả lời.`;
                 const confirmed = typeof window.vistiqConfirm === 'function'
-                    ? await window.vistiqConfirm(confirmationMessage, { title: 'Xác nhận nộp bài', confirmLabel: 'Nộp bài' })
+                    ? await window.vistiqConfirm(confirmationMessage, { title: 'Xác nhận nộp bài', confirmLabel: 'Nộp bài', danger: false })
                     : window.confirm(confirmationMessage);
                 if (!confirmed) { return; }
                 capture();
@@ -300,7 +322,7 @@ if (root) {
                 if (!(await flush())) { return; }
                 if (config.preview) { state.active_section = Math.min(state.active_section + 1, config.snapshot.sections.length - 1); }
                 else { state = await request(config.endpoints.section, {}); offset = Date.parse(state.server_time) - Date.now(); }
-                selected = Math.max(0, config.snapshot.items.findIndex(item => item.section === state.active_section)); render();
+                selected = state.current_item_index ?? Math.max(0, config.snapshot.items.findIndex(item => item.section === state.active_section)); render();
             }
             if (target.matches('[data-highlight]')) {
                 const selection = window.getSelection(); if (selection.rangeCount && root.querySelector('[data-items]').contains(selection.anchorNode)) { const range = selection.getRangeAt(0); const mark = document.createElement('mark'); try { range.surroundContents(mark); } catch { showWarning('Chọn một đoạn trong cùng đoạn văn để đánh dấu.'); } }
@@ -346,17 +368,19 @@ if (root) {
     document.addEventListener('visibilitychange', () => { if (document.hidden && policies.track_focus) { event('TAB_HIDDEN'); } });
     window.addEventListener('blur', () => { if (policies.track_focus) { root.classList.toggle('assessment-blurred', !!policies.blur_on_focus_loss); event('WINDOW_BLUR'); } });
     window.addEventListener('focus', () => root.classList.remove('assessment-blurred'));
-    document.addEventListener('fullscreenchange', () => { render(); if (!document.fullscreenElement && policies.require_fullscreen) { event('FULLSCREEN_EXIT'); } });
+    document.addEventListener('fullscreenchange', () => { capture(); render(); if (!document.fullscreenElement && policies.require_fullscreen) { event('FULLSCREEN_EXIT'); } });
     window.addEventListener('online', async () => { await refresh(); await flushRecordings(); await flush(); await flushEvents(); });
     window.addEventListener('offline', () => { status.textContent = 'Offline · tiếp tục lưu cục bộ'; event('NETWORK_DISCONNECT'); });
     window.addEventListener('beforeunload', eventObject => { if ((Object.keys(pending).length || recordings.size || activeRecorder?.state === 'recording') && !submitting) { eventObject.preventDefault(); eventObject.returnValue = ''; } });
     setInterval(() => { flushRecordings(); flush(); }, 3000); setInterval(() => { refresh(); flushEvents(); }, 15000);
     setInterval(() => { if (state.paused) { root.querySelector('[data-timer]').textContent = 'Tạm dừng'; return; } const seconds = remainingSeconds(state.deadline, offset); root.querySelector('[data-timer]').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`; if (seconds === 0 && !config.preview && state.status === 'in_progress') { refresh(); } }, 1000);
-    if (!policies.allow_mobile && matchMedia('(max-width: 600px)').matches) { showWarning('Đề yêu cầu tablet hoặc desktop.'); root.querySelector('[data-items]').hidden = true; }
+    const mobileViewport = matchMedia('(max-width: 600px)');
+    const syncViewport = () => { capture(); render(); root.querySelector('[data-items]').hidden = !policies.allow_mobile && mobileViewport.matches; if (!policies.allow_mobile && mobileViewport.matches) { showWarning('Đề yêu cầu tablet hoặc desktop.'); } };
+    mobileViewport.addEventListener('change', syncViewport);
     if (!config.preview && typeof BroadcastChannel !== 'undefined') {
         const channel = new BroadcastChannel(storageKey), tabId = crypto.randomUUID(); let signaled = false;
         channel.onmessage = message => { if (message.data.tabId !== tabId && !signaled) { signaled = true; event('MULTIPLE_SESSION'); if (message.data.ping) { channel.postMessage({ tabId }); } } };
         channel.postMessage({ tabId, ping: true }); window.addEventListener('pagehide', () => channel.close());
     }
-    render(); restoreRecordings(); flush(); event('RELOAD');
+    render(); root.querySelector('[data-items]').hidden = !policies.allow_mobile && mobileViewport.matches; restoreRecordings(); flush(); event('RELOAD');
 }

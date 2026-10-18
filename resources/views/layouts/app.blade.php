@@ -21,5 +21,6 @@
 </head>
 <body class="{{ $shell === 'admin' ? 'admin-mode' : ($shell === 'auth' ? 'auth-mode' : 'user-mode') }} {{ $hasAuthSpotlight ? 'auth-spotlight-mode' : '' }} {{ $section === 'lookup' ? 'dictionary-mode' : '' }}" @if ($hasAuthSpotlight) data-spotlight-sky="day" @endif>
     @yield('content')
+    @include('shared.confirmation-dialog')
 </body>
 </html>

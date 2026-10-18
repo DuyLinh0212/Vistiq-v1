@@ -20,12 +20,18 @@ class GradingController extends AdminPageController
         Gate::authorize('results.grade');
         $mysql = DB::connection()->getDriverName() === 'mysql';
         $items = $mysql
-            ? "JSON_TABLE(exam_attempts.snapshot, '$.items[*]' COLUMNS (item_key VARCHAR(80) PATH '$.key', question_type VARCHAR(40) PATH '$.type')) as manual_item"
-            : "json_each(exam_attempts.snapshot, '$.items') as manual_item";
+            ? "JSON_TABLE(grading_attempt.snapshot, '$.items[*]' COLUMNS (item_key VARCHAR(80) PATH '$.key', question_type VARCHAR(40) PATH '$.type')) as manual_item"
+            : "json_each(grading_attempt.snapshot, '$.items') as manual_item";
         $predicate = $mysql
             ? 'manual_item.item_key = attempt_answers.item_key AND manual_item.question_type IN (?, ?)'
             : "json_extract(manual_item.value, '$.key') = attempt_answers.item_key AND json_extract(manual_item.value, '$.type') IN (?, ?)";
-        $answers = AttemptAnswer::whereNotNull('item_key')->whereHas('attempt', fn ($query) => $query->whereNotNull('submitted_at')->whereExists(fn ($q) => $q->selectRaw('1')->fromRaw($items)->whereRaw($predicate, ['essay', 'speaking'])))->with('attempt.user')->latest()->paginate(20);
+        // Join the snapshot rows directly. MySQL can return inconsistent count/data
+        // results when the correlated JSON_TABLE EXISTS is combined with ORDER BY.
+        $answers = AttemptAnswer::select('attempt_answers.*')
+            ->join('exam_attempts as grading_attempt', 'grading_attempt.id', '=', 'attempt_answers.exam_attempt_id')
+            ->join(DB::raw($items), fn ($join) => $join->whereRaw($predicate, ['essay', 'speaking']))
+            ->whereNotNull('attempt_answers.item_key')->whereNotNull('grading_attempt.submitted_at')
+            ->with('attempt.user')->orderByDesc('attempt_answers.created_at')->orderByDesc('attempt_answers.id')->paginate(20);
         $suggestions = DB::table('ai_tasks')->whereNotNull('attempt_answer_id')->latest()->limit(100)->get()->groupBy('attempt_answer_id');
 
         $gradingCriteria = ['essay' => QuestionRegistry::WRITING_CRITERIA, 'speaking' => QuestionRegistry::SPEAKING_CRITERIA];

@@ -89,7 +89,15 @@ if ($mode === 'prepare') {
         throw new RuntimeException('Concurrent submit must persist one result and one submission activity.');
     }
     auth()->loginUsingId($fixture['reviewer']);
+    // Mixed submitted/unsubmitted snapshots must not make ordered JSON_TABLE
+    // pagination return an empty page while its COUNT reports manual answers.
+    foreach (range(1, 24) as $index) {
+        app(AttemptService::class)->start($attempt->exam, User::factory()->create());
+    }
     $answers = app(GradingController::class)->index()->getData()['answers'];
+    if ($answers->total() !== $answers->count()) {
+        throw new RuntimeException('MySQL manual grading count and first page disagree.');
+    }
     if (! $answers->contains(fn ($answer) => $answer->exam_attempt_id === $attempt->id && $answer->item_key === 'q2')) {
         throw new RuntimeException('MySQL JSON_TABLE grading query omitted the essay.');
     }

@@ -127,9 +127,6 @@ class ContentRevisionService
             $liveStatus = $kind === 'question' ? $root->learningItem->status : $root->status;
             abort_if($liveStatus === 'archived' && $action !== 'archive', 409, 'Nội dung đã lưu trữ.');
             $allowed = ['review' => ['draft'], 'approve' => ['review'], 'reject' => ['review'], 'publish' => ['approved'], 'archive' => ['published']];
-            if ($action === 'publish' && auth()->user()?->hasRole('super-admin')) {
-                $allowed['publish'] = ['draft', 'review', 'approved'];
-            }
             abort_unless(in_array($revision->status, $allowed[$action], true), 409, 'Trạng thái hiện tại không cho phép thao tác này.');
             if ($action === 'reject' && trim($note ?? '') === '') {
                 throw ValidationException::withMessages(['note' => 'Nhập lý do từ chối.']);

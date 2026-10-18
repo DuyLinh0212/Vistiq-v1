@@ -10,6 +10,11 @@
     @if(isset($content['explanation']))<div><strong>Giải thích</strong>{!! app(\VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry::class)->sanitize($content['explanation']) !!}</div>@endif
     @foreach($content['stimuli']??[] as $stimulus)<section class="panel"><h4>{{ $stimulus['title']??'Tài nguyên' }}</h4>@include('pages.admin.assessment.content-approval.payload',['content'=>$stimulus])</section>@endforeach
     @if(($content['metadata']['asset_id']??null)&&($content['stimulus_type']??'')==='audio')<audio controls preload="none" aria-label="Nghe {{ $content['title']??'tài nguyên' }}" src="{{ route('admin.media.show',$content['metadata']['asset_id']) }}"></audio>@endif
+    @if(($content['stimulus_type']??'')==='audio' && empty($content['metadata']['asset_id']) && !empty($content['asset_path']))
+        @php($audioPath=$content['asset_path'])
+        @php($audioUrl=preg_match('#^https?://#i',$audioPath) ? $audioPath : (str_contains($audioPath,'://') ? null : \Illuminate\Support\Facades\Storage::disk('public')->url($audioPath)))
+        @if($audioUrl)<audio controls preload="none" aria-label="Nghe {{ $content['title']??'tài nguyên' }}" src="{{ $audioUrl }}"></audio>@else<p role="alert">Đường dẫn audio không được hỗ trợ. Cập nhật tài nguyên tại module nguồn.</p>@endif
+    @endif
     @if($content['metadata']['audio_id']??null)<audio controls preload="none" aria-label="Audio câu hỏi" src="{{ route('admin.media.show',$content['metadata']['audio_id']) }}"></audio>@endif
     @if($content['metadata']['image_id']??null)<img alt="Hình minh họa câu hỏi" src="{{ route('admin.media.show',$content['metadata']['image_id']) }}">@endif
     @if(isset($content['transcript']))<details><summary>Transcript</summary><p>{{ $content['transcript'] }}</p></details>@endif

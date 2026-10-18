@@ -34,6 +34,9 @@ class ContentApprovalController extends Controller
 
     public function transition(AdminActionRequest $request, string $kind, int $id, string $action, ContentRevisionService $revisions): mixed
     {
+        if ($kind === 'question' && in_array($action, ['approve', 'reject'], true)) {
+            return $this->reviewDecision($request, $kind, $id, $action);
+        }
         $revision = $revisions->transition($kind, $revisions->root($kind, $id), $action, $request->validated('note'));
 
         return $request->expectsJson()
@@ -43,6 +46,9 @@ class ContentApprovalController extends Controller
 
     public function transitionExam(AdminActionRequest $request, ExamTemplate $exam, string $action, ExamPublishingService $service, AuditService $audit): mixed
     {
+        if (in_array($action, ['approve', 'reject'], true)) {
+            return $this->reviewDecision($request, 'exam', $exam->id, $action);
+        }
         if ($action === 'publish') {
             $service->publish($exam);
         } else {
@@ -87,5 +93,23 @@ class ContentApprovalController extends Controller
         }
 
         return back()->with('status', 'Đã cập nhật trạng thái đề.');
+    }
+
+    private function reviewDecision(AdminActionRequest $request, string $kind, int $id, string $action): mixed
+    {
+        Gate::authorize('content.review');
+        $service = app(ContentReviewService::class);
+        $review = $service->preview($kind, $id);
+        abort_if($action === 'approve' && (int) $review['author'] === (int) auth()->id(), 403, 'Tác giả không được tự duyệt revision của mình.');
+        abort_unless($review['status'] === 'review', 409, 'Revision không còn chờ duyệt.');
+        abort_unless($request->filled(['revision_counter', 'review_token']), 409, 'Mở hàng đợi duyệt và đọc lại revision trước khi quyết định.');
+        $data = $request->validate([
+            'revision_counter' => 'required|integer|min:1', 'review_token' => 'required|string|size:64',
+            'note' => ($action === 'reject' ? 'required' : 'nullable').'|string|max:2000',
+        ]);
+        $result = $service->decide($kind, $id, $action, $data);
+
+        return $request->expectsJson() ? response()->json($result)
+            : redirect()->route('admin.content-approval.show', [$kind, $id])->with('status', 'Đã cập nhật quyết định revision.');
     }
 }

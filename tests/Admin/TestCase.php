@@ -40,6 +40,13 @@ abstract class TestCase extends \Illuminate\Foundation\Testing\TestCase
         return $user;
     }
 
+    protected function reviewData(string $kind, int $id): array
+    {
+        $review = app(\VistiqCore\Services\Assessment\ContentApproval\ContentReviewService::class)->preview($kind, $id);
+
+        return ['revision_counter' => $review['number'], 'review_token' => $review['token']];
+    }
+
     protected function item(array $overrides = []): array
     {
         return array_replace(['key' => 'q1', 'id' => 1, 'type' => 'multiple_choice', 'exam_type' => 'toeic', 'part' => 'part-5', 'skill' => 'reading', 'section' => 0, 'prompt' => 'Select the answer.', 'options' => ['A' => 'One', 'B' => 'Two', 'C' => 'Three', 'D' => 'Four'], 'correct_options' => ['B'], 'accepted_answers' => [], 'metadata' => [], 'explanation' => 'Secret explanation.', 'stimuli' => [], 'weight' => 1], $overrides);

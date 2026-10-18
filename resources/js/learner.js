@@ -1,4 +1,5 @@
 import { initializeAuthSpotlights } from './auth-spotlight.js';
+import './confirmation-dialog.js';
 import './exam-runner.js';
 import { initializeDictionarySearch } from './dictionary-search.js';
 
