@@ -16,7 +16,7 @@
         <form method="post" action="{{ route('knowledge.save', $summary->slug) }}" data-pending-label="Đang lưu…">@csrf
             <label for="knowledge-note">Ghi chú (tối đa 5.000 ký tự)<textarea id="knowledge-note" name="personal_note" rows="6" maxlength="5000" @error('personal_note') aria-invalid="true" aria-describedby="knowledge-note-error" @enderror>{{ old('personal_note', $saved?->personal_note) }}</textarea></label>
             @error('personal_note')<p id="knowledge-note-error" role="alert">{{ $message }}</p>@enderror
-            <label><input type="checkbox" name="is_starred" value="1" @checked(old('is_starred', $saved?->is_starred))> Đánh dấu quan trọng</label>
+            <input type="hidden" name="is_starred" value="0"><label><input type="checkbox" name="is_starred" value="1" @checked(old('is_starred', $saved?->is_starred))> Đánh dấu quan trọng</label>
             <button class="button button-primary" type="submit">{{ $saved ? 'Lưu ghi chú' : 'Lưu kiến thức' }}</button>
         </form>
         @if($saved)<form method="post" action="{{ route('knowledge.unsave', $summary->slug) }}" data-confirm="Bỏ lưu {{ $summary->canonical_text }}? Ghi chú cá nhân của mục này cũng sẽ bị xóa." data-confirm-label="Bỏ lưu kiến thức">@csrf @method('DELETE')<button class="button button-quiet" type="submit">Bỏ lưu kiến thức</button></form>@endif

@@ -34,7 +34,9 @@ class PersonalLibraryTest extends TestCase
         $this->get('/knowledge?item=commitment')->assertNotFound();
         $this->postJson('/knowledge/commitment/save', ['collection_id' => $collection])->assertUnprocessable()->assertJsonValidationErrors('collection_id');
         $this->assertDatabaseMissing('user_saved_items', ['user_id' => $other->id, 'learning_item_id' => $item->id]);
-        $this->actingAs($owner)->delete('/knowledge/commitment/save')->assertRedirect();
+        $this->actingAs($owner)->postJson('/knowledge/commitment/save', ['personal_note' => ''])->assertOk()->assertJsonPath('saved', true);
+        $this->assertDatabaseHas('user_saved_items', ['user_id' => $owner->id, 'learning_item_id' => $item->id, 'personal_note' => null]);
+        $this->delete('/knowledge/commitment/save')->assertRedirect();
         $this->get('/knowledge')->assertOk()->assertSee('Kho kiến thức của bạn đang trống');
     }
 }

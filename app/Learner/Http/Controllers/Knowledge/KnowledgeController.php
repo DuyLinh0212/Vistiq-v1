@@ -54,7 +54,7 @@ class KnowledgeController extends StaticPageController
         $item = $reader->detail($slug)['summary'];
         $existing = DB::table('user_saved_items')->where('user_id', $request->user()->id)->where('learning_item_id', $item->id)->first();
         DB::table('user_saved_items')->updateOrInsert(['user_id' => $request->user()->id, 'learning_item_id' => $item->id], [
-            'personal_note' => $data['personal_note'] ?? $existing?->personal_note, 'is_starred' => $data['is_starred'] ?? $existing?->is_starred ?? false,
+            'personal_note' => array_key_exists('personal_note', $data) ? $data['personal_note'] : $existing?->personal_note, 'is_starred' => $data['is_starred'] ?? $existing?->is_starred ?? false,
             'collection_id' => array_key_exists('collection_id', $data) ? $data['collection_id'] : $existing?->collection_id,
             'created_at' => $existing?->created_at ?? now(), 'updated_at' => now(),
         ]);
