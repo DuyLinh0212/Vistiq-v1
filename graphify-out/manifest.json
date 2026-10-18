@@ -276,9 +276,9 @@
     "semantic_hash": ""
   },
   "app/Learner/Http/Controllers/Knowledge/KnowledgeController.php": {
-    "mtime": 1792331332.9586544,
-    "seen": 1792331398.1399088,
-    "ast_hash": "3bde428146d4d6bf1dfc2c1324ff314e",
+    "mtime": 1792331422.4915397,
+    "seen": 1792331459.9228644,
+    "ast_hash": "a8ca90fdf96d06ad849181a40c5a2044",
     "semantic_hash": ""
   },
   "app/Learner/Http/Controllers/Profile/ProfileController.php": {
@@ -558,9 +558,9 @@
     "semantic_hash": ""
   },
   "database/migrations/2026_10_02_121058_create_learning_content_tables.php": {
-    "mtime": 1792331332.978672,
-    "seen": 1792331398.1400201,
-    "ast_hash": "34a7ff991ab375544e63fede8d3778a7",
+    "mtime": 1792331422.4955406,
+    "seen": 1792331459.9229753,
+    "ast_hash": "301fdac5b22aec38dee6293213d3323b",
     "semantic_hash": ""
   },
   "database/migrations/2026_10_02_121059_create_assessment_catalog_tables.php": {
@@ -1050,9 +1050,9 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1792331332.9319332,
-    "seen": 1792331398.140439,
-    "ast_hash": "febbf8b773c710f177bc96003fc3457d",
+    "mtime": 1792331422.4604616,
+    "seen": 1792331459.923415,
+    "ast_hash": "08711385580a02a106e18537c5cec390",
     "semantic_hash": ""
   },
   "docs/design/design.md": {
@@ -1584,15 +1584,15 @@
     "semantic_hash": ""
   },
   "app/Admin/Http/Controllers/Admin/Analytics/DashboardController.php": {
-    "mtime": 1792331332.9336545,
-    "seen": 1792331398.139682,
-    "ast_hash": "20035b2877859dc87eddfde123e087ed",
+    "mtime": 1792331422.4625385,
+    "seen": 1792331459.9226193,
+    "ast_hash": "f9f0ae700bc32a5028a02a2f43314cc7",
     "semantic_hash": ""
   },
   "app/Admin/Http/Controllers/Admin/Analytics/LeaderboardController.php": {
-    "mtime": 1792331332.9366546,
-    "seen": 1792331398.1396847,
-    "ast_hash": "051806e2076e9636df98944e379c1117",
+    "mtime": 1792331422.464539,
+    "seen": 1792331459.9226222,
+    "ast_hash": "df13bc1770715c0d68b3fb9dbbdabe30",
     "semantic_hash": ""
   },
   "app/Admin/Http/Controllers/Admin/Assessment/Attempts/AttemptController.php": {
@@ -1680,9 +1680,9 @@
     "semantic_hash": ""
   },
   "app/Admin/Http/Controllers/Admin/Learning/Knowledge/KnowledgeAdminController.php": {
-    "mtime": 1792331332.939654,
-    "seen": 1792331398.139716,
-    "ast_hash": "d4962d1c7fab503c16dc0073f4f0154f",
+    "mtime": 1792331422.465539,
+    "seen": 1792331459.9226546,
+    "ast_hash": "afa02a234dbf427dba19b7b86c80fabf",
     "semantic_hash": ""
   },
   "app/Admin/Http/Controllers/Admin/Search/AdminSearchController.php": {
@@ -1776,9 +1776,9 @@
     "semantic_hash": ""
   },
   "app/Admin/Http/Requests/Admin/Learning/Knowledge/KnowledgeUpsertRequest.php": {
-    "mtime": 1792331332.9436843,
-    "seen": 1792331398.1397676,
-    "ast_hash": "3f096f785217b3431d9156389fa5241f",
+    "mtime": 1792331422.4725385,
+    "seen": 1792331459.9227128,
+    "ast_hash": "1546fd54c6fa41c684a892b7a36a1ef4",
     "semantic_hash": ""
   },
   "app/Admin/Http/Requests/Admin/Shared/AdminActionRequest.php": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": ""
   },
   "app/Domain/Services/Analytics/AnalyticsService.php": {
-    "mtime": 1792331332.9547563,
-    "seen": 1792331398.1398308,
-    "ast_hash": "e6603fea709020efd74ed697e93af138",
+    "mtime": 1792331422.4745383,
+    "seen": 1792331459.922777,
+    "ast_hash": "f2e7867f2ce8d3a4a8660821190988b3",
     "semantic_hash": ""
   },
   "app/Domain/Services/Analytics/LeaderboardService.php": {
@@ -1968,9 +1968,9 @@
     "semantic_hash": ""
   },
   "app/Learner/Http/Controllers/Knowledge/GrammarController.php": {
-    "mtime": 1792331332.956654,
-    "seen": 1792331398.1399066,
-    "ast_hash": "06762d27ad256426eb5d977ce787b242",
+    "mtime": 1792331422.4885397,
+    "seen": 1792331459.9228625,
+    "ast_hash": "78664423ab33ac812423f55b2eafb1a5",
     "semantic_hash": ""
   },
   "app/Learner/Http/Controllers/Practice/SkillPractice/SkillPracticeController.php": {
@@ -2022,9 +2022,9 @@
     "semantic_hash": ""
   },
   "resources/views/pages/admin/analytics/dashboard/workspace.blade.php": {
-    "mtime": 1792331334.2321677,
-    "seen": 1792331398.140099,
-    "ast_hash": "a9afdc4f0f85572f6fdaa5cca33462f2",
+    "mtime": 1792331422.542382,
+    "seen": 1792331459.9230528,
+    "ast_hash": "077fc0369c0f9ba9d4b3e27be7171dd9",
     "semantic_hash": ""
   },
   "resources/views/pages/admin/analytics/leaderboard/legacy/index.blade.php": {
@@ -2034,9 +2034,9 @@
     "semantic_hash": ""
   },
   "resources/views/pages/admin/analytics/leaderboard/workspace.blade.php": {
-    "mtime": 1792331344.5908878,
-    "seen": 1792331398.1401029,
-    "ast_hash": "390367dd29faed3fdf70881b97e89b1a",
+    "mtime": 1792331443.8737092,
+    "seen": 1792331459.9230566,
+    "ast_hash": "37d44ac2eea46348962b1f9718c0953f",
     "semantic_hash": ""
   },
   "resources/views/pages/admin/assessment/attempts/legacy/grading.blade.php": {
@@ -2298,9 +2298,9 @@
     "semantic_hash": ""
   },
   "resources/views/pages/admin/learning/knowledge/workspace/index.blade.php": {
-    "mtime": 1792331334.2431664,
-    "seen": 1792331398.1401985,
-    "ast_hash": "446571437313b2d82fd68868372c3dcf",
+    "mtime": 1792331422.5533824,
+    "seen": 1792331459.9231536,
+    "ast_hash": "6c4f57e5c20674718e4ba9d904109b92",
     "semantic_hash": ""
   },
   "resources/views/pages/admin/search/workspace.blade.php": {
@@ -2424,21 +2424,21 @@
     "semantic_hash": ""
   },
   "resources/views/pages/learner/knowledge/grammar/index.blade.php": {
-    "mtime": 1792331334.2461667,
-    "seen": 1792331398.1402624,
-    "ast_hash": "348f590d14f5263b888f6d6f173fe472",
+    "mtime": 1792331422.5553837,
+    "seen": 1792331459.9232192,
+    "ast_hash": "cd68bb956ae7d0b074fa73c7623b62dc",
     "semantic_hash": ""
   },
   "resources/views/pages/learner/knowledge/grammar/show.blade.php": {
-    "mtime": 1792331334.2491682,
-    "seen": 1792331398.1402638,
-    "ast_hash": "c755f9215b1533adab33887b9ad994dd",
+    "mtime": 1792331422.5573823,
+    "seen": 1792331459.9232206,
+    "ast_hash": "1e914100ea098adb5792c1e19296710f",
     "semantic_hash": ""
   },
   "resources/views/pages/learner/knowledge/saved/index.blade.php": {
-    "mtime": 1792331334.251166,
-    "seen": 1792331398.1402655,
-    "ast_hash": "5be716d740d093ba116be28c9d12d255",
+    "mtime": 1792331422.558382,
+    "seen": 1792331459.9232225,
+    "ast_hash": "cfe6ece3cbe316d1abf40c51241b5224",
     "semantic_hash": ""
   },
   "resources/views/pages/learner/knowledge/saved/list.blade.php": {
@@ -2454,9 +2454,9 @@
     "semantic_hash": ""
   },
   "resources/views/pages/learner/knowledge/saved/show.blade.php": {
-    "mtime": 1792331334.2531664,
-    "seen": 1792331398.140271,
-    "ast_hash": "44adf788b20886a18a0a8e700dcb803d",
+    "mtime": 1792331422.5613823,
+    "seen": 1792331459.9232297,
+    "ast_hash": "69ae1d58c162401c2dad229e111b0d83",
     "semantic_hash": ""
   },
   "resources/views/pages/learner/practice/skill-practice/skills/catalog.blade.php": {
@@ -2538,9 +2538,9 @@
     "semantic_hash": ""
   },
   "routes/web/admin/analytics.php": {
-    "mtime": 1792331334.256166,
-    "seen": 1792331398.1403117,
-    "ast_hash": "df47373bf19a8eca9c60c6c294bddd18",
+    "mtime": 1792331422.5643818,
+    "seen": 1792331459.9232707,
+    "ast_hash": "0c18e4eb2bfd90086d318accb85b4ac5",
     "semantic_hash": ""
   },
   "routes/web/admin/assessment/attempts.php": {
@@ -2586,9 +2586,9 @@
     "semantic_hash": ""
   },
   "routes/web/admin/learning/knowledge.php": {
-    "mtime": 1792331334.298179,
-    "seen": 1792331398.1403253,
-    "ast_hash": "959f543a85377fef3a270e0927070d10",
+    "mtime": 1792331422.566382,
+    "seen": 1792331459.9232848,
+    "ast_hash": "7ec6f6142b8e75ac5a2b7fe0fa9fcaa2",
     "semantic_hash": ""
   },
   "routes/web/admin/learning/skill-exercises.php": {
@@ -2622,9 +2622,9 @@
     "semantic_hash": ""
   },
   "routes/web/learner/knowledge.php": {
-    "mtime": 1792331334.3011775,
-    "seen": 1792331398.1403382,
-    "ast_hash": "d02699ae69e65354dc78d8d104f34676",
+    "mtime": 1792331422.5683827,
+    "seen": 1792331459.9232965,
+    "ast_hash": "73e32d26557c04dace482e1e32045ee8",
     "semantic_hash": ""
   },
   "routes/web/learner/practice/skill-practice.php": {
@@ -3237,6 +3237,126 @@
     "mtime": 1792331344.505015,
     "seen": 1792331398.1405327,
     "ast_hash": "5c41c7d1c54de1474ee365610aef7fd2",
+    "semantic_hash": ""
+  },
+  "app/Admin/Http/Requests/Admin/Analytics/AnalyticsFilterRequest.php": {
+    "mtime": 1792331422.4685397,
+    "seen": 1792331459.922674,
+    "ast_hash": "69cca15889907f1a65e3e937460cfa8a",
+    "semantic_hash": ""
+  },
+  "app/Admin/Http/Requests/Admin/Learning/Knowledge/KnowledgeImportRequest.php": {
+    "mtime": 1792331422.4705396,
+    "seen": 1792331459.9227114,
+    "ast_hash": "ba60613df901eac74be764ebab429414",
+    "semantic_hash": ""
+  },
+  "app/Domain/Services/Analytics/ExportService.php": {
+    "mtime": 1792331422.4755392,
+    "seen": 1792331459.9227786,
+    "ast_hash": "6e22ed009904795b3f3a5be34f2094b7",
+    "semantic_hash": ""
+  },
+  "app/Domain/Services/Knowledge/KnowledgeImportService.php": {
+    "mtime": 1792331422.4765694,
+    "seen": 1792331459.922822,
+    "ast_hash": "3f20731b8ee101a725261562811e7348",
+    "semantic_hash": ""
+  },
+  "app/Domain/Services/Knowledge/KnowledgeInput.php": {
+    "mtime": 1792331422.4795396,
+    "seen": 1792331459.9228234,
+    "ast_hash": "0290150d89b2da63b639af2fa9148759",
+    "semantic_hash": ""
+  },
+  "app/Domain/Services/Knowledge/KnowledgeItemService.php": {
+    "mtime": 1792331422.4815404,
+    "seen": 1792331459.9228246,
+    "ast_hash": "0d42aa6aad02485fa7b81479801e40cb",
+    "semantic_hash": ""
+  },
+  "app/Domain/Services/Knowledge/KnowledgeReaderService.php": {
+    "mtime": 1792331422.4845393,
+    "seen": 1792331459.9228263,
+    "ast_hash": "e37c9bb1d9dd8a3160fe1bbe1381dcbb",
+    "semantic_hash": ""
+  },
+  "app/Domain/Services/Knowledge/KnowledgeTaxonomyService.php": {
+    "mtime": 1792331422.4855387,
+    "seen": 1792331459.9228277,
+    "ast_hash": "797b952b97af86ac889b8f320b1370af",
+    "semantic_hash": ""
+  },
+  "app/Learner/Http/Requests/Knowledge/KnowledgeFilterRequest.php": {
+    "mtime": 1792331422.493539,
+    "seen": 1792331459.9228916,
+    "ast_hash": "17b722ea46d8a845ba73a8680b575691",
+    "semantic_hash": ""
+  },
+  "resources/views/pages/admin/learning/knowledge/workspace/import-preview.blade.php": {
+    "mtime": 1792331422.5473816,
+    "seen": 1792331459.9231503,
+    "ast_hash": "007171d8e00c5c62cbde16aa2db1a5df",
+    "semantic_hash": ""
+  },
+  "resources/views/pages/admin/learning/knowledge/workspace/import.blade.php": {
+    "mtime": 1792331422.550382,
+    "seen": 1792331459.923152,
+    "ast_hash": "b9485c12d82a9f04ae2658ce6f72fe9d",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/Analytics/AnalyticsAdminTest.php": {
+    "mtime": 1792331422.5703835,
+    "seen": 1792331459.923305,
+    "ast_hash": "d1654ec49d5a25ff9b10cb46f24c3187",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/Analytics/AnalyticsMetricsAndLeaderboardTest.php": {
+    "mtime": 1792331422.5713837,
+    "seen": 1792331459.9233065,
+    "ast_hash": "ebfae121055e78e88f9066b77bbd1669",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/KnowledgeBase/ImportIntegrityTest.php": {
+    "mtime": 1792331422.5733836,
+    "seen": 1792331459.9233444,
+    "ast_hash": "af0a1d1d2449fe78beff3337f839ce3c",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/KnowledgeBase/KnowledgeAdminTest.php": {
+    "mtime": 1792331422.574383,
+    "seen": 1792331459.9233463,
+    "ast_hash": "a9f64f20d8d5113dd38e966bdb517c9c",
+    "semantic_hash": ""
+  },
+  "tests/Admin/Feature/KnowledgeBase/KnowledgeValidationAndWorkflowTest.php": {
+    "mtime": 1792331422.5773833,
+    "seen": 1792331459.9233477,
+    "ast_hash": "eb3a9eb4bf9eea2edb9053d7890e2936",
+    "semantic_hash": ""
+  },
+  "tests/Learner/Feature/KnowledgeBase/LearnerKnowledgeTest.php": {
+    "mtime": 1792331422.5803812,
+    "seen": 1792331459.9234037,
+    "ast_hash": "5fd5684f140f932d0e5fc2ffbcaabdf2",
+    "semantic_hash": ""
+  },
+  "tests/Learner/Feature/KnowledgeBase/LearnerKnowledgeWorkflowTest.php": {
+    "mtime": 1792331422.5813816,
+    "seen": 1792331459.9234056,
+    "ast_hash": "35c83ea504305ffb09b6db7f883ee914",
+    "semantic_hash": ""
+  },
+  "tests/Learner/Feature/KnowledgeBase/PublishedKnowledgeTest.php": {
+    "mtime": 1792331422.6003852,
+    "seen": 1792331459.923407,
+    "ast_hash": "32cb7a319c49f00b0fc03e9a38e6791b",
+    "semantic_hash": ""
+  },
+  "docs/reports/Vien.md": {
+    "mtime": 1792331422.4975376,
+    "seen": 1792331459.9235103,
+    "ast_hash": "b7da5942ebf0fbbdc95dc35ea1e09edd",
     "semantic_hash": ""
   }
 }
