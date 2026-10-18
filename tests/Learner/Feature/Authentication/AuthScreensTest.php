@@ -33,7 +33,7 @@ class AuthScreensTest extends TestCase
         $this->withSession([
             '_old_input' => ['name' => 'Học viên', 'email' => 'learner@example.com', 'password' => 'Secret12345'],
             'errors' => (new ViewErrorBag)->put('default', new MessageBag([
-                'password' => 'Mật khẩu phải có ít nhất 10 ký tự.',
+                'password' => 'Mật khẩu cần ít nhất 8 ký tự.',
                 'password_confirmation' => 'Mật khẩu nhập lại chưa khớp.',
             ])),
         ]);
@@ -44,7 +44,7 @@ class AuthScreensTest extends TestCase
         $response->assertSessionHasErrors(['password', 'password_confirmation']);
 
         $response->assertSee('Học viên')
-            ->assertSee('Mật khẩu phải có ít nhất 10 ký tự.')
+            ->assertSee('Mật khẩu cần ít nhất 8 ký tự.')
             ->assertSee('Mật khẩu nhập lại chưa khớp.')
             ->assertSee('aria-describedby="spotlight-password-help password-error"', false)
             ->assertDontSee('Secret12345');

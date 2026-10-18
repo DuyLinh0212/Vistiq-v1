@@ -6,12 +6,16 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use VistiqCore\Models\User as DomainUser;
+use VistiqCore\Services\System\SettingsService;
+use VistiqLearner\Http\Controllers\Authentication\Mail\ResetPasswordEmail;
 use VistiqLearner\Http\Controllers\StaticPageController;
 use VistiqLearner\Http\Requests\Authentication\ForgotPasswordRequest;
 use VistiqLearner\Http\Requests\Authentication\LoginRequest;
@@ -123,14 +127,23 @@ class AuthController extends StaticPageController
     public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
     {
         $credentials = $request->validated();
-        $status = Password::sendResetLink($credentials);
+        try {
+            app(SettingsService::class)->configureMail();
+            if (in_array(config('mail.default'), ['log', 'array'], true) && ! app()->environment('testing')) {
+                return back()->withErrors(['email' => 'Dịch vụ email chưa sẵn sàng. Vui lòng liên hệ quản trị viên để cấu hình gửi email.'])->onlyInput('email');
+            }
+            ResetPasswordEmail::configure();
+            $status = Password::sendResetLink($credentials);
+        } catch (TransportExceptionInterface $exception) {
+            return back()->withErrors(['email' => 'Chưa thể gửi email khôi phục. Vui lòng thử lại sau ít phút hoặc liên hệ quản trị viên.'])->onlyInput('email');
+        }
 
         if (in_array($status, [Password::RESET_LINK_SENT, Password::INVALID_USER, Password::RESET_THROTTLED], true)) {
-            return back()->with('status', 'Nếu email này có tài khoản Vistiq, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư của bạn.');
+            return redirect()->route('password.sent')->with('status', 'Nếu email này có tài khoản Vistiq, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư của bạn.');
         }
 
         return back()
-            ->with('status', 'Nếu email này có tài khoản Vistiq, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư của bạn.')
+            ->withErrors(['email' => 'Chưa thể xử lý yêu cầu khôi phục. Vui lòng thử lại sau ít phút.'])
             ->onlyInput('email');
     }
 
@@ -142,9 +155,11 @@ class AuthController extends StaticPageController
             function (DomainUser $user, string $password): void {
                 $user->forceFill([
                     'password' => Hash::make($password),
+                    'session_version' => $user->session_version + 1,
                 ])->setRememberToken(Str::random(60));
 
                 $user->save();
+                DB::table('sessions')->where('user_id', $user->id)->delete();
 
                 event(new PasswordReset($user));
             },

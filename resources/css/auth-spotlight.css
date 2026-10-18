@@ -444,6 +444,81 @@
 .auth-spotlight .spotlight-toggle[aria-pressed="true"] .spotlight-eye-closed { display: none; }
 .auth-spotlight .spotlight-toggle[aria-pressed="true"] .spotlight-lamp-icon { display: block; }
 .auth-spotlight .spotlight-password-help { margin: -8px 0 0; color: var(--spotlight-muted); font-size: 10px; line-height: 1.5; }
+.auth-spotlight .password-rule-tracker {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 1px;
+    font-size: 11px;
+    line-height: 1.4;
+    transition: opacity .2s ease;
+}
+.auth-spotlight .password-rule-bar {
+    width: 100%;
+    height: 3px;
+    background: var(--spotlight-line);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.auth-spotlight .password-rule-progress {
+    height: 100%;
+    width: 0%;
+    background: var(--spotlight-sun);
+    border-radius: 999px;
+    transition: width .2s ease, background-color .2s ease;
+}
+.auth-spotlight .password-rule-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    color: var(--spotlight-muted);
+}
+.auth-spotlight .password-rule-count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.auth-spotlight .password-rule-message {
+    text-align: right;
+    flex: 1;
+    font-size: 10.5px;
+}
+.auth-spotlight .password-rule-tracker.is-empty .password-rule-count {
+    color: var(--spotlight-muted);
+}
+.auth-spotlight .password-rule-tracker.is-progress .password-rule-progress {
+    background: #e09422;
+}
+.auth-spotlight .password-rule-tracker.is-progress .password-rule-count {
+    color: #c27803;
+}
+.auth-document.auth-spotlight-document[data-spotlight-sky="night"] .password-rule-tracker.is-progress .password-rule-count {
+    color: #f6b144;
+}
+.auth-spotlight .password-rule-tracker.is-warning .password-rule-progress {
+    background: #e09422;
+}
+.auth-spotlight .password-rule-tracker.is-warning .password-rule-message {
+    color: #c27803;
+}
+.auth-document.auth-spotlight-document[data-spotlight-sky="night"] .password-rule-tracker.is-warning .password-rule-message {
+    color: #f6b144;
+}
+.auth-spotlight .password-rule-tracker.is-valid .password-rule-progress {
+    background: #16a34a;
+}
+.auth-spotlight .password-rule-tracker.is-valid .password-rule-count,
+.auth-spotlight .password-rule-tracker.is-valid .password-rule-message {
+    color: #15803d;
+}
+.auth-document.auth-spotlight-document[data-spotlight-sky="night"] .password-rule-tracker.is-valid .password-rule-progress {
+    background: #22c55e;
+}
+.auth-document.auth-spotlight-document[data-spotlight-sky="night"] .password-rule-tracker.is-valid .password-rule-count,
+.auth-document.auth-spotlight-document[data-spotlight-sky="night"] .password-rule-tracker.is-valid .password-rule-message {
+    color: #4ade80;
+}
 .auth-spotlight .auth-forgot-link { justify-self: end; margin-top: -1px; }
 .auth-spotlight .auth-inline { margin-top: -2px; }
 .auth-spotlight .check-line { color: var(--spotlight-muted) !important; font-size: 11px !important; }

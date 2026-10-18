@@ -32,18 +32,35 @@ class LearnerAuthTest extends TestCase
         ]);
     }
 
+    public function test_learner_can_register_with_minimum_8_characters_password(): void
+    {
+        $response = $this->post('/register', [
+            'name' => 'Tam Ky Tu',
+            'email' => 'tamkytu@example.com',
+            'password' => 'Pass1234',
+            'password_confirmation' => 'Pass1234',
+        ]);
+
+        $response->assertRedirect(route('home'));
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'email' => 'tamkytu@example.com',
+            'name' => 'Tam Ky Tu',
+        ]);
+    }
+
     public function test_registration_validation_rules(): void
     {
         // Missing fields
         $this->post('/register', [])
             ->assertSessionHasErrors(['name', 'email', 'password']);
 
-        // Password too short (<10 chars)
+        // Password too short (<8 chars)
         $this->post('/register', [
             'name' => 'Test',
             'email' => 'test@example.com',
-            'password' => 'Short1',
-            'password_confirmation' => 'Short1',
+            'password' => 'Short12', // 7 chars
+            'password_confirmation' => 'Short12',
         ])->assertSessionHasErrors('password');
 
         // Password without numbers

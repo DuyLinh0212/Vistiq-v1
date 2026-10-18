@@ -1,3 +1,4 @@
+@include('pages.learner.authentication.screens.form-feedback')
 <span class="eyebrow auth-eyebrow">VISTIQ ENGLISH <span>/</span> TÀI KHOẢN</span>
 <h2>Đăng nhập</h2>
 <p>Tiếp tục hành trình học tiếng Anh của bạn.</p>
@@ -6,7 +7,7 @@
     <div class="auth-alert auth-alert-success" role="status">{{ session('status') }}</div>
 @endif
 
-<form class="auth-form" action="{{ route('login.store') }}" method="post">
+<form data-auth-feedback class="auth-form" action="{{ route('login.store') }}" method="post">
     @csrf
 
     <div class="auth-field">

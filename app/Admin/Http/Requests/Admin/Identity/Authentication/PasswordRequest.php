@@ -25,4 +25,24 @@ class PasswordRequest extends FormRequest
 
         return $rules;
     }
+
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => mb_strtolower(trim($this->input('email')))]);
+        }
+    }
+
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'Nhập địa chỉ email của bạn.',
+            'email.email' => 'Email chưa đúng định dạng.',
+            'password.required' => 'Nhập mật khẩu.',
+            'password.min' => 'Mật khẩu cần ít nhất :min ký tự.',
+            'password.max' => 'Mật khẩu không được vượt quá :max ký tự.',
+            'password.confirmed' => 'Hai mật khẩu chưa khớp.',
+            'token.required' => 'Liên kết không hợp lệ. Hãy yêu cầu liên kết khôi phục mới.',
+        ];
+    }
 }
