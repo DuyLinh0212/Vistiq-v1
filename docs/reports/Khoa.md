@@ -1,6 +1,6 @@
 # Hoàn thiện Khoa — Profile / System Operations
 
-- Branch: `codex/khoa-profile-system-operations`, tạo từ `develop` tại `4d7e6a0`.
+- Branch: `codex/khoa-profile-system-operations`, tạo từ `develop` tại `4d7e6a0`; commit triển khai `4d162c6`, merge `d8ca989`.
 - Căn cứ: SCOPE/design/proposal Profile và System Operations, module-ownership và AGENTS.md; phạm vi sản phẩm theo kế hoạch đã duyệt.
 
 ## Phát hiện ban đầu và kết quả

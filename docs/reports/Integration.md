@@ -6,6 +6,7 @@
 - Danh: đầu `5ea757c`, sửa `c916a98`, báo cáo `0d2ee37`.
 - Phát: đầu `9eaba07`, sửa `deaf752`, báo cáo `afe27b4`; merge `bce7116`.
 - Viên: đầu `c04dba9`, sửa `6d06ab7`, báo cáo `6953402`; merge `9d034a2`.
+- Khoa: code `4d162c6`, merge `d8ca989`; bản cuối feature Danh `d9d0e76`, Phát `7ed596f`, Viên `e270ded`, Khoa `76998ec`. Báo cáo cuối được cập nhật trên từng feature branch và merge trở lại; tree sau merge giống bản đã kiểm thử.
 - Thứ tự merge: Danh → Phát → Viên. Không squash, không force push hoặc xóa branch nguồn.
 - Conflict chức năng nằm ở view leaderboard: giữ filter/export/reset của Viên, rank_position của Phát và dialog chung. Graph được hợp nhất node/relationship hai phía rồi dựng lại từ code.
 
@@ -29,6 +30,7 @@
 ## Kiểm chứng cuối
 
 - Khoa hoàn thiện Profile/System Operations trên `codex/khoa-profile-system-operations`; chi tiết chức năng, contract và test ở `Khoa.md`. Profile được dựng lại theo ảnh tham chiếu thứ hai của người dùng; dữ liệu, metric và hoạt động là dữ liệu thật của owner.
+- Sau merge phần Khoa và các báo cáo: **59/59 contract test, 295 assertions** đạt trên develop.
 - Toàn bộ PHP suite cuối: **442/442 đạt, 2.433 assertions**, SQLite RAM, 48,4 giây. JS runner **4/4**. Pint và diff check đạt; build frontend đạt với hai warning tùy chọn đã nêu.
 - Một vòng test gặp file font manifest mất tạm thời khi build thay asset. Chạy lại tuần tự sau build đạt toàn bộ; không sửa assertion để che lỗi. Các lần chạy E2E đầu giúp phát hiện throttle dùng chung budget, route storage bị shadow và race autosave/submit; tất cả đã có sửa/hồi quy.
 - E2E Chrome thật: **11 nhóm kiểm tra đạt**, không có JavaScript exception. Luồng gồm URL thiếu quyền/CSRF, gửi/duyệt revision và publish, Knowledge CRUD/publication/saved/import lỗi dòng, offline/autosave/nộp/chấm, history/leaderboard/CSV/XLSX, Profile/avatar/giữ cả file khi form lỗi, settings/audit/backup/preflight/restore/logout.
