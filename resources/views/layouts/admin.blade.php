@@ -4,6 +4,7 @@
             'label' => 'Nội dung',
             'icon' => 'book-open',
             'items' => [
+                ['route' => 'admin.content-approval.index', 'permission' => 'content.review', 'label' => 'Duyệt nội dung', 'icon' => 'check', 'active' => ['admin.content-approval.*']],
                 ['route' => 'admin.questions.index', 'permission' => 'content.view', 'label' => 'Ngân hàng Câu Hỏi', 'icon' => 'grammar', 'active' => ['admin.questions.index'], 'children' => [
                     ['route' => 'admin.questions.listening', 'permission' => 'content.view', 'label' => 'Câu hỏi Listening', 'active' => ['admin.questions.listening']],
                     ['route' => 'admin.readings.index', 'permission' => 'content.view', 'label' => 'Câu hỏi Reading', 'active' => ['admin.readings.*']],

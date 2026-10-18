@@ -24,6 +24,15 @@ class ManualGradeRequest extends FormRequest
     {
         return [
             'criteria' => 'required|array|size:4', 'criteria.*' => 'required|numeric|min:0|max:9', 'feedback' => 'required|string|max:20000',
+            'reason' => ($this->route('answer')?->grade ? 'required' : 'nullable').'|string|max:2000',
+            'grade_token' => ($this->route('answer')?->grade ? 'required' : 'nullable').'|string|size:64',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('reason'))) {
+            $this->merge(['reason' => trim($this->input('reason'))]);
+        }
     }
 }

@@ -11,6 +11,7 @@ use VistiqAdmin\Jobs\ProcessAiTask;
 use VistiqCore\Models\MediaAsset;
 use VistiqCore\Models\User;
 use VistiqCore\Services\Assessment\QuestionBank\MediaService;
+use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
 use VistiqCore\Services\System\SettingsService;
 
 class AiService

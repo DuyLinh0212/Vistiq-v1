@@ -120,12 +120,12 @@ class AdminOperationsTest extends TestCase
         $this->actingAs($editor)->post('/admin/questions', ['exam_part_id' => $part, 'question_type_id' => DB::table('question_types')->where('code', 'multiple_choice')->value('id'), 'question_difficulty_id' => DB::table('question_difficulties')->value('id'), 'prompt' => 'A real question', 'options' => ['A' => 'one', 'B' => 'two', 'C' => 'three', 'D' => 'four'], 'correct_option' => 'B'])->assertRedirect();
         $question = QuestionBankItem::first();
         $this->post('/admin/content/question/'.$question->id.'/review')->assertRedirect();
-        $this->actingAs($reviewer)->post('/admin/content/question/'.$question->id.'/approve')->assertRedirect();
+        $this->actingAs($reviewer)->post('/admin/content/question/'.$question->id.'/approve', $this->reviewData('question', $question->id))->assertRedirect();
         $this->actingAs($super)->post('/admin/content/question/'.$question->id.'/publish')->assertRedirect();
         $this->actingAs($editor)->post('/admin/exams', ['title' => 'E2E mini', 'exam_type_id' => DB::table('exam_types')->where('code', 'toeic')->value('id'), 'mode' => 'mini', 'sections' => [['exam_part_id' => $part, 'question_ids' => [$question->id]]], 'policies' => ['duration_minutes' => 30]])->assertRedirect();
         $exam = ExamTemplate::first();
         $this->post('/admin/exams/'.$exam->id.'/review')->assertRedirect();
-        $this->actingAs($reviewer)->post('/admin/exams/'.$exam->id.'/approve')->assertRedirect();
+        $this->actingAs($reviewer)->post('/admin/exams/'.$exam->id.'/approve', $this->reviewData('exam', $exam->id))->assertRedirect();
         $this->actingAs($super)->get('/admin/exams/'.$exam->id.'/preview')->assertOk();
         $this->post('/admin/exams/'.$exam->id.'/publish')->assertRedirect();
         $service = app(AttemptService::class);

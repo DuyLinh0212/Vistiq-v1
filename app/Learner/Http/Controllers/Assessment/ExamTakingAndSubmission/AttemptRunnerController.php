@@ -98,11 +98,11 @@ class AttemptRunnerController extends Controller
             return redirect()->route('attempts.result', $attempt);
         }
         $endpoints = [];
-        foreach (['state', 'answers', 'events', 'pause', 'resume', 'section', 'submit', 'result', 'recording', 'audio'] as $action) {
+        foreach (['state', 'answers', 'events', 'pause', 'resume', 'section', 'navigate', 'submit', 'result', 'recording', 'audio'] as $action) {
             $endpoints[$action] = route('attempts.'.$action, $attempt);
         }
 
-        return view('exam.runner', ['preview' => false, 'attempt' => $attempt, 'snapshot' => $state['snapshot'], 'state' => $state, 'endpoints' => $endpoints, 'warnings' => []]);
+        return view('pages.learner.assessment.exam-taking-and-submission.runtime.runner', ['preview' => false, 'attempt' => $attempt, 'snapshot' => $state['snapshot'], 'state' => $state, 'endpoints' => $endpoints, 'warnings' => []]);
     }
 
     public function state(Request $request, ExamAttempt $attempt, AttemptService $service): mixed
@@ -156,12 +156,20 @@ class AttemptRunnerController extends Controller
         return response()->json(['url' => route('attempts.result', $attempt), 'result' => $service->result($attempt)]);
     }
 
+    public function navigate(AttemptRequest $request, ExamAttempt $attempt, AttemptService $service): mixed
+    {
+        $service->authorize($attempt, $request->user()->id);
+        abort_unless($request->filled('item_key'), 422);
+
+        return response()->json($service->state($service->navigate($attempt, $request->validated('item_key'))));
+    }
+
     public function result(Request $request, ExamAttempt $attempt, AttemptService $service): mixed
     {
         $service->authorize($attempt, $request->user()->id);
         $result = $service->result($attempt);
 
-        return $request->expectsJson() ? response()->json($result) : view('exam.result', compact('result'));
+        return $request->expectsJson() ? response()->json($result) : view('pages.learner.assessment.exam-taking-and-submission.runtime.result', compact('result'));
     }
 
     public function audio(AttemptRequest $request, ExamAttempt $attempt, AttemptService $service): mixed
@@ -188,6 +196,7 @@ class AttemptRunnerController extends Controller
         abort_unless($request->hasFile('file'), 422);
         $service->recordingAllowed($attempt, $request->validated('item_key', ''));
         $asset = $media->store($request->file('file'), $request->user()->id);
+        $asset->update(['metadata' => array_replace($asset->metadata ?? [], ['recording_attempt_id' => $attempt->id, 'recording_item_key' => $request->validated('item_key')])]);
         if ($asset->mime_type === 'video/webm') {
             $asset->update(['mime_type' => 'audio/webm']);
         }

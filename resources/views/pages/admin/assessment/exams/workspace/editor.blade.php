@@ -147,7 +147,7 @@
 @if($exam->exists)
     <div class="ex-workflow-actions">
     @foreach(['review'=>['content.edit','draft','Gửi duyệt'],'approve'=>['content.review','review','Duyệt'],'reject'=>['content.review','review','Từ chối'],'publish'=>['content.publish','approved','Xuất bản'],'archive'=>['content.publish','published','Lưu trữ']] as $action=>$definition)
-        @can($definition[0])@if(($action==='archive' ? $exam->status : $exam->draft_status)===$definition[1])<form method="post" action="{{ route('admin.exams.transition',[$exam,$action]) }}">@csrf @if($action==='reject')<input name="note" required placeholder="Lý do từ chối" aria-label="Lý do từ chối">@endif<button class="ex-button {{ $action==='archive' ? 'is-danger' : 'is-primary' }}">{{ $definition[2] }}</button></form>@endif @endcan
+        @can($definition[0])@if($exam->draft_status==='review' && $action==='approve')<a class="ex-button is-primary" href="{{ route('admin.content-approval.show',['exam',$exam->id]) }}">Mở duyệt revision</a>@endif @if(!in_array($action,['approve','reject']) && ($action==='archive' ? $exam->status : $exam->draft_status)===$definition[1])<form method="post" action="{{ route('admin.exams.transition',[$exam,$action]) }}">@csrf @if($action==='reject')<input name="note" required placeholder="Lý do từ chối" aria-label="Lý do từ chối">@endif<button class="ex-button {{ $action==='archive' ? 'is-danger' : 'is-primary' }}">{{ $definition[2] }}</button></form>@endif @endcan
     @endforeach
     </div>
 @endif

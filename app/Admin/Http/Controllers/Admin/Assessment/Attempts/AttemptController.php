@@ -2,39 +2,31 @@
 
 namespace VistiqAdmin\Http\Controllers\Admin\Assessment\Attempts;
 
+use Illuminate\Support\Facades\Gate;
 use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
-use Illuminate\Support\Facades\DB;
-use VistiqAdmin\Http\Requests\Admin\Shared\AdminActionRequest;
+use VistiqAdmin\Http\Requests\Admin\Assessment\Attempts\AttemptFilterRequest;
+use VistiqAdmin\Http\Requests\Admin\Assessment\Attempts\ModerationRequest;
 use VistiqCore\Models\ExamAttempt;
-use VistiqCore\Services\System\AuditService;
+use VistiqCore\Services\Assessment\Attempts\AttemptModerationService;
+use VistiqCore\Services\Assessment\Attempts\AttemptQueryService;
 
 class AttemptController extends AdminPageController
 {
-    public function index(): mixed
+    public function index(AttemptFilterRequest $request, AttemptQueryService $query): mixed
     {
-        return $this->page('Lượt thi', 'pages.admin.assessment.attempts.workspace.index', ['attempts' => ExamAttempt::with(['user', 'exam'])->latest()->paginate(20)]);
+        return $this->page('Lượt làm bài', 'pages.admin.assessment.attempts.workspace.index', ['attempts' => $query->listing($request->validated()), 'filters' => $request->validated()]);
     }
 
-    public function detail(ExamAttempt $attempt): mixed
+    public function detail(ExamAttempt $attempt, AttemptQueryService $query): mixed
     {
-        $attempt->load(['user', 'exam', 'answers']);
-        $events = DB::table('attempt_events')->join('attempt_event_types', 'attempt_event_types.id', '=', 'attempt_events.attempt_event_type_id')->where('exam_attempt_id', $attempt->id)->orderBy('occurred_at')->get();
-        $reports = DB::table('attempt_reports')->where('exam_attempt_id', $attempt->id)->get();
-        $result = DB::table('attempt_results')->where('exam_attempt_id', $attempt->id)->first();
+        Gate::authorize('results.view');
 
-        return $this->page('Chi tiết lượt thi #'.$attempt->id, 'pages.admin.assessment.attempts.workspace.detail', compact('attempt', 'events', 'reports', 'result'));
+        return $this->page('Lượt thi #'.$attempt->id, 'pages.admin.assessment.attempts.workspace.detail', $query->detail($attempt));
     }
 
-    public function moderate(AdminActionRequest $request, ExamAttempt $attempt, AuditService $audit): mixed
+    public function moderate(ModerationRequest $request, ExamAttempt $attempt, AttemptModerationService $service): mixed
     {
-        abort_unless($request->filled('leaderboard_status') && $request->filled('note'), 422, 'Nhập quyết định và lý do.');
-        DB::transaction(function () use ($request, $attempt, $audit): void {
-            $attempt = ExamAttempt::lockForUpdate()->findOrFail($attempt->id);
-            $before = ['leaderboard_status' => $attempt->leaderboard_status];
-            $attempt->update(['leaderboard_status' => $request->validated('leaderboard_status')]);
-            DB::table('attempt_reports')->where('exam_attempt_id', $attempt->id)->where('status', 'pending')->update(['status' => 'reviewed', 'reviewed_by' => auth()->id(), 'reviewed_at' => now(), 'updated_at' => now()]);
-            $audit->record('attempt.moderate', 'attempt', $attempt->id, $before, ['leaderboard_status' => $attempt->leaderboard_status, 'note' => $request->validated('note')]);
-        });
+        $service->moderate($attempt, $request->validated());
 
         return back()->with('status', 'Đã lưu quyết định kiểm duyệt.');
     }

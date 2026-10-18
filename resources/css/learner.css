@@ -1,3 +1,4 @@
+@import './confirmation-dialog.css';
 @import 'tailwindcss' source('../');
 @import './auth-spotlight.css';
 @import './dictionary.css';

@@ -32,7 +32,7 @@ class ContentRevisionTest extends TestCase
         $service->save('question', $question, $this->item(['exam_part_id' => $question->exam_part_id]), 0);
         $this->postJson('/admin/content/question/'.$question->id.'/review')->assertOk();
         $this->postJson('/admin/content/question/'.$question->id.'/publish')->assertForbidden();
-        $this->actingAs($reviewer)->postJson('/admin/content/question/'.$question->id.'/approve')->assertOk();
+        $this->actingAs($reviewer)->postJson('/admin/content/question/'.$question->id.'/approve', $this->reviewData('question', $question->id))->assertOk();
         $this->actingAs($publisher)->postJson('/admin/content/question/'.$question->id.'/publish')->assertOk();
         $published = $question->fresh()->published_revision_id;
         $this->actingAs($editor);
@@ -49,8 +49,8 @@ class ContentRevisionTest extends TestCase
         $service = app(ContentRevisionService::class);
         $service->save('question', $question, $this->item(['exam_part_id' => $question->exam_part_id]), 0);
         $this->postJson('/admin/content/question/'.$question->id.'/review')->assertOk();
-        $this->postJson('/admin/content/question/'.$question->id.'/reject')->assertUnprocessable();
-        $this->postJson('/admin/content/question/'.$question->id.'/reject', ['note' => 'Fix wording'])->assertOk();
+        $this->postJson('/admin/content/question/'.$question->id.'/reject', $this->reviewData('question', $question->id))->assertUnprocessable();
+        $this->postJson('/admin/content/question/'.$question->id.'/reject', $this->reviewData('question', $question->id) + ['note' => 'Fix wording'])->assertOk();
         $this->putJson('/admin/questions/'.$question->id, ['prompt' => 'Other', 'exam_part_id' => $question->exam_part_id, 'question_type_id' => $question->question_type_id, 'question_difficulty_id' => $question->question_difficulty_id, 'revision_counter' => 0])->assertConflict();
     }
 

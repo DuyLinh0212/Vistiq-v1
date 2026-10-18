@@ -119,16 +119,26 @@ class ContentRevisionService
             Gate::authorize(match ($action) {
                 'review' => 'edit','approve','reject' => 'review',default => 'publish'
             }, $root);
-            $allowed = ['review' => ['draft'], 'approve' => ['review'], 'reject' => ['review'], 'publish' => ['approved'], 'archive' => ['published']];
-            if ($action === 'publish' && auth()->user()?->hasRole('super-admin')) {
-                $allowed['publish'] = ['draft', 'review', 'approved'];
+            $note = $note === null ? null : trim($note);
+            if (mb_strlen($note ?? '') > 2000) {
+                throw ValidationException::withMessages(['note' => 'Lý do không được dài quá 2.000 ký tự.']);
             }
+            abort_if($kind === 'question' && $action === 'approve' && (int) $revision->created_by === (int) auth()->id(), 403, 'Tác giả không được tự duyệt revision của mình.');
+            $liveStatus = $kind === 'question' ? $root->learningItem->status : $root->status;
+            abort_if($liveStatus === 'archived' && $action !== 'archive', 409, 'Nội dung đã lưu trữ.');
+            $allowed = ['review' => ['draft'], 'approve' => ['review'], 'reject' => ['review'], 'publish' => ['approved'], 'archive' => ['published']];
             abort_unless(in_array($revision->status, $allowed[$action], true), 409, 'Trạng thái hiện tại không cho phép thao tác này.');
             if ($action === 'reject' && trim($note ?? '') === '') {
                 throw ValidationException::withMessages(['note' => 'Nhập lý do từ chối.']);
             }
-            if (in_array($action, ['review', 'publish'], true)) {
+            if (in_array($action, ['review', 'publish'], true) || ($kind === 'question' && $action === 'approve')) {
                 $this->validate($kind, $revision->payload);
+            }
+            if ($kind === 'question' && $action === 'approve') {
+                $blockers = app(ContentReviewService::class)->preview('question', $root->id, true)['blockers'];
+                if ($blockers) {
+                    throw ValidationException::withMessages(['content' => $blockers]);
+                }
             }
             $before = ['status' => $revision->status, 'revision' => $revision->number];
             if ($action === 'archive') {
@@ -151,7 +161,7 @@ class ContentRevisionService
                     $this->mirrorStatus($kind, $root, $status);
                 }
             }
-            $this->audit->record('content.'.$action, $kind, $root->id, $before, ['status' => $action === 'archive' ? 'archived' : $revision->status, 'note' => $note]);
+            $this->audit->record('content.'.$action, $kind, $root->id, $before, ['status' => $action === 'archive' ? 'archived' : $revision->status, 'revision' => $revision->number, 'note' => $note]);
 
             return $revision;
         });

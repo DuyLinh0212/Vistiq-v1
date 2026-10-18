@@ -2,6 +2,7 @@
 
 @section('content')
 <main class="assessment-page exam-catalog-page" data-exam-catalog>
+    <nav class="assessment-actions" aria-label="Lịch sử"><a href="{{ route('attempts.history') }}">Lượt làm của tôi</a></nav>
     <section class="exam-catalog-hero">
         <div class="exam-catalog-copy">
             <h1>{{ $examTypes->isNotEmpty() ? 'Luyện đề '.$examTypes->pluck('name')->join(' / ') : 'Kho đề thi' }}</h1>
@@ -100,6 +101,7 @@
                 <form class="exam-catalog-action" method="post" action="{{ route('exams.start', $exam) }}">
                     @csrf
                     <button class="button button-primary" type="submit" @disabled($isUpcoming || $isClosed)>{{ $isUpcoming ? 'Chưa mở' : ($isClosed ? 'Đã đóng' : 'Làm bài') }} @include('pages.dictionary.icon', ['name' => 'arrow-right'])</button>
+                    @if($publishedPayload['policies']['leaderboard']??false)<a class="button button-quiet" href="{{ route('exams.leaderboard',$exam) }}">Bảng xếp hạng</a>@endif
                 </form>
             </article>
         @empty

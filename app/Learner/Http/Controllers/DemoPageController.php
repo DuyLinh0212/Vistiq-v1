@@ -70,6 +70,8 @@ class DemoPageController extends Controller
 
     public function show(string $screen): View|RedirectResponse
     {
+        if ($screen === 'history') { return redirect()->route('attempts.history'); }
+        if ($screen === 'exam-leaderboard' && request()->filled('exam')) { return redirect()->route('exams.leaderboard', request()->integer('exam')); }
         if (in_array($screen, ['exams', 'exam-config', 'exam-detail', 'exam-rules', 'exam-room', 'ielts-reading-room', 'submit', 'exam-result', 'answer-review', 'exam-leaderboard', 'ielts-result', 'ielts-exam-detail', 'ielts-rules'], true)) {
             return redirect()->route('exams.index');
         }

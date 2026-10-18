@@ -7,7 +7,7 @@
         <a class="{{ $page['section'] === 'skills' ? 'is-active' : '' }}" href="{{ route('demo.page', 'skills') }}">@include('pages.dictionary.icon', ['name' => 'activity']) <span>Luyện theo kỹ năng</span></a>
         <a class="{{ $page['section'] === 'grammar' || ($type ?? 'all') === 'grammar' ? 'is-active' : '' }}" href="{{ route('lookup.index', ['type' => 'grammar']) }}">@include('pages.dictionary.icon', ['name' => 'grammar']) <span>Ngữ pháp</span></a>
         <a class="{{ $page['section'] === 'knowledge' ? 'is-active' : '' }}" href="{{ route('demo.page', 'knowledge') }}">@include('pages.dictionary.icon', ['name' => 'collection']) <span>Kho kiến thức</span></a>
-        <a class="{{ $page['section'] === 'profile' ? 'is-active' : '' }}" href="{{ route('demo.page', 'history') }}">@include('pages.dictionary.icon', ['name' => 'profile']) <span>Thống kê</span></a>
+        <a class="{{ request()->routeIs('attempts.history') ? 'is-active' : '' }}" href="{{ route('attempts.history') }}">@include('pages.dictionary.icon', ['name' => 'profile']) <span>Lịch sử làm đề</span></a>
     </nav>
     <div class="topbar-actions">
         <a class="icon-button" href="{{ route('lookup.index') }}" aria-label="Tìm kiếm">@include('pages.dictionary.icon', ['name' => 'search'])</a>
