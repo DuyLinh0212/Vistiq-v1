@@ -16,14 +16,8 @@
         </div>
     </header>
 
-    @if($errors->any())
-        <div class="knowledge-validation-errors" role="alert">
-            <strong>Kiểm tra lại thông tin:</strong>
-            <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
-        </div>
-    @endif
 
-    <form class="knowledge-editor" method="post" action="{{ route('admin.knowledge.import.preview') }}" enctype="multipart/form-data">
+    <form class="knowledge-editor" method="post" action="{{ route('admin.knowledge.import.preview') }}" enctype="multipart/form-data" data-pending-label="Đang kiểm tra…">
         @csrf
 
         <section class="knowledge-editor-section">

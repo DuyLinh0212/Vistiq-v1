@@ -17,11 +17,6 @@
 @endphp
 
 <section class="knowledge-library">
-    @if(session('status'))
-        <div class="knowledge-notice" role="status" style="margin-bottom: 16px;">
-            {{ session('status') }}
-        </div>
-    @endif
 
     <nav class="knowledge-tabs" aria-label="Nhóm kiến thức">
         <a href="{{ route('admin.knowledge.index', array_filter(['q' => $search, 'status' => $selectedStatus])) }}" @class(['is-active' => $selectedType === ''])>
@@ -94,7 +89,7 @@
                         @endphp
                         <tr>
                             <td>
-                                <a class="knowledge-item-link" href="{{ route('admin.knowledge.edit', $item) }}">
+                                <a class="knowledge-item-link" href="{{ route('admin.knowledge.preview', $item) }}">
                                     <strong>{{ $item->canonical_text }}</strong>
                                     @if(filled($metadata['meaning_vi'] ?? null))
                                         <small>{{ $metadata['meaning_vi'] }}</small>
@@ -108,10 +103,11 @@
                             <td><span class="knowledge-status knowledge-status-{{ $item->status }}">{{ $statusLabels[$item->status] ?? $item->status }}</span></td>
                             <td>{{ $item->updated_at?->format('d/m/Y') ?? '—' }}</td>
                             <td style="white-space: nowrap;">
-                                <a class="knowledge-edit-link" href="{{ route('admin.knowledge.edit', $item) }}">Chỉnh sửa</a>
+                                <a class="knowledge-edit-link" href="{{ route('admin.knowledge.preview', $item) }}">Xem / duyệt</a>
+                                @can('content.edit')<a class="knowledge-edit-link" href="{{ route('admin.knowledge.edit', $item) }}">Chỉnh sửa</a>@endcan
                                 @if($item->status === 'draft')
                                     @can('content.edit')
-                                        <form method="post" action="{{ route('admin.knowledge.destroy', $item) }}" style="display: inline-block; margin-left: 10px;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bản nháp này? Hành động này không thể hoàn tác.');">
+                                        <form method="post" action="{{ route('admin.knowledge.destroy', $item) }}" style="display: inline-block; margin-left: 10px;" data-confirm="Xóa bản nháp {{ $item->canonical_text }}? Không thể hoàn tác." data-confirm-label="Xóa bản nháp" data-pending-label="Đang xóa…">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="knowledge-edit-link" style="background: none; border: none; padding: 0; color: #c93434; cursor: pointer;">Xóa</button>

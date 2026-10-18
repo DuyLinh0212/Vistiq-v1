@@ -9,7 +9,6 @@
 @endphp
 
 <section class="knowledge-editor-page">
-    @if($errors->any())<div role="alert" class="knowledge-validation-errors">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
     <p>Tệp được giữ trong phiên 20 phút. Chỉ xác nhận khi toàn bộ dòng hợp lệ.</p>
     <header class="knowledge-editor-header">
         <a class="knowledge-back-link" href="{{ route('admin.knowledge.import', ['type' => $type]) }}">← Quay lại Import</a>
@@ -70,7 +69,7 @@
     </section>
 
     @if($preview['total'] > 0 && count($preview['errors']) === 0)
-        <form method="post" action="{{ route('admin.knowledge.import.confirm') }}">
+        <form method="post" action="{{ route('admin.knowledge.import.confirm') }}" data-pending-label="Đang import…">
             @csrf
             <input type="hidden" name="type" value="{{ $type }}">
             <input type="hidden" name="duplicate_policy" value="{{ $duplicatePolicy }}">
