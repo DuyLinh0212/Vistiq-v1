@@ -14,15 +14,15 @@
         <form method="post" action="{{ route('admin.roles.store') }}" class="admin-form-grid" data-pending-label="Đang tạo vai trò…">
             @csrf<input type="hidden" name="_identity_form" value="create">
             <label for="create-role-code">Mã vai trò *
-                <input id="create-role-code" name="code" value="{{ $creating ? old('code') : '' }}" pattern="[a-z0-9\-]+" maxlength="50" placeholder="vi-du: teacher-lead" required aria-describedby="create-code-help @if($creating && $errors->has('code'))create-code-error @endif" @if($creating && $errors->has('code'))aria-invalid="true"@endif>
-                <small id="create-code-help">Tối đa 50 ký tự: chữ thường, số, gạch ngang. Không đổi sau khi tạo.</small>
+                <input id="create-role-code" name="code" value="{{ $creating ? old('code') : '' }}" pattern="[a-z0-9\-]+" maxlength="40" placeholder="vi-du: teacher-lead" required aria-describedby="create-code-help @if($creating && $errors->has('code'))create-code-error @endif" @if($creating && $errors->has('code'))aria-invalid="true"@endif>
+                <small id="create-code-help">Tối đa 40 ký tự: chữ thường, số, gạch ngang. Không đổi sau khi tạo.</small>
                 @if($creating)@error('code')<span class="admin-login-field-error" id="create-code-error">{{ $message }}</span>@enderror @endif
             </label>
             <label for="create-role-name">Tên vai trò *
-                <input id="create-role-name" name="name" value="{{ $creating ? old('name') : '' }}" maxlength="255" placeholder="Tổ trưởng chuyên môn" required @if($creating && $errors->has('name'))aria-invalid="true" aria-describedby="create-name-error"@endif>
+                <input id="create-role-name" name="name" value="{{ $creating ? old('name') : '' }}" maxlength="100" placeholder="Tổ trưởng chuyên môn" required @if($creating && $errors->has('name'))aria-invalid="true" aria-describedby="create-name-error"@endif>
                 @if($creating)@error('name')<span class="admin-login-field-error" id="create-name-error">{{ $message }}</span>@enderror @endif
             </label>
-            <label for="create-role-description" class="identity-wide">Mô tả <small>Tối đa 1.000 ký tự</small><textarea id="create-role-description" name="description" class="editor-textarea short" maxlength="1000" rows="2" @if($creating && $errors->has('description'))aria-invalid="true" aria-describedby="create-description-error"@endif>{{ $creating ? old('description') : '' }}</textarea>
+            <label for="create-role-description" class="identity-wide">Mô tả <small>Tối đa 255 ký tự</small><textarea id="create-role-description" name="description" class="editor-textarea short" maxlength="255" rows="2" @if($creating && $errors->has('description'))aria-invalid="true" aria-describedby="create-description-error"@endif>{{ $creating ? old('description') : '' }}</textarea>
                 @if($creating)@error('description')<span class="admin-login-field-error" id="create-description-error">{{ $message }}</span>@enderror @endif
             </label>
             <div class="identity-actions identity-wide"><button class="button button-primary" type="submit">Tạo vai trò</button><span class="muted">Sau khi tạo, chọn các quyền cần cấp cho vai trò.</span></div>
@@ -55,17 +55,17 @@
                         </form>
                     @endif
                 </header>
-                @if($isSuperAdmin)
-                    <p class="role-permission-readonly">Super Admin luôn sở hữu toàn bộ quyền trong hệ thống và không thể chỉnh sửa.</p>
+                @if($isSystemRole)
+                    <p class="role-permission-readonly">{{ $selectedRole->name }} luôn sở hữu toàn bộ quyền trong hệ thống và không thể chỉnh sửa.</p>
                 @else
                     <form method="post" action="{{ route('admin.roles.update', $selectedRole) }}" class="role-permission-form" data-role-permissions data-member-count="{{ $selectedRole->users_count }}" data-role-name="{{ $selectedRole->name }}">
                         @csrf<input type="hidden" name="_identity_form" value="edit"><input type="hidden" name="permission_matrix" value="1">
                         @if(!$isSystemRole)
                             <div class="admin-form-grid">
-                                <label for="role-edit-name">Tên vai trò *<input id="role-edit-name" name="name" value="{{ $editing ? old('name') : $selectedRole->name }}" required maxlength="255" @if($editing && $errors->has('name'))aria-invalid="true" aria-describedby="edit-name-error"@endif>
+                                <label for="role-edit-name">Tên vai trò *<input id="role-edit-name" name="name" value="{{ $editing ? old('name') : $selectedRole->name }}" required maxlength="100" @if($editing && $errors->has('name'))aria-invalid="true" aria-describedby="edit-name-error"@endif>
                                     @if($editing)@error('name')<span class="admin-login-field-error" id="edit-name-error">{{ $message }}</span>@enderror @endif
                                 </label>
-                                <label for="role-edit-description">Mô tả<input id="role-edit-description" name="description" value="{{ $editing ? old('description') : $selectedRole->description }}" maxlength="1000" @if($editing && $errors->has('description'))aria-invalid="true" aria-describedby="edit-description-error"@endif><small>Tối đa 1.000 ký tự</small>
+                                <label for="role-edit-description">Mô tả<input id="role-edit-description" name="description" value="{{ $editing ? old('description') : $selectedRole->description }}" maxlength="255" @if($editing && $errors->has('description'))aria-invalid="true" aria-describedby="edit-description-error"@endif><small>Tối đa 255 ký tự</small>
                                     @if($editing)@error('description')<span class="admin-login-field-error" id="edit-description-error">{{ $message }}</span>@enderror @endif
                                 </label>
                             </div>

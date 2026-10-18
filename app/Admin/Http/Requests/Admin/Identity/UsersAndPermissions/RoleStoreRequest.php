@@ -19,20 +19,20 @@ class RoleStoreRequest extends FormRequest
             'code' => [
                 'required',
                 'string',
-                'max:50',
+                'max:40',
                 'regex:/^[a-z0-9\-]+$/',
                 'unique:roles,code',
             ],
             'name' => [
                 'required',
                 'string',
-                'max:255',
+                'max:100',
                 'unique:roles,name',
             ],
             'description' => [
                 'nullable',
                 'string',
-                'max:1000',
+                'max:255',
             ],
             'permissions' => [
                 'sometimes',

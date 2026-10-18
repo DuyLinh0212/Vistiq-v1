@@ -25,13 +25,13 @@ class RoleUpdateRequest extends FormRequest
                 'sometimes',
                 'required',
                 'string',
-                'max:255',
+                'max:100',
                 Rule::unique('roles', 'name')->ignore($role->id),
             ],
             'description' => [
                 'nullable',
                 'string',
-                'max:1000',
+                'max:255',
             ],
             'permissions' => [
                 'sometimes',
@@ -62,8 +62,8 @@ class RoleUpdateRequest extends FormRequest
             /** @var Role $role */
             $role = $this->route('role');
 
-            if ($role && $role->code === 'super-admin' && $this->has('permissions')) {
-                $validator->errors()->add('permissions', 'Super Admin luôn có toàn bộ quyền và không thể chỉnh sửa.');
+            if ($role && in_array($role->code, ['admin', 'super-admin'], true) && $this->has('permissions')) {
+                $validator->errors()->add('permissions', $role->name.' luôn có toàn bộ quyền và không thể chỉnh sửa.');
 
                 return;
             }

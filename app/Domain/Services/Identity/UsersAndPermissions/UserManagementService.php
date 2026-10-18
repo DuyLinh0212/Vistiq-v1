@@ -27,6 +27,7 @@ class UserManagementService
             $user = User::lockForUpdate()->findOrFail($user->id);
             $removing = $action === 'lock' || ($action === 'roles' && ! in_array((int) Role::where('code', 'super-admin')->value('id'), array_map('intval', $data['roles'] ?? []), true));
             abort_if($removing && $user->hasRole('super-admin') && $user->status === 'active' && $supers->where('status', 'active')->count() <= 1, 409, 'Không thể khóa hoặc hạ quyền Super Admin cuối cùng.');
+            abort_if($action === 'lock' && (int) $user->id === (int) auth()->id(), 409, 'Không thể khóa tài khoản đang sử dụng.');
             $before = ['status' => $user->status, 'roles' => $user->roles()->pluck('code')->all()];
             switch ($action) {
                 case 'lock':
@@ -117,10 +118,11 @@ class UserManagementService
                 'name' => $role->name,
                 'description' => $role->description,
                 'permissions' => $role->permissions()->pluck('code')->all(),
+                'affected_users_count' => $role->users()->count(),
             ];
 
-            if ($role->code === 'super-admin' && isset($data['permissions'])) {
-                abort(409, 'Super Admin luôn có toàn bộ quyền và không thể chỉnh sửa.');
+            if (in_array($role->code, ['admin', 'super-admin'], true) && isset($data['permissions'])) {
+                abort(409, $role->name.' luôn có toàn bộ quyền và không thể chỉnh sửa.');
             }
 
             if (isset($data['name'])) {
@@ -147,6 +149,7 @@ class UserManagementService
                 'name' => $role->name,
                 'description' => $role->description,
                 'permissions' => $role->permissions()->pluck('code')->all(),
+                'affected_users_count' => $role->users()->count(),
             ];
 
             $this->audit->record('role.update', 'role', $role->id, $before, $after);
@@ -158,6 +161,7 @@ class UserManagementService
     public function deleteRole(Role $role): array
     {
         return DB::transaction(function () use ($role): array {
+            $role = Role::lockForUpdate()->findOrFail($role->id);
             abort_if(
                 in_array($role->code, ['admin', 'super-admin'], true),
                 409,
