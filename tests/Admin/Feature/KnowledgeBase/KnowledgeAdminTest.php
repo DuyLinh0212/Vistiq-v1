@@ -140,6 +140,7 @@ class KnowledgeAdminTest extends TestCase
             ->post(route('admin.knowledge.import.confirm'), [
                 'type' => 'vocabulary',
                 'duplicate_policy' => 'skip',
+                'preview_token' => $previewResponse->viewData('previewToken'),
                 'rows_json' => json_encode([
                     ['english' => 'resilient', 'meaning_vi' => 'kiên cường'],
                 ]),

@@ -9,6 +9,8 @@
 @endphp
 
 <section class="knowledge-editor-page">
+    @if($errors->any())<div role="alert" class="knowledge-validation-errors">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
+    <p>Tệp được giữ trong phiên 20 phút. Chỉ xác nhận khi toàn bộ dòng hợp lệ.</p>
     <header class="knowledge-editor-header">
         <a class="knowledge-back-link" href="{{ route('admin.knowledge.import', ['type' => $type]) }}">← Quay lại Import</a>
         <div class="knowledge-editor-title">
@@ -19,7 +21,7 @@
 
     @if(count($preview['errors']) > 0)
         <div class="knowledge-validation-errors" role="alert">
-            <strong>{{ count($preview['errors']) }} dòng có lỗi (sẽ bị bỏ qua):</strong>
+            <strong>{{ count($preview['errors']) }} dòng có lỗi (chưa import; cần sửa tệp):</strong>
             <ul>
                 @foreach($preview['errors'] as $err)
                     <li>Dòng {{ $err['row'] }}: {{ $err['message'] }}</li>
@@ -67,12 +69,12 @@
         @endif
     </section>
 
-    @if($preview['total'] > 0)
+    @if($preview['total'] > 0 && count($preview['errors']) === 0)
         <form method="post" action="{{ route('admin.knowledge.import.confirm') }}">
             @csrf
             <input type="hidden" name="type" value="{{ $type }}">
             <input type="hidden" name="duplicate_policy" value="{{ $duplicatePolicy }}">
-            <input type="hidden" name="rows_json" value="{{ json_encode($preview['rows'], JSON_UNESCAPED_UNICODE) }}">
+            <input type="hidden" name="preview_token" value="{{ $previewToken }}">
             <footer class="knowledge-editor-actions">
                 <a class="button button-quiet" href="{{ route('admin.knowledge.import', ['type' => $type]) }}">Hủy</a>
                 <button class="button button-primary" type="submit">Import {{ $preview['total'] }} mục</button>

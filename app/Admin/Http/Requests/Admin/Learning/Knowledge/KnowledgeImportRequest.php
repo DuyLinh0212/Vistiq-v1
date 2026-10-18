@@ -14,7 +14,7 @@ class KnowledgeImportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => 'required|file|mimes:csv,txt|max:5120',
+            'file' => 'required|file|mimes:csv,txt,tsv|extensions:csv,tsv,txt|max:5120',
             'type' => 'required|in:vocabulary,collocation,phrasal_verb,idiom,grammar',
             'duplicate_policy' => 'sometimes|in:skip,overwrite',
         ];

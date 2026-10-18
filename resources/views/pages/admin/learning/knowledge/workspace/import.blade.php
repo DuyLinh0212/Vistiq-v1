@@ -38,7 +38,7 @@
                     <span>Loại kiến thức <b>*</b></span>
                     <select name="type" required>
                         @foreach($typeLabels as $code => $label)
-                            <option value="{{ $code }}" @selected($type === $code)>{{ $label }}</option>
+                            <option value="{{ $code }}" @selected(old('type', $type) === $code)>{{ $label }}</option>
                         @endforeach
                     </select>
                     @error('type')<small class="knowledge-field-error">{{ $message }}</small>@enderror
@@ -46,16 +46,16 @@
 
                 <label class="knowledge-field">
                     <span>Tệp CSV <b>*</b></span>
-                    <input type="file" name="file" accept=".csv,.txt" required>
-                    <small>Chấp nhận: .csv — Tối đa: 5 MB</small>
+                    <input type="file" name="file" accept=".csv,.tsv,.txt" required>
+                    <small>CSV/TSV UTF-8 · Tối đa 5 MB và 1.000 dòng. meaning_vi bắt buộc trừ Grammar; Grammar cần grammar_category_id; Phrasal Verb cần base_dictionary_entry_id và particle.</small>
                     @error('file')<small class="knowledge-field-error">{{ $message }}</small>@enderror
                 </label>
 
                 <label class="knowledge-field">
                     <span>Xử lý trùng lặp</span>
                     <select name="duplicate_policy">
-                        <option value="skip">Bỏ qua mục đã tồn tại</option>
-                        <option value="overwrite">Ghi đè mục đã tồn tại</option>
+                        <option value="skip" @selected(old('duplicate_policy', 'skip') === 'skip')>Bỏ qua mục đã tồn tại</option>
+                        <option value="overwrite" @selected(old('duplicate_policy') === 'overwrite')>Ghi đè mục đã tồn tại</option>
                     </select>
                 </label>
             </div>

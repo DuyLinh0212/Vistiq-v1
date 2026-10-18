@@ -5,11 +5,14 @@ namespace VistiqCore\Services\Knowledge;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use VistiqCore\Models\ContentRevision;
 use VistiqCore\Models\LearningItem;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
+use VistiqCore\Services\System\AuditService;
 
 class KnowledgeItemService
 {
@@ -48,7 +51,7 @@ class KnowledgeItemService
     /**
      * Build the filtered, paginated listing for the admin index.
      *
-     * @return array{items: LengthAwarePaginator, types: \Illuminate\Support\Collection, typeCounts: \Illuminate\Support\Collection, typeIds: \Illuminate\Support\Collection, levelsById: \Illuminate\Support\Collection, selectedType: string, search: string, selectedStatus: string}
+     * @return array{items: LengthAwarePaginator, types: Collection, typeCounts: Collection, typeIds: Collection, levelsById: Collection, selectedType: string, search: string, selectedStatus: string}
      */
     public function listing(Request $request): array
     {
@@ -94,6 +97,7 @@ class KnowledgeItemService
     public function editorPayload(LearningItem $item, string $selectedType = 'vocabulary'): array
     {
         $types = $this->taxonomy->types();
+        abort_if($item->exists && ! $types->contains('id', $item->learning_item_type_id), 404);
 
         if (! $types->contains('code', $selectedType)) {
             $selectedType = 'vocabulary';
@@ -140,6 +144,9 @@ class KnowledgeItemService
     {
         return DB::transaction(function () use ($data) {
             $typeId = DB::table('learning_item_types')->where('code', $data['type'])->value('id');
+            if (LearningItem::where('learning_item_type_id', $typeId)->whereRaw('LOWER(canonical_text) = ?', [mb_strtolower(trim($data['english'] ?? ''))])->exists()) {
+                throw ValidationException::withMessages(['english' => 'Mục kiến thức này đã tồn tại trong cùng loại.']);
+            }
 
             $item = LearningItem::create([
                 'learning_item_type_id' => $typeId,
@@ -160,6 +167,7 @@ class KnowledgeItemService
      */
     public function update(LearningItem $item, array $data): void
     {
+        abort_unless($this->taxonomy->types()->contains('id', $item->learning_item_type_id), 404);
         $this->revisions->save('knowledge', $item, $data, $data['revision_counter'] ?? 0);
     }
 
@@ -168,22 +176,25 @@ class KnowledgeItemService
      */
     public function destroy(LearningItem $item): void
     {
+        abort_unless($this->taxonomy->types()->contains('id', $item->learning_item_type_id), 404);
         abort_if($item->status !== 'draft', 403, 'Chỉ có thể xóa kiến thức ở trạng thái bản nháp.');
 
         $hasQuestions = DB::table('question_bank_items')->where('learning_item_id', $item->id)->exists();
         $hasDictionary = DB::table('dictionary_entries')->where('learning_item_id', $item->id)->exists();
+        $hasSavedItems = DB::table('user_saved_items')->where('learning_item_id', $item->id)->exists();
         $hasRelations = DB::table('learning_item_relations')
             ->where('source_learning_item_id', $item->id)
             ->orWhere('target_learning_item_id', $item->id)
             ->exists();
 
         abort_if(
-            $hasQuestions || $hasDictionary || $hasRelations,
+            $hasQuestions || $hasDictionary || $hasRelations || $hasSavedItems,
             422,
-            'Không thể xóa mục kiến thức đã có liên kết câu hỏi, từ điển hoặc quan hệ từ.'
+            'Không thể xóa mục kiến thức đã được người dùng lưu hoặc có liên kết. Hãy lưu trữ mục này.'
         );
 
         DB::transaction(function () use ($item): void {
+            app(AuditService::class)->record('knowledge.delete', 'knowledge', $item->id, ['title' => $item->canonical_text], ['deleted' => true]);
             ContentRevision::where('kind', 'knowledge')
                 ->where('entity_id', $item->id)
                 ->where('status', '!=', 'published')

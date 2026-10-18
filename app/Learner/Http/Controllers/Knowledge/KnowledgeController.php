@@ -2,122 +2,69 @@
 
 namespace VistiqLearner\Http\Controllers\Knowledge;
 
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use VistiqCore\Services\Knowledge\KnowledgeReaderService;
 use VistiqLearner\Http\Controllers\StaticPageController;
 use VistiqLearner\Http\Requests\Knowledge\KnowledgeFilterRequest;
 
 class KnowledgeController extends StaticPageController
 {
-    private const SCREENS = [
-        'knowledge' => ['title' => 'Kho kiến thức cá nhân', 'frame' => 'U06', 'view' => 'pages.learner.knowledge.saved.index', 'section' => 'knowledge', 'description' => 'Lưu lại những điều quan trọng trong quá trình học.', 'show_heading' => false],
-        'knowledge-list' => ['title' => 'Danh sách mục đã lưu', 'frame' => 'U35', 'view' => 'pages.learner.knowledge.saved.list', 'section' => 'knowledge', 'description' => 'Tìm, phân loại và xem lại kiến thức của bạn.', 'show_heading' => false],
-        'knowledge-review' => ['title' => 'Ôn tập kho kiến thức', 'frame' => 'U36', 'view' => 'pages.learner.knowledge.saved.review', 'section' => 'knowledge', 'description' => 'Ôn lại mục đã lưu theo tiến độ học tập.', 'show_heading' => false],
-        'saved-detail' => ['title' => 'take into account', 'frame' => 'U24', 'view' => 'pages.learner.knowledge.saved.show', 'section' => 'knowledge', 'description' => 'Cân nhắc, tính đến khi đưa ra quyết định.', 'show_heading' => false],
-    ];
-
-    public function show(string $screen): View
+    public function show(string $screen): RedirectResponse
     {
-        return $this->renderKnownScreen($screen, self::SCREENS);
+        return redirect()->route($screen === 'knowledge' ? 'knowledge.index' : 'knowledge.saved');
     }
 
-    public function index(KnowledgeFilterRequest $request): View
+    public function index(KnowledgeFilterRequest $request, KnowledgeReaderService $reader): View
     {
-        $type = $request->validated('type') ?? 'all';
-        $q = $request->validated('q');
-        $level = $request->validated('level');
+        $filters = $request->validated();
 
-        $query = DB::table('learning_items')
-            ->join('learning_item_types as item_type', 'item_type.id', '=', 'learning_items.learning_item_type_id')
-            ->leftJoin('proficiency_levels as level', 'level.id', '=', 'learning_items.proficiency_level_id')
-            ->where('learning_items.status', 'published')
-            ->where(fn ($sub) => $sub->whereNull('learning_items.published_at')->orWhere('learning_items.published_at', '<=', now()))
-            ->where('item_type.code', '!=', 'question')
-            ->when($type && $type !== 'all', fn ($builder) => $builder->where('item_type.code', $type))
-            ->when($q, fn ($builder) => $builder->where('learning_items.canonical_text', 'like', "%{$q}%"))
-            ->when($level, fn ($builder) => $builder->where('level.code', $level))
-            ->select([
-                'learning_items.id',
-                'learning_items.canonical_text',
-                'learning_items.slug',
-                'item_type.code as type_code',
-                'item_type.label as type_label',
-                'level.code as level_code',
-                'level.label as level_label',
-            ])
-            ->orderBy('learning_items.canonical_text');
+        return $this->catalog($reader->publishedQuery($filters)->orderBy('item.canonical_text')->paginate(15)->withQueryString(), $filters);
+    }
 
-        $items = $query->paginate(15)->withQueryString();
-        $types = DB::table('learning_item_types')->where('code', '!=', 'question')->orderBy('sort_order')->get();
-        $levels = DB::table('proficiency_levels')->orderBy('sort_order')->get();
+    public function savedList(KnowledgeFilterRequest $request, KnowledgeReaderService $reader): View
+    {
+        return $this->catalog($reader->savedItems($request->user()->id, $request->validated()), $request->validated(), true);
+    }
 
-        $page = [
-            'title' => 'Kho kiến thức',
-            'view' => 'pages.learner.knowledge.saved.index',
-            'section' => 'knowledge',
-            'shell' => 'user',
-            'slug' => 'knowledge',
-            'description' => 'Khám phá và lưu lại những điều quan trọng trong quá trình học.',
-            'show_heading' => false,
-        ];
+    private function catalog(mixed $items, array $filters, bool $savedView = false): View
+    {
+        $page = ['title' => $savedView ? 'Mục đã lưu' : 'Kho kiến thức', 'view' => 'pages.learner.knowledge.saved.index', 'section' => 'knowledge', 'shell' => 'user', 'slug' => 'knowledge', 'show_heading' => false];
 
-        return view('shared.demo-page', [
-            'page' => $page,
-            'items' => $items,
-            'types' => $types,
-            'levels' => $levels,
-            'filters' => [
-                'type' => $type,
-                'q' => $q,
-                'level' => $level,
-            ],
+        return view('shared.demo-page', ['page' => $page, 'items' => $items, 'filters' => $filters, 'savedView' => $savedView,
+            'types' => DB::table('learning_item_types')->where('code', '!=', 'question')->orderBy('sort_order')->get(),
+            'levels' => DB::table('proficiency_levels')->orderBy('sort_order')->get()]);
+    }
+
+    public function detail(string $slug, KnowledgeReaderService $reader): View
+    {
+        $data = $reader->detail($slug);
+        $page = ['title' => $data['summary']->canonical_text, 'view' => 'pages.learner.knowledge.saved.show', 'section' => 'knowledge', 'shell' => 'user', 'slug' => $slug, 'show_heading' => false];
+        $saved = auth()->check() ? DB::table('user_saved_items')->where('user_id', auth()->id())->where('learning_item_id', $data['summary']->id)->first() : null;
+
+        return view('shared.demo-page', ['page' => $page, ...$data, 'saved' => $saved]);
+    }
+
+    public function save(Request $request, string $slug, KnowledgeReaderService $reader): RedirectResponse
+    {
+        $data = $request->validate(['personal_note' => 'nullable|string|max:5000', 'is_starred' => 'sometimes|boolean']);
+        $item = $reader->detail($slug)['summary'];
+        $existing = DB::table('user_saved_items')->where('user_id', $request->user()->id)->where('learning_item_id', $item->id)->first();
+        DB::table('user_saved_items')->updateOrInsert(['user_id' => $request->user()->id, 'learning_item_id' => $item->id], [
+            'personal_note' => $data['personal_note'] ?? null, 'is_starred' => $data['is_starred'] ?? false,
+            'created_at' => $existing?->created_at ?? now(), 'updated_at' => now(),
         ]);
+
+        return back()->with('status', 'Đã lưu mục kiến thức và ghi chú.');
     }
 
-    public function savedList(KnowledgeFilterRequest $request): View
+    public function unsave(Request $request, string $slug, KnowledgeReaderService $reader): RedirectResponse
     {
-        return $this->show('knowledge-list');
-    }
+        $item = $reader->detail($slug)['summary'];
+        DB::table('user_saved_items')->where('user_id', $request->user()->id)->where('learning_item_id', $item->id)->delete();
 
-    public function detail(string $slug): View
-    {
-        $item = DB::table('learning_items')
-            ->join('learning_item_types as item_type', 'item_type.id', '=', 'learning_items.learning_item_type_id')
-            ->leftJoin('proficiency_levels as level', 'level.id', '=', 'learning_items.proficiency_level_id')
-            ->where('learning_items.status', 'published')
-            ->where(fn ($sub) => $sub->whereNull('learning_items.published_at')->orWhere('learning_items.published_at', '<=', now()))
-            ->where('learning_items.slug', $slug)
-            ->select([
-                'learning_items.id',
-                'learning_items.canonical_text',
-                'learning_items.slug',
-                'item_type.code as type_code',
-                'item_type.label as type_label',
-                'level.code as level_code',
-                'level.label as level_label',
-            ])
-            ->first();
-
-        if (! $item) {
-            if (isset(self::SCREENS[$slug])) {
-                return $this->show($slug);
-            }
-            abort(404, 'Mục kiến thức không tồn tại hoặc chưa được xuất bản.');
-        }
-
-        $page = [
-            'title' => $item->canonical_text,
-            'view' => 'pages.learner.knowledge.saved.show',
-            'section' => 'knowledge',
-            'shell' => 'user',
-            'slug' => $slug,
-            'description' => 'Chi tiết kiến thức.',
-            'show_heading' => false,
-        ];
-
-        return view('shared.demo-page', [
-            'page' => $page,
-            'item' => $item,
-        ]);
+        return redirect()->route('knowledge.saved')->with('status', 'Đã bỏ lưu mục kiến thức.');
     }
 }

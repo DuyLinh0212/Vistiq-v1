@@ -2,8 +2,10 @@
 
 namespace VistiqLearner\Http\Controllers\Knowledge;
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use VistiqCore\Services\Knowledge\KnowledgeReaderService;
 use VistiqLearner\Http\Controllers\StaticPageController;
 use VistiqLearner\Http\Requests\Knowledge\KnowledgeFilterRequest;
 
@@ -14,9 +16,9 @@ class GrammarController extends StaticPageController
         'grammar-present-perfect' => ['title' => 'Present Perfect', 'frame' => 'U05', 'view' => 'pages.learner.knowledge.grammar.show', 'section' => 'grammar', 'description' => 'Cấu trúc, cách dùng và ví dụ dễ nhớ.', 'show_heading' => false],
     ];
 
-    public function show(string $screen): View
+    public function show(string $screen): RedirectResponse
     {
-        return $this->renderKnownScreen($screen, self::SCREENS);
+        return redirect()->route($screen === 'grammar' ? 'grammar.index' : 'grammar.show', $screen === 'grammar' ? [] : ['slug' => 'present-perfect']);
     }
 
     public function index(KnowledgeFilterRequest $request): View
@@ -90,71 +92,13 @@ class GrammarController extends StaticPageController
         ]);
     }
 
-    public function detail(string $slug): View
+    public function detail(string $slug, KnowledgeReaderService $reader): View
     {
-        $grammarTypeId = DB::table('learning_item_types')->where('code', 'grammar')->value('id');
+        $data = $reader->detail($slug);
+        abort_unless($data['summary']->type_code === 'grammar', 404);
+        $page = ['title' => $data['summary']->canonical_text, 'view' => 'pages.learner.knowledge.saved.show', 'section' => 'grammar', 'shell' => 'user', 'slug' => $slug, 'show_heading' => false];
+        $saved = auth()->check() ? DB::table('user_saved_items')->where('user_id', auth()->id())->where('learning_item_id', $data['summary']->id)->first() : null;
 
-        $item = DB::table('learning_items')
-            ->join('grammar_topics', 'grammar_topics.learning_item_id', '=', 'learning_items.id')
-            ->leftJoin('grammar_categories', 'grammar_categories.id', '=', 'grammar_topics.grammar_category_id')
-            ->leftJoin('proficiency_levels', 'proficiency_levels.id', '=', 'learning_items.proficiency_level_id')
-            ->where('learning_items.status', 'published')
-            ->where(fn ($sub) => $sub->whereNull('learning_items.published_at')->orWhere('learning_items.published_at', '<=', now()))
-            ->where('learning_items.slug', $slug)
-            ->when($grammarTypeId, fn ($builder) => $builder->where('learning_items.learning_item_type_id', $grammarTypeId))
-            ->select([
-                'learning_items.id',
-                'learning_items.canonical_text',
-                'learning_items.slug',
-                'grammar_topics.id as topic_id',
-                'grammar_topics.summary',
-                'grammar_categories.name as category_name',
-                'proficiency_levels.label as level_label',
-            ])
-            ->first();
-
-        if (! $item) {
-            if (isset(self::SCREENS[$slug])) {
-                return $this->show($slug);
-            }
-            abort(404, 'Chủ điểm ngữ pháp không tồn tại hoặc chưa được xuất bản.');
-        }
-
-        $rules = DB::table('grammar_rules')
-            ->where('grammar_topic_id', $item->topic_id)
-            ->orderBy('sort_order')
-            ->get();
-
-        $ruleIds = $rules->pluck('id')->all();
-        $examplesByRule = DB::table('grammar_examples')
-            ->whereIn('grammar_rule_id', $ruleIds)
-            ->orderBy('sort_order')
-            ->get()
-            ->groupBy('grammar_rule_id');
-
-        $related = DB::table('learning_item_relations')
-            ->join('learning_items', 'learning_items.id', '=', 'learning_item_relations.target_learning_item_id')
-            ->where('learning_item_relations.source_learning_item_id', $item->id)
-            ->where('learning_items.status', 'published')
-            ->select(['learning_items.canonical_text', 'learning_items.slug'])
-            ->get();
-
-        $page = [
-            'title' => $item->canonical_text,
-            'view' => 'pages.learner.knowledge.grammar.show',
-            'section' => 'grammar',
-            'shell' => 'user',
-            'slug' => $slug,
-            'description' => $item->summary ?? 'Cấu trúc, cách dùng và ví dụ dễ nhớ.',
-            'show_heading' => false,
-        ];
-
-        return view('shared.demo-page', [
-            'page' => $page,
-            'item' => $item,
-            'rules' => $rules,
-            'examplesByRule' => $examplesByRule,
-            'related' => $related,
-        ]);
+        return view('shared.demo-page', ['page' => $page, ...$data, 'saved' => $saved]);
     }
 }

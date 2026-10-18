@@ -3,6 +3,10 @@
 namespace VistiqAdmin\Http\Controllers\Admin\Learning\Knowledge;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqAdmin\Http\Requests\Admin\Learning\Knowledge\KnowledgeImportRequest;
 use VistiqAdmin\Http\Requests\Admin\Learning\Knowledge\KnowledgeUpsertRequest;
@@ -70,39 +74,64 @@ class KnowledgeAdminController extends AdminPageController
     public function importPreview(KnowledgeImportRequest $request, KnowledgeImportService $importer): mixed
     {
         $preview = $importer->preview($request->file('file'), $request->validated('type'));
-        $duplicatePolicy = $request->input('duplicate_policy', 'skip');
-
-        return $this->page('Xem trước import', 'pages.admin.learning.knowledge.workspace.import-preview', [
-            'preview' => $preview,
-            'type' => $request->validated('type'),
-            'duplicatePolicy' => $duplicatePolicy,
+        $previous = $request->session()->get('knowledge_import');
+        if ($previous && isset($previous['source'])) {
+            Storage::disk('local')->delete($previous['source']);
+        }
+        $state = [
+            'preview' => $preview, 'type' => $request->validated('type'),
+            'duplicatePolicy' => $request->input('duplicate_policy', 'skip'),
             'filename' => $request->file('file')->getClientOriginalName(),
-        ]);
+            'previewToken' => Str::random(48), 'actor' => $request->user()->id,
+            'expires' => now()->addMinutes(20)->timestamp,
+            'source' => $request->file('file')->store('knowledge-imports', 'local'),
+        ];
+        $request->session()->put('knowledge_import', $state);
+
+        return $this->page('Xem trước import', 'pages.admin.learning.knowledge.workspace.import-preview', $state);
+    }
+
+    public function importPreviewShow(Request $request, string $token): mixed
+    {
+        $state = $request->session()->get('knowledge_import');
+        abort_unless($state && hash_equals($state['previewToken'], $token) && $state['actor'] === $request->user()->id && $state['expires'] >= now()->timestamp, 404);
+
+        return $this->page('Xem trước import', 'pages.admin.learning.knowledge.workspace.import-preview', $state);
     }
 
     public function importConfirm(Request $request, KnowledgeImportService $importer): mixed
     {
-        abort_unless($request->user()?->hasPermission('content.edit'), 403, 'Bạn không có quyền import nội dung.');
+        abort_unless($request->user()?->hasPermission('content.edit'), 403);
+        $request->validate(['preview_token' => 'required|string|size:48']);
+        $state = $request->session()->get('knowledge_import');
+        if (! $state || ! hash_equals($state['previewToken'], $request->input('preview_token')) || $state['actor'] !== $request->user()->id || $state['expires'] < now()->timestamp) {
+            throw ValidationException::withMessages(['file' => 'Bản xem trước không hợp lệ hoặc đã hết hạn. Hãy tải lại tệp.']);
+        }
+        if ($state['preview']['errors']) {
+            throw ValidationException::withMessages(['file' => 'Tệp còn dòng lỗi. Chưa import mục nào; hãy sửa tệp và xem trước lại.']);
+        }
+        $lock = Cache::store('file')->lock('knowledge-import-'.$state['previewToken'], 120);
+        abort_unless($lock->get(), 409, 'Tệp đang được import. Hãy chờ kết quả.');
+        try {
+            abort_if(Cache::store('file')->has('knowledge-import-done-'.$state['previewToken']), 409, 'Tệp này đã được import.');
+            try {
+                $result = $importer->import($state['preview']['rows'], $state['type'], $state['duplicatePolicy']);
+            } catch (ValidationException $exception) {
+                if ($request->expectsJson()) {
+                    throw $exception;
+                }
 
-        $request->validate([
-            'type' => 'required|in:vocabulary,collocation,phrasal_verb,idiom,grammar',
-            'duplicate_policy' => 'required|in:skip,overwrite',
-            'rows_json' => 'required|string',
-        ]);
-
-        $rows = json_decode($request->input('rows_json'), true);
-        if (! is_array($rows)) {
-            return redirect()->route('admin.knowledge.import')->withErrors(['file' => 'Dữ liệu import không hợp lệ.']);
+                return redirect()->route('admin.knowledge.import.preview.show', $state['previewToken'])->withErrors($exception->errors());
+            }
+            Cache::store('file')->put('knowledge-import-done-'.$state['previewToken'], true, now()->addDay());
+            Storage::disk('local')->delete($state['source']);
+            $request->session()->forget('knowledge_import');
+        } finally {
+            $lock->release();
         }
 
-        $result = $importer->import(
-            $rows,
-            $request->string('type')->toString(),
-            $request->string('duplicate_policy')->toString()
-        );
-
-        return redirect()->route('admin.knowledge.index', ['type' => $request->input('type')])
-            ->with('status', "Đã import thành công {$result['imported']} mục (bỏ qua {$result['skipped']}).");
+        return redirect()->route('admin.knowledge.index', ['type' => $state['type']])
+            ->with('status', "Đã import {$result['imported']} mục; bỏ qua {$result['skipped']} mục trùng theo lựa chọn. Không có dòng lỗi bị bỏ qua.");
     }
 
     public function export(Request $request, KnowledgeItemService $service, KnowledgeImportService $importer): mixed

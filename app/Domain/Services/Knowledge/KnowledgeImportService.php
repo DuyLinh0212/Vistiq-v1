@@ -4,120 +4,98 @@ namespace VistiqCore\Services\Knowledge;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use VistiqCore\Models\LearningItem;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
+use VistiqCore\Services\System\AuditService;
 
 class KnowledgeImportService
 {
-    public function __construct(
-        private readonly ContentRevisionService $revisions,
-        private readonly KnowledgeTaxonomyService $taxonomy,
-    ) {}
+    public const MAX_ROWS = 1000;
 
-    /**
-     * Preview the contents of an uploaded file without persisting.
-     *
-     * @return array{headers: array<string>, rows: array<array<string, string>>, total: int, errors: array<array{row: int, message: string}>}
-     */
+    public function __construct(private readonly ContentRevisionService $revisions, private readonly KnowledgeTaxonomyService $taxonomy) {}
+
     public function preview(UploadedFile $file, string $type): array
     {
-        $rows = $this->parseFile($file);
-        $headers = array_shift($rows) ?? [];
+        $records = $this->parseFile($file);
+        $headers = array_map(fn ($v) => Str::snake(mb_strtolower(trim((string) $v))), array_shift($records) ?? []);
         $errors = [];
         $parsed = [];
-
-        foreach ($rows as $index => $row) {
-            $rowNumber = $index + 2; // 1-indexed + header row
-            $mapped = $this->mapRowToData($headers, $row, $type);
-            if ($mapped === null) {
-                $errors[] = ['row' => $rowNumber, 'message' => 'Dòng thiếu trường bắt buộc (english).'];
-                continue;
+        if (! in_array('english', $headers, true) || count(array_unique($headers)) !== count($headers)) {
+            $errors[] = ['row' => 1, 'message' => 'Cần cột english và tên các cột không được trùng.'];
+        }
+        if ($records === []) {
+            $errors[] = ['row' => 2, 'message' => 'Tệp không có dòng dữ liệu.'];
+        }
+        foreach ($records as $index => $row) {
+            $data = [];
+            foreach ($headers as $i => $header) {
+                $key = match ($header) {
+                    'vietnamese', 'nghia' => 'meaning_vi', 'definition' => 'definition_en', 'pronunciation' => 'ipa', default => $header
+                };
+                $data[$key] = trim((string) ($row[$i] ?? ''));
             }
-            $parsed[] = $mapped;
+            if (count($row) !== count($headers)) {
+                $errors[] = ['row' => $index + 2, 'message' => 'Số cột không khớp dòng tiêu đề.'];
+            }
+            $validator = Validator::make([...$data, 'type' => $type], KnowledgeInput::rules());
+            if ($validator->fails()) {
+                $errors[] = ['row' => $index + 2, 'message' => implode(' ', $validator->errors()->all())];
+            }
+            $parsed[] = $validator->fails() ? $data : $validator->validated();
         }
 
-        return [
-            'headers' => $headers,
-            'rows' => $parsed,
-            'total' => count($parsed),
-            'errors' => $errors,
-        ];
+        return ['headers' => $headers, 'rows' => $parsed, 'total' => count($records), 'errors' => $errors];
     }
 
-    /**
-     * Import rows and create draft knowledge items.
-     *
-     * @param  array<array<string, mixed>>  $rows  Validated row data from preview
-     * @return array{imported: int, skipped: int, errors: array<array{row: int, message: string}>}
-     */
     public function import(array $rows, string $type, string $duplicatePolicy = 'skip'): array
     {
-        $imported = 0;
-        $skipped = 0;
+        Validator::make(['type' => $type, 'duplicate_policy' => $duplicatePolicy, 'rows' => $rows], [
+            'type' => 'required|in:vocabulary,collocation,phrasal_verb,idiom,grammar', 'duplicate_policy' => 'required|in:skip,overwrite', 'rows' => 'required|array|min:1|max:'.self::MAX_ROWS,
+        ])->validate();
+        $validated = [];
         $errors = [];
-
-        $typeId = DB::table('learning_item_types')->where('code', $type)->value('id');
-        if (! $typeId) {
-            return ['imported' => 0, 'skipped' => count($rows), 'errors' => [['row' => 0, 'message' => "Loại kiến thức '{$type}' không tồn tại."]]];
-        }
-
-        foreach ($rows as $index => $data) {
-            $rowNumber = $index + 1;
-
-            try {
-                $english = trim($data['english'] ?? '');
-                if ($english === '') {
-                    $errors[] = ['row' => $rowNumber, 'message' => 'Trường english bắt buộc.'];
-                    $skipped++;
-                    continue;
-                }
-
-                // Duplicate check
-                $existing = LearningItem::where('canonical_text', $english)
-                    ->where('learning_item_type_id', $typeId)
-                    ->first();
-
-                if ($existing) {
-                    if ($duplicatePolicy === 'skip') {
-                        $skipped++;
-                        continue;
-                    }
-                    // 'overwrite' policy: update the existing item's revision
-                    $data['type'] = $type;
-                    $this->revisions->save('knowledge', $existing, $data, $existing->revision_counter ?? 0);
-                    $imported++;
-                    continue;
-                }
-
-                DB::transaction(function () use ($data, $type, $typeId, &$imported): void {
-                    $item = LearningItem::create([
-                        'learning_item_type_id' => $typeId,
-                        'canonical_text' => $data['english'],
-                        'slug' => Str::slug($data['english']).'-'.Str::random(12),
-                        'created_by' => auth()->id(),
-                        'status' => 'draft',
-                    ]);
-
-                    $data['type'] = $type;
-                    $this->revisions->save('knowledge', $item, $data, 0);
-                    $imported++;
-                });
-            } catch (\Throwable $e) {
-                $errors[] = ['row' => $rowNumber, 'message' => 'Lỗi: '.Str::limit($e->getMessage(), 120)];
-                $skipped++;
+        foreach ($rows as $index => $row) {
+            $validator = Validator::make(is_array($row) ? [...$row, 'type' => $type] : [], KnowledgeInput::rules());
+            if ($validator->fails()) {
+                $errors['rows.'.($index + 2)] = ['Dòng '.($index + 2).': '.implode(' ', $validator->errors()->all())];
+            } else {
+                $validated[] = $validator->validated();
             }
         }
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
 
-        return ['imported' => $imported, 'skipped' => $skipped, 'errors' => $errors];
+        return DB::transaction(function () use ($validated, $type, $duplicatePolicy): array {
+            $imported = 0;
+            $skipped = 0;
+            $typeId = DB::table('learning_item_types')->where('code', $type)->value('id');
+            abort_unless($typeId, 422, 'Loại kiến thức không còn tồn tại.');
+            foreach ($validated as $data) {
+                $english = trim($data['english']);
+                $existing = LearningItem::where('learning_item_type_id', $typeId)->whereRaw('LOWER(canonical_text) = ?', [mb_strtolower($english)])->lockForUpdate()->first();
+                if ($existing && $duplicatePolicy === 'skip') {
+                    $skipped++;
+
+                    continue;
+                }
+                if ($existing) {
+                    $this->revisions->save('knowledge', $existing, $data, $existing->revision_counter ?? 0);
+                } else {
+                    $item = LearningItem::create(['learning_item_type_id' => $typeId, 'canonical_text' => $english, 'slug' => Str::slug($english).'-'.Str::random(12), 'created_by' => auth()->id(), 'status' => 'draft']);
+                    $this->revisions->save('knowledge', $item, $data, 0);
+                }
+                $imported++;
+            }
+            app(AuditService::class)->record('knowledge.import', 'knowledge', null, [], ['type' => $type, 'imported' => $imported, 'duplicate_skipped' => $skipped]);
+
+            return ['imported' => $imported, 'skipped' => $skipped, 'errors' => []];
+        });
     }
 
-    /**
-     * Export knowledge items to CSV format.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @return string CSV content
-     */
     public function exportCsv($query): string
     {
         $typeLabels = $this->taxonomy->types()->pluck('label', 'id');
@@ -161,66 +139,37 @@ class KnowledgeImportService
         return $value;
     }
 
-    /**
-     * Parse an uploaded CSV/TSV file into rows.
-     *
-     * @return array<array<string>>
-     */
     private function parseFile(UploadedFile $file): array
     {
         $content = file_get_contents($file->getPathname());
-
-        // Detect and convert encoding if not valid UTF-8
+        if ($content === false || str_contains($content, "\0")) {
+            throw ValidationException::withMessages(['file' => 'Không thể đọc tệp CSV/TSV văn bản.']);
+        }
         if (! mb_check_encoding($content, 'UTF-8')) {
-            $encoding = mb_detect_encoding($content, ['Windows-1252', 'ISO-8859-1'], true);
-            if ($encoding) {
-                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
-            }
+            $content = mb_convert_encoding($content, 'UTF-8', 'Windows-1252');
         }
-
-        // Remove BOM
-        if (str_starts_with($content, "\xEF\xBB\xBF")) {
-            $content = substr($content, 3);
-        }
-
-        $lines = preg_split('/\r\n|\r|\n/', trim($content));
+        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content);
+        $handle = fopen('php://temp', 'r+');
+        fwrite($handle, $content);
+        rewind($handle);
+        $firstLine = fgets($handle) ?: '';
+        $delimiter = str_contains($firstLine, "\t") ? "\t" : ',';
+        rewind($handle);
         $rows = [];
-        $delimiter = str_contains($lines[0] ?? '', "\t") ? "\t" : ',';
-
-        foreach ($lines as $line) {
-            if (trim($line) === '') {
-                continue;
+        try {
+            while (($row = fgetcsv($handle, null, $delimiter, '"', '')) !== false) {
+                if ($row === [null]) {
+                    continue;
+                }
+                $rows[] = $row;
+                if (count($rows) > self::MAX_ROWS + 1) {
+                    throw ValidationException::withMessages(['file' => 'Mỗi lần import tối đa '.self::MAX_ROWS.' dòng. Hãy chia nhỏ tệp.']);
+                }
             }
-            $rows[] = str_getcsv($line, $delimiter);
+        } finally {
+            fclose($handle);
         }
 
         return $rows;
-    }
-
-    /**
-     * Map a CSV row to knowledge item data using header names.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function mapRowToData(array $headers, array $row, string $type): ?array
-    {
-        $map = [];
-        foreach ($headers as $i => $header) {
-            $key = Str::snake(trim(strtolower($header)));
-            $map[$key] = trim($row[$i] ?? '');
-        }
-
-        if (empty($map['english'] ?? '')) {
-            return null;
-        }
-
-        return array_filter([
-            'english' => $map['english'] ?? '',
-            'meaning_vi' => $map['meaning_vi'] ?? $map['vietnamese'] ?? $map['nghia'] ?? '',
-            'definition_en' => $map['definition_en'] ?? $map['definition'] ?? '',
-            'ipa' => $map['ipa'] ?? $map['pronunciation'] ?? '',
-            'tags' => $map['tags'] ?? $map['tag'] ?? '',
-            'summary' => $map['summary'] ?? '',
-        ], fn ($v) => $v !== '');
     }
 }
