@@ -2,10 +2,16 @@
 
 namespace VistiqCore\Services\Analytics;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use VistiqCore\Models\ExamTemplate;
 
 class ExportService
 {
+    public const MAX_ROWS = 10000;
+
     /**
      * Export dashboard metrics to CSV.
      *
@@ -33,6 +39,12 @@ class ExportService
         }
         if (! empty($filters['mode']) && $filters['mode'] !== 'all') {
             fputcsv($output, ['Chế độ', $filters['mode'] === 'practice' ? 'Luyện tập (Practice)' : 'Thi chính thức (Exam)']);
+        }
+
+        foreach (['exam_type' => 'Loại đề', 'skill' => 'Kỹ năng', 'status' => 'Trạng thái'] as $key => $label) {
+            if (! empty($filters[$key])) {
+                fputcsv($output, [$label, self::sanitize((string) $filters[$key])]);
+            }
         }
 
         fputcsv($output, []); // blank line
@@ -80,7 +92,7 @@ class ExportService
     /**
      * Export leaderboard rankings to CSV.
      *
-     * @param  \Illuminate\Contracts\Pagination\LengthAwarePaginator|iterable  $rankings
+     * @param  LengthAwarePaginator|iterable  $rankings
      * @return string CSV content
      */
     public function leaderboardCsv($rankings, ?ExamTemplate $exam = null): string
@@ -98,7 +110,7 @@ class ExportService
         $rank = 1;
         foreach ($rankings as $row) {
             fputcsv($output, [
-                $rank++,
+                $row->rank_position ?? $rank++,
                 self::sanitize((string) $row->name),
                 self::sanitize((string) $row->title),
                 $row->scaled_score,
@@ -117,10 +129,53 @@ class ExportService
     /**
      * Sanitize a cell value to prevent CSV formula injection.
      */
+    public function download(string $csv, string $prefix, string $format): mixed
+    {
+        $content = $format === 'xlsx' ? $this->xlsx($csv) : $csv;
+        $mime = $format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv; charset=UTF-8';
+
+        return response($content, 200, ['Content-Type' => $mime, 'Content-Disposition' => 'attachment; filename="'.$prefix.'-'.now()->format('YmdHis').'.'.$format.'"', 'Cache-Control' => 'private, no-store']);
+    }
+
+    public function xlsx(string $csv): string
+    {
+        $book = new Spreadsheet;
+        $sheet = $book->getActiveSheet();
+        $sheet->setTitle('Báo cáo Vistiq');
+        $stream = fopen('php://temp', 'r+');
+        fwrite($stream, preg_replace('/^\xEF\xBB\xBF/', '', $csv));
+        rewind($stream);
+        $row = 1;
+        try {
+            while (($cells = fgetcsv($stream, null, ',', '"', '')) !== false) {
+                foreach ($cells as $column => $cell) {
+                    $numeric = is_string($cell) && preg_match('/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/D', $cell);
+                    $sheet->setCellValueExplicit([$column + 1, $row], $numeric ? (float) $cell : (string) $cell, $numeric ? DataType::TYPE_NUMERIC : DataType::TYPE_STRING);
+                }
+                $row++;
+            }
+            $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+            foreach (range('A', 'F') as $column) {
+                $sheet->getColumnDimension($column)->setWidth($column === 'A' ? 32 : 26);
+            }
+            $sheet->freezePane('A2');
+            ob_start();
+            try {
+                (new Xlsx($book))->save('php://output');
+
+                return ob_get_contents();
+            } finally {
+                ob_end_clean();
+            }
+        } finally {
+            fclose($stream);
+            $book->disconnectWorksheets();
+        }
+    }
+
     public static function sanitize(string $value): string
     {
-        $dangerous = ['=', '+', '-', '@', "\t", "\r"];
-        if ($value !== '' && in_array($value[0], $dangerous, true)) {
+        if (preg_match('/^[\s\x{FEFF}]*[=+\-@]/u', $value) || preg_match('/^[\t\r\n]/', $value)) {
             return "'".$value;
         }
 

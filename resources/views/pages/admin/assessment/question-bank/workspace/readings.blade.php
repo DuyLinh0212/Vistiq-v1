@@ -13,7 +13,7 @@
 <div class="question-bank reading-library listening-library reading-admin-library" data-reading-library data-auto-add="{{ $autoAdd ? '1' : '0' }}" data-editor-url="{{ $editorUrl }}" data-initial-question="{{ request()->integer('question') ?: '' }}">
     @if(session('import_summary'))
         <div class="admin-toast {{ session('import_summary.failed') ? 'admin-toast-warning' : '' }}" role="status">
-            <span>Đã import {{ number_format(session('import_summary.imported')) }}/{{ number_format(session('import_summary.total')) }} câu.{{ session('import_summary.failed') ? ' Có lỗi theo sheet.' : '' }}</span>
+            <span>Đã nhập {{ number_format(session('import_summary.imported')) }} câu hỏi theo bài đọc; tổng {{ number_format(session('import_summary.total')) }} dòng.{{ session('import_summary.failed') ? ' Có lỗi theo sheet.' : '' }}</span>
             @if(session('import_errors'))
                 <details class="import-errors"><summary>Xem lỗi</summary><ul>@foreach(session('import_errors') as $error)<li>{{ $error }}</li>@endforeach</ul></details>
             @endif
@@ -27,12 +27,15 @@
         </div>
         <div class="qb-heading-actions">
             @can('content.edit')
+                <a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'readings']) }}">Mẫu CSV kèm câu hỏi</a>
+                <a class="button button-quiet" href="#reading-csv-import">Import bài đọc CSV</a>
                 @include('pages.admin.assessment.question-bank.workspace.question-workbook-import', ['workbookKind'=>'reading'])
                 <a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'reading-xlsx']) }}">@include('pages.dictionary.icon', ['name'=>'saved']) Tải mẫu .xlsx</a>
                 <a class="button button-primary" href="{{ route('admin.readings.index', ['create'=>1]) }}">@include('pages.dictionary.icon', ['name'=>'plus']) Tạo bài đọc</a>
             @endcan
         </div>
     </header>
+    @if($canEdit)<div id="reading-csv-import">@include('pages.admin.assessment.question-bank.workspace.reading-import')</div>@endif
 
     <section class="listening-stats" aria-label="Tổng quan Reading">
         <article class="listening-stat"><span class="listening-stat-icon is-blue">@include('pages.dictionary.icon', ['name'=>'book-open'])</span><div><span>Tổng bài Reading</span><strong>{{ number_format($readingStats['readings']) }}</strong></div></article>

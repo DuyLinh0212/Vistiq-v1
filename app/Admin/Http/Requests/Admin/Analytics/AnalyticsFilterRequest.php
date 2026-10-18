@@ -18,6 +18,10 @@ class AnalyticsFilterRequest extends FormRequest
             'date_to' => 'nullable|date|after_or_equal:date_from',
             'exam_id' => 'nullable|integer|exists:exam_templates,id',
             'mode' => 'nullable|string|in:all,exam,practice',
+            'exam_type' => 'nullable|string|exists:exam_types,code',
+            'skill' => 'nullable|string|exists:skills,code',
+            'status' => 'nullable|in:in_progress,paused,expired,submitted,pending_grading,completed',
+            'format' => 'nullable|in:csv,xlsx',
         ];
     }
 

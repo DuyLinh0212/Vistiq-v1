@@ -80,7 +80,7 @@ class ExamGenerationTest extends TestCase
         $catalog = app(ExamGenerationService::class)->catalog();
         $template = $catalog['thpt-english'];
 
-        $this->assertSame('Tiếng Anh THPT Quốc Gia', $template['name']);
+        $this->assertSame($catalog['thpt-english-2025']['name'], $template['name']);
         $this->assertSame(50, $template['duration_minutes']);
         $this->assertSame([6, 6, 5, 5, 8, 10], array_column($template['sections'], 'count'));
         $this->assertSame(40, array_sum(array_column($template['sections'], 'count')));

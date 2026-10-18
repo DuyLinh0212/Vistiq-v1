@@ -6,17 +6,18 @@ use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\Admin\TestCase;
-use VistiqCore\Models\ContentRevision;
 use VistiqCore\Models\LearningStimulus;
 use VistiqCore\Models\MediaAsset;
 use VistiqCore\Models\QuestionBankItem;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionBankCatalog;
+use VistiqCore\Services\Assessment\QuestionBank\QuestionWorkbookImportService;
 
 class QuestionWorkbookImportTest extends TestCase
 {
@@ -49,7 +50,7 @@ class QuestionWorkbookImportTest extends TestCase
                 ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                 ->assertDownload('vistiq-'.$kind.'-question-template.xlsx');
 
-            $workbook = app(\VistiqCore\Services\Assessment\QuestionBank\QuestionWorkbookImportService::class)->template($kind);
+            $workbook = app(QuestionWorkbookImportService::class)->template($kind);
             $this->assertSame(['HUONG_DAN', strtoupper($kind).'_001', strtoupper($kind).'_002'], array_map(fn ($sheet) => $sheet->getTitle(), $workbook->getAllSheets()));
             $guide = $workbook->getSheetByName('HUONG_DAN');
             $this->assertSame('HƯỚNG DẪN IMPORT CÂU HỎI '.strtoupper($kind), $guide->getCell('A1')->getValue());
@@ -104,6 +105,8 @@ class QuestionWorkbookImportTest extends TestCase
 
     public function test_listening_preview_reports_sheet_rows_and_confirm_assigns_each_audio_to_its_group(): void
     {
+        config(['services.cloudinary' => ['cloud_name' => 'test-cloud', 'api_key' => 'test-key', 'api_secret' => 'test-secret']]);
+        Http::fake(['api.cloudinary.com/*' => fn () => Http::response(['public_id' => 'question-'.Str::uuid(), 'secure_url' => 'https://cdn.example.test/question.png', 'asset_id' => (string) Str::uuid()])]);
         $workbook = $this->uploadWorkbook([
             'LISTENING_001' => [
                 ['exam_type', 'skill', 'exam_part', 'question_type', 'prompt', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_option', 'difficulty', 'explanation'],
@@ -135,7 +138,14 @@ class QuestionWorkbookImportTest extends TestCase
                 'LISTENING_001' => UploadedFile::fake()->create('lesson-001.mp3', 20, 'audio/mpeg'),
                 'LISTENING_002' => UploadedFile::fake()->create('lesson-002.ogg', 20, 'audio/ogg'),
             ],
-        ])->assertOk()->assertJsonPath('summary.imported', 2)->assertJsonPath('summary.failed', 1);
+            // TOEIC Part 1 requires an image for every valid question row.
+            'images' => [
+                'LISTENING_001' => [2 => UploadedFile::fake()->createWithContent('question-001.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6oFEAAAAASUVORK5CYII='))],
+                'LISTENING_002' => [2 => UploadedFile::fake()->createWithContent('question-002.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6oFEAAAAASUVORK5CYII='))],
+            ],
+        ])->assertOk();
+        $this->assertSame(2, $response->json('summary.imported'), json_encode($response->json(), JSON_UNESCAPED_UNICODE));
+        $response->assertJsonPath('summary.failed', 1);
 
         $this->assertDatabaseCount('question_bank_items', 2);
         foreach (['LISTENING_001' => 'B', 'LISTENING_002' => 'D'] as $code => $correctOption) {
@@ -179,7 +189,7 @@ class QuestionWorkbookImportTest extends TestCase
     /** @param array<string,list<list<string>>> $worksheets */
     private function uploadWorkbook(array $worksheets): UploadedFile
     {
-        $workbook = new Spreadsheet();
+        $workbook = new Spreadsheet;
         $first = true;
         foreach ($worksheets as $name => $rows) {
             $sheet = $first ? $workbook->getActiveSheet() : $workbook->createSheet();
@@ -194,5 +204,4 @@ class QuestionWorkbookImportTest extends TestCase
 
         return new UploadedFile($path, basename($path), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', UPLOAD_ERR_OK, true);
     }
-
 }

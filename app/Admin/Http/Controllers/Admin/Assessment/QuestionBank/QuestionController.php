@@ -2,19 +2,16 @@
 
 namespace VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank;
 
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
-use VistiqCore\Services\Assessment\QuestionBank\QuestionBankCatalog;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Illuminate\Http\UploadedFile;
 use Throwable;
 use VistiqAdmin\Http\Controllers\StaticPageController;
 use VistiqAdmin\Http\Requests\Admin\Assessment\QuestionBank\QuestionImportRequest;
@@ -29,12 +26,14 @@ use VistiqCore\Models\QuestionBankItem;
 use VistiqCore\Models\QuestionDifficulty;
 use VistiqCore\Models\QuestionType;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
-use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
-use VistiqCore\Services\Assessment\QuestionBank\QuestionEditorService;
+use VistiqCore\Services\Assessment\QuestionBank\MediaService;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionAudioService;
+use VistiqCore\Services\Assessment\QuestionBank\QuestionBankCatalog;
+use VistiqCore\Services\Assessment\QuestionBank\QuestionEditorService;
+use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionWorkbookImportService;
 use VistiqCore\Services\Assessment\QuestionBank\ThptEnglishWorkbookImportService;
-use VistiqCore\Services\Assessment\QuestionBank\MediaService;
+use VistiqCore\Services\System\SettingsService;
 
 class QuestionController extends StaticPageController
 {
@@ -191,6 +190,7 @@ class QuestionController extends StaticPageController
         $questions = new LengthAwarePaginator($matching->forPage($page, $perPage)->values(), $matching->count(), $perPage, $page, ['path' => route($bankRoute), 'query' => $request->query()]);
         $entryRows = $bankData['entries']->filter(fn ($e) => $e['questions']->keys()->intersect($matchingQuestionIds)->isNotEmpty())->map(function ($e) use ($matchingQuestionIds) {
             $e['matching_ids'] = $e['questions']->keys()->intersect($matchingQuestionIds)->values()->all();
+
             return $e;
         })->sortBy(fn ($e) => $sort === 'id' ? $e['id'] : $e['updated_at'], SORT_REGULAR, $sort !== 'oldest')->values();
         $entries = new LengthAwarePaginator($entryRows->forPage($page, $perPage)->values(), $entryRows->count(), $perPage, $page, ['path' => route($bankRoute), 'query' => $request->query()]);
@@ -243,6 +243,7 @@ class QuestionController extends StaticPageController
     public function thpt(Request $request): View
     {
         $request->merge(['exam' => 'thpt']);
+
         return $this->index($request);
     }
 
@@ -269,20 +270,23 @@ class QuestionController extends StaticPageController
             })->values();
         }
         $entry['matching_ids'] = $matching->pluck('id')->all();
+
         return view('pages.admin.assessment.question-bank.questions.bank-entry-preview', compact('entry', 'bankData'));
     }
 
     private function embeddedAttributes(QuestionUpsertRequest $request, ?QuestionBankItem $question = null): array
     {
         $attributes = $request->validated();
-        if (!$request->filled('editor_stimulus_id')) return $attributes;
+        if (! $request->filled('editor_stimulus_id')) {
+            return $attributes;
+        }
         $stimulus = LearningStimulus::query()->lockForUpdate()->findOrFail($request->integer('editor_stimulus_id'));
         $payload = app(ContentRevisionService::class)->payload('stimulus', $stimulus);
-        $partId = (int)($payload['metadata']['exam_part_id'] ?? 0);
+        $partId = (int) ($payload['metadata']['exam_part_id'] ?? 0);
         $questionPart = ExamPart::with('skill')->findOrFail($attributes['exam_part_id']);
         abort_if($stimulus->stimulus_type === 'reading' && $questionPart->skill?->code !== 'reading', 422, 'Chọn phần đọc hiểu cho câu hỏi của bài.');
         if ($partId) {
-            abort_unless((int)$attributes['exam_part_id'] === $partId, 422, 'Câu hỏi phải thuộc phần đã chọn của bài.');
+            abort_unless((int) $attributes['exam_part_id'] === $partId, 422, 'Câu hỏi phải thuộc phần đã chọn của bài.');
         }
         if ($question) {
             $entry = app(QuestionBankCatalog::class)->entryFor('stimulus', $stimulus->id);
@@ -292,28 +296,36 @@ class QuestionController extends StaticPageController
             $attributes['group_order'] = $current['group_order'] ?? 0;
             $attributes['stimulus_ids'] = array_values(array_unique(array_map('intval', array_merge($current['stimulus_ids'] ?? [], [$stimulus->id]))));
         } else {
-            $groupId = (int)($payload['metadata']['question_group_id'] ?? 0);
+            $groupId = (int) ($payload['metadata']['question_group_id'] ?? 0);
             $group = DB::table('question_groups')->where('id', $groupId)->first();
-            if (!$group || (int)$group->exam_part_id !== (int)$attributes['exam_part_id']) {
-                $groupId = (int)DB::table('question_groups')->where('exam_part_id', $attributes['exam_part_id'])->where(function ($query) use ($stimulus) { $query->whereJsonContains('stimulus_ids', $stimulus->id)->orWhereJsonContains('stimulus_ids', (string)$stimulus->id); })->value('id');
-                if (!$groupId) $groupId = $this->createStimulusGroup($stimulus, (int)$attributes['exam_part_id']);
+            if (! $group || (int) $group->exam_part_id !== (int) $attributes['exam_part_id']) {
+                $groupId = (int) DB::table('question_groups')->where('exam_part_id', $attributes['exam_part_id'])->where(function ($query) use ($stimulus) {
+                    $query->whereJsonContains('stimulus_ids', $stimulus->id)->orWhereJsonContains('stimulus_ids', (string) $stimulus->id);
+                })->value('id');
+                if (! $groupId) {
+                    $groupId = $this->createStimulusGroup($stimulus, (int) $attributes['exam_part_id']);
+                }
             }
             $attributes['question_group_id'] = $groupId;
             $groupQuestions = app(QuestionBankCatalog::class)->catalog()['records'];
-            $orders = collect($groupQuestions)->filter(fn ($r) => (int)($r['payload']['group_id'] ?? 0) === $groupId)->map(fn ($r) => (int)($r['payload']['group_order'] ?? 0));
+            $orders = collect($groupQuestions)->filter(fn ($r) => (int) ($r['payload']['group_id'] ?? 0) === $groupId)->map(fn ($r) => (int) ($r['payload']['group_order'] ?? 0));
             $attributes['group_order'] = $orders->isEmpty() ? 0 : $orders->max() + 1;
             abort_if($attributes['group_order'] > 200, 422, 'Nhóm đã đạt giới hạn thứ tự câu hỏi.');
         }
         $attributes['learning_stimulus_id'] = $stimulus->id;
+
         return $attributes;
     }
 
     public function createStimulusGroup(LearningStimulus $stimulus, int $partId): int
     {
         $part = ExamPart::with(['examType', 'skill'])->findOrFail($partId);
-        $kind = match ($part->code) { 'part-3' => 'conversation', 'part-4' => 'talk', 'part-6' => 'part6', default => $part->examType->code === 'ielts' ? 'ielts_section' : 'reading_set' };
+        $kind = match ($part->code) {
+            'part-3' => 'conversation', 'part-4' => 'talk', 'part-6' => 'part6', default => $part->examType->code === 'ielts' ? 'ielts_section' : 'reading_set'
+        };
         $id = DB::table('question_groups')->insertGetId(['title' => $stimulus->title, 'kind' => $kind, 'exam_part_id' => $partId, 'stimulus_ids' => json_encode([$stimulus->id]), 'metadata' => '{}', 'created_at' => now(), 'updated_at' => now()]);
-        return (int)$id;
+
+        return (int) $id;
     }
 
     private function savedResponse(QuestionBankItem $question, Request $request): mixed
@@ -324,6 +336,7 @@ class QuestionController extends StaticPageController
             $catalog = app(QuestionBankCatalog::class);
             $result['questions_html'] = view('pages.admin.assessment.question-bank.workspace.reading-questions', ['entry' => $catalog->entryFor('stimulus', $request->integer('editor_stimulus_id')), 'bankData' => $catalog->catalog()])->render();
         }
+
         return response()->json($result);
     }
 
@@ -358,9 +371,12 @@ class QuestionController extends StaticPageController
                     ->map(fn (array $record): int => (int) ($record['payload']['group_order'] ?? 0));
                 $attributes['group_order'] = $orders->isEmpty() ? 0 : $orders->max() + 1;
             }
+
             return $this->persistQuestion($attributes);
         });
-        if ($request->expectsJson()) return $this->savedResponse($question, $request);
+        if ($request->expectsJson()) {
+            return $this->savedResponse($question, $request);
+        }
         if ($request->boolean('return_to_thpt_bank')) {
             return redirect()->route('admin.questions.thpt')->with('status', 'Đã tạo câu hỏi mới.');
         }
@@ -602,7 +618,7 @@ class QuestionController extends StaticPageController
                         if (! $imageFile instanceof UploadedFile || ! $imageFile->isValid()) {
                             throw ValidationException::withMessages(['thpt_images' => 'Đính kèm ảnh cho '.$csvPart->name.' · '.$readingKey.'.']);
                         }
-                        $maximumBytes = ((int) (app(\VistiqCore\Services\System\SettingsService::class)->get('media')['max_megabytes'] ?? 50)) * 1024 * 1024;
+                        $maximumBytes = ((int) (app(SettingsService::class)->get('media')['max_megabytes'] ?? 50)) * 1024 * 1024;
                         if ($imageFile->getSize() > $maximumBytes) {
                             throw ValidationException::withMessages(['thpt_images' => 'Ảnh '.$readingKey.' vượt giới hạn dung lượng của Tài nguyên.']);
                         }
@@ -744,7 +760,9 @@ class QuestionController extends StaticPageController
             $readingInputs = $request->input('readings', []);
             $readingErrors = [];
             foreach ($preview['sheets'] as &$sheet) {
-                if ($sheet['blocked'] || $sheet['questions'] === []) continue;
+                if ($sheet['blocked'] || $sheet['questions'] === []) {
+                    continue;
+                }
 
                 $input = is_array($readingInputs) ? ($readingInputs[$sheet['code']] ?? []) : [];
                 $title = trim((string) (is_array($input) ? ($input['title'] ?? $sheet['reading_title']) : $sheet['reading_title']));
@@ -777,10 +795,12 @@ class QuestionController extends StaticPageController
             && ($sheet['exam_type'] ?? null) === 'toeic'
             && ($sheet['skill'] ?? null) === 'listening'
             && ($sheet['exam_part'] ?? null) === 'part-1';
-        $maximumBytes = ((int) (app(\VistiqCore\Services\System\SettingsService::class)->get('media')['max_megabytes'] ?? 50)) * 1024 * 1024;
+        $maximumBytes = ((int) (app(SettingsService::class)->get('media')['max_megabytes'] ?? 50)) * 1024 * 1024;
         if ($preview['kind'] === 'listening') {
             foreach ($preview['sheets'] as $sheet) {
-                if ($sheet['blocked'] || $sheet['questions'] === []) continue;
+                if ($sheet['blocked'] || $sheet['questions'] === []) {
+                    continue;
+                }
                 $file = $audioFiles[$sheet['code']] ?? null;
                 if (! $file instanceof UploadedFile || ! $file->isValid()) {
                     $audioErrors[$sheet['code']][] = 'Đính kèm một file audio cho sheet '.$sheet['code'].'.';
@@ -803,6 +823,7 @@ class QuestionController extends StaticPageController
                         $image = $sheetImages[$question['row']] ?? null;
                         if (! $image instanceof UploadedFile || ! $image->isValid()) {
                             $audioErrors[$sheet['code']][] = 'Đính kèm ảnh cho câu ở dòng '.$question['row'].' của sheet '.$sheet['code'].'.';
+
                             continue;
                         }
                         $imageExtension = strtolower($image->getClientOriginalExtension());
@@ -833,9 +854,12 @@ class QuestionController extends StaticPageController
             }
         }
         foreach ($preview['sheets'] as $sheet) {
-            if ($sheet['blocked'] || $sheet['questions'] === []) continue;
+            if ($sheet['blocked'] || $sheet['questions'] === []) {
+                continue;
+            }
             if ($workbooks->codeExists($preview['kind'], $sheet['code'])) {
                 $errors[$sheet['code']][] = 'Mã bài đã tồn tại trong ngân hàng. Tải workbook lên lại để xem trước mã mới.';
+
                 continue;
             }
 
@@ -858,6 +882,7 @@ class QuestionController extends StaticPageController
                         $errors[$sheet['code']][] = 'Dòng '.$question['row'].': Không thể lưu câu hỏi.';
                     }
                 }
+
                 continue;
             }
 
@@ -907,12 +932,20 @@ class QuestionController extends StaticPageController
                             });
                             $sheetImported++;
                         } catch (ValidationException $exception) {
-                            if ($imageAsset) $media->delete($imageAsset);
-                            if ($creatingGroup) $groupId = null;
+                            if ($imageAsset) {
+                                $media->delete($imageAsset);
+                            }
+                            if ($creatingGroup) {
+                                $groupId = null;
+                            }
                             $errors[$sheet['code']][] = 'Dòng '.$question['row'].': '.collect($exception->errors())->flatten()->first();
                         } catch (Throwable $exception) {
-                            if ($imageAsset) $media->delete($imageAsset);
-                            if ($creatingGroup) $groupId = null;
+                            if ($imageAsset) {
+                                $media->delete($imageAsset);
+                            }
+                            if ($creatingGroup) {
+                                $groupId = null;
+                            }
                             report($exception);
                             $errors[$sheet['code']][] = 'Dòng '.$question['row'].': Không thể lưu câu hỏi.';
                         }
@@ -921,10 +954,15 @@ class QuestionController extends StaticPageController
                         app(QuestionAudioService::class)->assignToGroup((int) $groupId, $asset->id);
                     }
                 });
-                if ($sheetImported > 0) $imported += $sheetImported;
-                else $media->delete($asset);
+                if ($sheetImported > 0) {
+                    $imported += $sheetImported;
+                } else {
+                    $media->delete($asset);
+                }
             } catch (Throwable $exception) {
-                if ($asset) $media->delete($asset);
+                if ($asset) {
+                    $media->delete($asset);
+                }
                 report($exception);
                 $errors[$sheet['code']][] = 'Không thể lưu bài Listening hoặc file audio.';
             }
@@ -935,6 +973,7 @@ class QuestionController extends StaticPageController
         $redirect = route($preview['kind'] === 'listening' ? 'admin.questions.listening' : 'admin.readings.index');
         $request->session()->flash('import_summary', $summary);
         $request->session()->flash('import_errors', collect($errors)->flatMap(fn (array $messages, string $code) => collect($messages)->map(fn (string $message) => $code.': '.$message))->values()->all());
+
         return response()->json(['summary' => $summary, 'errors' => $errors, 'redirect' => $redirect]);
     }
 
@@ -955,11 +994,12 @@ class QuestionController extends StaticPageController
 
         $imageFiles = $request->file('group_images', []);
         $imageErrors = [];
-        $maximumBytes = ((int) (app(\VistiqCore\Services\System\SettingsService::class)->get('media')['max_megabytes'] ?? 50)) * 1024 * 1024;
+        $maximumBytes = ((int) (app(SettingsService::class)->get('media')['max_megabytes'] ?? 50)) * 1024 * 1024;
         foreach (['tieng-anh-part-1' => 'PART_1', 'tieng-anh-part-2' => 'PART_2'] as $partCode => $sheetCode) {
             $image = $imageFiles[$partCode] ?? null;
             if (! $image instanceof UploadedFile || ! $image->isValid()) {
                 $imageErrors[$sheetCode][] = 'Chọn ảnh văn bản cho '.$sheetCode.' trước khi import.';
+
                 continue;
             }
 
@@ -1004,6 +1044,7 @@ class QuestionController extends StaticPageController
                             ];
                             $reading = $this->persistCsvReadingQuestion($attributes, $row, $readingStates);
                             $readingStates[$this->csvReadingStateKey((int) $attributes['exam_part_id'], $sheet['part_code'])] = $reading;
+
                             continue;
                         }
 
@@ -1092,7 +1133,9 @@ class QuestionController extends StaticPageController
 
             return $revision;
         });
-        if ($request->expectsJson() && $request->filled('editor_stimulus_id')) return $this->savedResponse($question->fresh(), $request);
+        if ($request->expectsJson() && $request->filled('editor_stimulus_id')) {
+            return $this->savedResponse($question->fresh(), $request);
+        }
         if ($request->expectsJson()) {
             return response()->json(['revision_counter' => $revision->number, 'status' => $revision->status, 'updated_at' => $revision->created_at->format('d/m/Y H:i'), 'history' => app(QuestionEditorService::class)->history($question), 'workflow_html' => view('shared.workflow-actions', ['kind' => 'question', 'entityId' => $question->id, 'revision' => $revision])->render()]);
         }
@@ -1104,8 +1147,12 @@ class QuestionController extends StaticPageController
     {
         $payload = $this->questionPayload($request->validated());
         $warnings = [];
-        try { app(QuestionRegistry::class)->validate($payload); }
-        catch (ValidationException $exception) { $warnings = array_merge(...array_values($exception->errors())); }
+        try {
+            app(QuestionRegistry::class)->validate($payload);
+        } catch (ValidationException $exception) {
+            $warnings = array_merge(...array_values($exception->errors()));
+        }
+
         return response()->json(['html' => view('pages.admin.assessment.question-bank.questions.editor-preview', $this->previewData($payload))->render(), 'warnings' => $warnings]);
     }
 
@@ -1118,6 +1165,7 @@ class QuestionController extends StaticPageController
         $part = ExamPart::with('examType')->find($payload['exam_part_id'] ?? null);
         $stimulus = LearningStimulus::find($payload['stimulus_ids'][0] ?? null);
         $stimulusPayload = $stimulus ? app(ContentRevisionService::class)->payload('stimulus', $stimulus) : [];
+
         return [
             'previewPayload' => $payload, 'previewPart' => $part,
             'previewDifficulty' => QuestionDifficulty::find($payload['question_difficulty_id'] ?? null),
@@ -1248,7 +1296,7 @@ class QuestionController extends StaticPageController
 
     private function csvReadingStateKey(int $partId, string $readingKey): string
     {
-        return $partId.'|'.Str::lower(trim($readingKey));
+        return Str::lower(trim($readingKey));
     }
 
     private function questionPayload(array $attributes): array
@@ -1430,11 +1478,12 @@ class QuestionController extends StaticPageController
     public function editorData(?QuestionBankItem $question = null, ?LearningStimulus $contextStimulus = null): array
     {
         $payload = $question ? app(ContentRevisionService::class)->payload('question', $question) : [];
-        if (!$question && $contextStimulus) {
+        if (! $question && $contextStimulus) {
             $context = app(ContentRevisionService::class)->payload('stimulus', $contextStimulus);
             $payload = ['exam_part_id' => $context['metadata']['exam_part_id'] ?? null, 'stimulus_ids' => [$contextStimulus->id], 'group_id' => $context['metadata']['question_group_id'] ?? null];
         }
         $editor = app(QuestionEditorService::class);
+
         return [
             'question' => $question,
             'payload' => $payload,

@@ -1,13 +1,3 @@
-@if(old('return_to') === 'readings' && $errors->any())
-    <div class="admin-alert admin-alert-error" role="alert"><b>Không thể import CSV.</b><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
-@endif
-@if(session('import_summary'))
-    @php($summary = session('import_summary'))
-    <div class="admin-alert {{ $summary['failed'] ? 'admin-alert-error' : '' }}" role="status">
-        Đã nhập {{ $summary['imported'] }} câu hỏi theo bài đọc; {{ $summary['failed'] }} dòng lỗi.
-        @if(session('import_errors'))<details><summary>Xem dòng lỗi</summary><ul>@foreach(session('import_errors') as $error)<li>{{ $error }}</li>@endforeach</ul></details>@endif
-    </div>
-@endif
 <details class="csv-import" @if(old('return_to') === 'readings' && $errors->any())open @endif>
     <summary class="button button-quiet">Import bài đọc CSV</summary>
     <form class="panel csv-import-form" method="post" action="{{ route('admin.questions.import') }}" enctype="multipart/form-data" data-question-import>

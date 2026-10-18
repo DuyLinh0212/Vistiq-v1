@@ -1,163 +1,25 @@
-@php
-    $filters = $metrics['filters'] ?? [];
-    $hasFilters = !empty($filters['date_from']) || !empty($filters['date_to']) || !empty($filters['exam_id']) || (!empty($filters['mode']) && $filters['mode'] !== 'all');
-@endphp
-
-{{-- Bộ lọc đặt ngay đầu vùng chức năng theo AGENTS.md --}}
-<section class="panel" style="margin-bottom: 18px; padding: 14px 18px;">
-    <form method="get" action="{{ route('admin.analytics') }}" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
-        <div>
-            <label style="font-size: 11px; font-weight: 600; color: #506482; display: block; margin-bottom: 4px;">Từ ngày</label>
-            <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" style="height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit;">
-        </div>
-
-        <div>
-            <label style="font-size: 11px; font-weight: 600; color: #506482; display: block; margin-bottom: 4px;">Đến ngày</label>
-            <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" style="height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit;">
-        </div>
-
-        <div>
-            <label style="font-size: 11px; font-weight: 600; color: #506482; display: block; margin-bottom: 4px;">Kỳ thi</label>
-            <select name="exam_id" style="height: 38px; min-width: 180px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit;">
-                <option value="">Tất cả kỳ thi</option>
-                @foreach($metrics['exams'] ?? [] as $exam)
-                    <option value="{{ $exam->id }}" @selected(($filters['exam_id'] ?? '') == $exam->id)>{{ $exam->title }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        <div>
-            <label style="font-size: 11px; font-weight: 600; color: #506482; display: block; margin-bottom: 4px;">Chế độ</label>
-            <select name="mode" style="height: 38px; min-width: 150px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit;">
-                <option value="all" @selected(($filters['mode'] ?? '') === 'all')>Tất cả chế độ</option>
-                <option value="exam" @selected(($filters['mode'] ?? '') === 'exam')>Thi chính thức (Exam)</option>
-                <option value="practice" @selected(($filters['mode'] ?? '') === 'practice')>Luyện tập (Practice)</option>
-            </select>
-        </div>
-
-        <div style="display: flex; gap: 8px; align-items: center;">
-            <button class="button button-primary" type="submit" style="height: 38px;">Áp dụng lọc</button>
-            @if($hasFilters)
-                <a href="{{ route('admin.analytics') }}" class="button button-quiet" style="height: 38px; display: inline-flex; align-items: center;">Xóa bộ lọc</a>
-            @endif
-            @can('results.view')
-                <a class="button button-quiet" href="{{ route('admin.analytics.export', request()->query()) }}" style="height: 38px; display: inline-flex; align-items: center;" title="Xuất báo cáo theo bộ lọc hiện tại">
-                    Xuất CSV
-                </a>
-            @endcan
-        </div>
+@php($filters = $metrics['filters'])
+<h1>Phân tích</h1>
+<section class="panel">
+    <form method="get" action="{{ route('admin.analytics') }}" class="admin-form-grid">
+        <label for="analytics-from">Từ ngày<input id="analytics-from" type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}"></label>
+        <label for="analytics-to">Đến ngày<input id="analytics-to" type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}">@error('date_to')<small role="alert">{{ $message }}</small>@enderror</label>
+        <label for="analytics-exam">Đề thi<select id="analytics-exam" name="exam_id"><option value="">Tất cả đề thi</option>@foreach($metrics['exams'] as $exam)<option value="{{ $exam->id }}" @selected(($filters['exam_id'] ?? '') == $exam->id)>{{ $exam->title }}</option>@endforeach</select></label>
+        <label for="analytics-mode">Chế độ<select id="analytics-mode" name="mode">@foreach(['all'=>'Tất cả dữ liệu','exam'=>'Exam','practice'=>'Practice (dữ liệu cũ)'] as $value=>$label)<option value="{{ $value }}" @selected(($filters['mode'] ?? 'all') === $value)>{{ $label }}</option>@endforeach</select></label>
+        <label for="analytics-type">Loại đề<select id="analytics-type" name="exam_type"><option value="">Tất cả loại</option>@foreach(\Illuminate\Support\Facades\DB::table('exam_types')->orderBy('name')->get() as $type)<option value="{{ $type->code }}" @selected(($filters['exam_type'] ?? '') === $type->code)>{{ $type->name }}</option>@endforeach</select></label>
+        <label for="analytics-skill">Kỹ năng<select id="analytics-skill" name="skill"><option value="">Tất cả kỹ năng</option>@foreach(\Illuminate\Support\Facades\DB::table('skills')->get() as $skill)<option value="{{ $skill->code }}" @selected(($filters['skill'] ?? '') === $skill->code)>{{ $skill->name }}</option>@endforeach</select></label>
+        <label for="analytics-status">Trạng thái<select id="analytics-status" name="status"><option value="">Tất cả trạng thái</option>@foreach(['in_progress'=>'Đang làm','paused'=>'Tạm dừng','expired'=>'Hết giờ','submitted'=>'Đã nộp','pending_grading'=>'Chờ chấm','completed'=>'Hoàn tất'] as $value=>$label)<option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></label>
+        <div class="section-head compact"><button class="button button-primary" type="submit">Áp dụng lọc</button><a class="text-link" href="{{ route('admin.analytics') }}">Xóa bộ lọc</a></div>
     </form>
+    @can('results.export')<div class="section-head compact"><span>Xuất theo bộ lọc hiện tại</span><div><a class="button button-quiet" data-report-export href="{{ route('admin.analytics.export', [...request()->except('page'), 'format'=>'csv']) }}">Xuất CSV</a> <a class="button button-quiet" data-report-export href="{{ route('admin.analytics.export', [...request()->except('page'), 'format'=>'xlsx']) }}">Xuất XLSX</a></div></div>@endcan
 </section>
-
-{{-- Dải KPI nhỏ theo ngữ cảnh câu hỏi --}}
-<div class="assessment-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px;">
-    <article class="panel" style="padding: 16px;">
-        <p style="font-size: 11px; color: #72849e; margin: 0 0 4px;">Tổng lượt thi</p>
-        <h2 style="font-size: 24px; margin: 0;">{{ number_format($metrics['attempts']) }}</h2>
-        <small style="color: #92a0b3; font-size: 10px;">Có snapshot hợp lệ</small>
-    </article>
-
-    <article class="panel" style="padding: 16px;">
-        <p style="font-size: 11px; color: #72849e; margin: 0 0 4px;">Đã nộp bài</p>
-        <h2 style="font-size: 24px; margin: 0;">{{ number_format($metrics['completed']) }}</h2>
-        <small style="color: #177a4a; font-size: 10px;">Hoàn thành bài thi</small>
-    </article>
-
-    <article class="panel" style="padding: 16px;">
-        <p style="font-size: 11px; color: #72849e; margin: 0 0 4px;">Tỷ lệ hoàn tất</p>
-        <h2 style="font-size: 24px; margin: 0; color: #2159d3;">{{ $metrics['completion_rate'] }}%</h2>
-        <small style="color: #92a0b3; font-size: 10px;">completed / attempts</small>
-    </article>
-
-    <article class="panel" style="padding: 16px;">
-        <p style="font-size: 11px; color: #72849e; margin: 0 0 4px;">Điểm trung bình</p>
-        <h2 style="font-size: 24px; margin: 0;">{{ $metrics['avg_score'] ?? '—' }}</h2>
-        <small style="color: #92a0b3; font-size: 10px;">Bài đã chấm xong</small>
-    </article>
-
-    <article class="panel" style="padding: 16px;">
-        <p style="font-size: 11px; color: #72849e; margin: 0 0 4px;">Chưa nộp (Drop-off)</p>
-        <h2 style="font-size: 24px; margin: 0; color: #c43838;">{{ $metrics['drop_off'] }}%</h2>
-        <small style="color: #92a0b3; font-size: 10px;">Bỏ dở giữa chừng</small>
-    </article>
-
-    <article class="panel" style="padding: 16px;">
-        <p style="font-size: 11px; color: #72849e; margin: 0 0 4px;">Người dùng hoạt động</p>
-        <h2 style="font-size: 20px; margin: 0;">{{ $metrics['dau'] }} <span style="font-size: 13px; font-weight: normal; color: #72849e;">DAU</span></h2>
-        <small style="color: #92a0b3; font-size: 10px;">WAU: {{ $metrics['wau'] }} · MAU: {{ $metrics['mau'] }}</small>
-    </article>
-
-    <article class="panel" style="padding: 16px;">
-        <p style="font-size: 11px; color: #72849e; margin: 0 0 4px;">Retention 7 ngày</p>
-        <h2 style="font-size: 24px; margin: 0;">{{ $metrics['retention'] }}%</h2>
-        <small style="color: #92a0b3; font-size: 10px;">Quay lại sau 1 tuần</small>
-    </article>
+<div class="assessment-grid">
+    @foreach([['Tổng lượt thi',$metrics['attempts']],['Đã nộp',$metrics['completed']],['Tỷ lệ hoàn tất',$metrics['completion_rate'].'%'],['Điểm trung bình',$metrics['avg_score'] ?? 'Chưa có điểm'],['Chưa nộp',$metrics['drop_off'].'%'],['Người hoạt động trong ngày',$metrics['dau']]] as [$label,$value])<article class="panel"><p>{{ $label }}</p><h2>{{ $value }}</h2></article>@endforeach
 </div>
-
-{{-- Biểu đồ xu hướng và bảng thay thế --}}
-<section class="panel" style="margin-bottom: 18px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-        <h2 style="font-size: 16px; margin: 0;">Xu hướng hoạt động 14 ngày</h2>
-        <span style="font-size: 11px; color: #8191a7;">Cập nhật: {{ $metrics['updated_at'] }} ({{ $metrics['timezone'] }})</span>
-    </div>
-
-    @if(count($metrics['chart'] ?? []) > 0)
-        <div class="assessment-chart" role="img" aria-label="Số lượt thi và người dùng hoạt động trong 14 ngày">
-            @foreach($metrics['chart'] as $point)
-                <div>
-                    <div class="assessment-bar" style="height:{{ max(4, min(180, $point['attempts'] * 8)) }}px" title="{{ $point['date'] }}: {{ $point['attempts'] }} lượt thi"></div>
-                    <small>{{ substr($point['date'], 5) }}</small>
-                    <p>{{ $point['attempts'] }} lượt · {{ $point['active'] }} người</p>
-                </div>
-            @endforeach
-        </div>
-    @else
-        <p style="color: #8291a8; text-align: center; padding: 20px;">Không có dữ liệu trong khoảng thời gian này.</p>
-    @endif
+@if(!$metrics['attempts'])<p role="status">Không có lượt thi phù hợp. Thử thay đổi bộ lọc.</p>@endif
+<section class="panel"><h2>Xu hướng hoạt động 14 ngày</h2><p>Cập nhật {{ $metrics['updated_at'] }} · {{ $metrics['timezone'] }}</p>
+    <div class="table-responsive"><div class="assessment-chart" role="img" aria-label="Số lượt bắt đầu theo ngày">@foreach($metrics['chart'] as $point)<div><div class="assessment-bar" style="height:{{ max(4,min(100,$point['attempts']*8)) }}px" title="{{ $point['date'] }}: {{ $point['attempts'] }} lượt"></div><small>{{ substr($point['date'],5) }}</small></div>@endforeach</div></div>
+    <div class="table-responsive"><table class="admin-table"><caption>Xu hướng trong 14 ngày gần ngày kết thúc, áp dụng cùng bộ lọc.</caption><thead><tr><th>Ngày</th><th>Lượt bắt đầu</th><th>Người hoạt động</th></tr></thead><tbody>@foreach($metrics['chart'] as $point)<tr><td>{{ $point['date'] }}</td><td>{{ $point['attempts'] }}</td><td>{{ $point['active'] }}</td></tr>@endforeach</tbody></table></div>
 </section>
-
-{{-- Bảng breakdown độ khó và thời gian theo câu hỏi --}}
-<section class="panel" style="margin-bottom: 18px;">
-    <h2 style="font-size: 16px; margin-bottom: 14px;">Độ chính xác và thời gian trung bình theo câu hỏi</h2>
-    <div style="overflow-x: auto;">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Mã câu</th>
-                    <th>Số lượt trả lời</th>
-                    <th>Tỷ lệ đúng (Accuracy)</th>
-                    <th>Thời gian trung bình (giây)</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($metrics['difficulty'] as $row)
-                    <tr>
-                        <td><strong>{{ $row->item_key }}</strong></td>
-                        <td>{{ number_format($row->responses) }}</td>
-                        <td>
-                            <span style="color: {{ $row->accuracy < 0.4 ? '#c43838' : ($row->accuracy > 0.75 ? '#177a4a' : '#253d60') }}; font-weight: 600;">
-                                {{ round($row->accuracy * 100, 1) }}%
-                            </span>
-                        </td>
-                        <td>{{ round($row->seconds, 1) }}s</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: #8391a6; padding: 24px;">Chưa có dữ liệu bài thi được chấm hoàn tất cho bộ lọc hiện tại.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</section>
-
-{{-- Phần chú giải chỉ số và tính minh bạch dữ liệu --}}
-<footer class="panel" style="background: #fbfcfe; border-color: #e2eaf4; padding: 14px 18px; font-size: 11px; color: #72849e;">
-    <p style="margin: 0 0 6px;"><strong>Chú giải & Minh bạch dữ liệu:</strong></p>
-    <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
-        <li><strong>Tỷ lệ hoàn tất:</strong> Tính bằng <code>(Đã nộp bài / Tổng lượt thi) × 100</code>.</li>
-        <li><strong>Điểm trung bình:</strong> Điểm quy đổi (scaled score) trung bình của các bài thi đã hoàn tất chấm điểm.</li>
-        <li><strong>Phạm vi loại trừ:</strong> Tự động loại trừ các bài thi bị hủy (status = 'cancelled') và lượt thi không có snapshot.</li>
-        <li><strong>Timezone:</strong> Báo cáo được tính toán và đồng bộ theo múi giờ hệ thống <code>{{ $metrics['timezone'] }}</code>.</li>
-    </ul>
-</footer>
+<section class="panel"><h2>Độ chính xác theo câu hỏi</h2><p>Tối đa 20 câu có tỷ lệ đúng thấp nhất trong bộ lọc.</p><div class="table-responsive"><table class="admin-table"><thead><tr><th>Mã câu</th><th>Số đáp án</th><th>Tỷ lệ đúng</th><th>Thời gian trung bình</th></tr></thead><tbody>@forelse($metrics['difficulty'] as $row)<tr><td>{{ $row->item_key }}</td><td>{{ $row->responses }}</td><td>{{ round($row->accuracy*100,1) }}%</td><td>{{ round($row->seconds,1) }} giây</td></tr>@empty<tr><td colspan="4">Chưa có đáp án đã chấm phù hợp.</td></tr>@endforelse</tbody></table></div></section>
+<section class="panel"><h2>Chú giải</h2><p>Hoàn tất = lượt đã nộp / lượt bắt đầu. Điểm trung bình chỉ lấy kết quả đã chấm xong. Loại lượt hủy, không có snapshot và lượt đánh dấu is_test. CSV/XLSX dùng cùng bộ lọc và dữ liệu đang xem.</p><p>Người hoạt động được tính từ sự kiện học tập trong phạm vi ngày; khi lọc đề/chế độ/kỹ năng/trạng thái, chỉ lấy người có lượt phù hợp. WAU {{ $metrics['wau'] }} · MAU {{ $metrics['mau'] }} · Retention 7 ngày {{ $metrics['retention'] }}%.</p><a class="text-link" href="{{ route('admin.attempts.index', array_filter(['exam'=>$filters['exam_id'] ?? null,'from'=>$filters['date_from'] ?? null,'to'=>$filters['date_to'] ?? null,'status'=>$filters['status'] ?? null])) }}">Xem lượt thi nguồn</a></section>

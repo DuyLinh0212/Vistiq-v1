@@ -2,19 +2,19 @@
 
 namespace VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank;
 
-use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqAdmin\Http\Requests\Admin\Shared\AdminActionRequest;
 use VistiqCore\Models\ContentRevision;
 use VistiqCore\Models\ExamPart;
 use VistiqCore\Models\LearningStimulus;
 use VistiqCore\Models\QuestionBankItem;
-use VistiqCore\Services\System\AuditService;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
+use VistiqCore\Services\System\AuditService;
 
 class QuestionBankWorkflowController extends AdminPageController
 {
@@ -130,7 +130,12 @@ class QuestionBankWorkflowController extends AdminPageController
 
     public function groups(): mixed
     {
-        return redirect()->route('admin.resources.index');
+        return $this->page('Nhóm câu hỏi', 'pages.admin.assessment.question-bank.workspace.groups', [
+            'parts' => ExamPart::with('examType')->orderBy('exam_type_id')->orderBy('sort_order')->get(),
+            'stimuli' => LearningStimulus::orderBy('title')->get(),
+            'groups' => DB::table('question_groups')->orderByDesc('id')->paginate(20),
+            'questionCounts' => DB::table('question_bank_items')->selectRaw('question_group_id, COUNT(*) AS total')->groupBy('question_group_id')->pluck('total', 'question_group_id'),
+        ]);
     }
 
     public function updateGroup(AdminActionRequest $request, int $group, AuditService $audit): mixed

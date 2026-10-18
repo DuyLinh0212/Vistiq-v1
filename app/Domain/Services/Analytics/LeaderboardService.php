@@ -2,12 +2,15 @@
 
 namespace VistiqCore\Services\Analytics;
 
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use VistiqCore\Models\ExamTemplate;
 
 class LeaderboardService
 {
-    public function rankings(?ExamTemplate $exam = null): mixed
+    private function rankedQuery(?ExamTemplate $exam = null): Builder
     {
         $seconds = "(COALESCE(JSON_EXTRACT(r.details, '$.duration_seconds'), 0) + 0)";
         $eligible = DB::table('exam_attempts as a')->join('attempt_results as r', 'r.exam_attempt_id', '=', 'a.id')->join('users as u', 'u.id', '=', 'a.user_id')->join('exam_templates as e', 'e.id', '=', 'a.exam_template_id')
@@ -24,12 +27,30 @@ class LeaderboardService
             ->selectRaw('RANK() OVER (PARTITION BY exam_template_id ORDER BY scaled_score DESC, seconds ASC) as rank_position');
 
         return DB::query()->fromSub($ranked, 'ranked')
-            ->orderByDesc('scaled_score')->orderBy('seconds')->orderBy('submitted_at')->orderBy('id')->paginate(30)->withQueryString()->through(function ($row) {
-                $snapshot = json_decode($row->snapshot, true);
-                $row->name = ($snapshot['policies']['anonymous'] ?? true) ? 'Học viên ẩn danh' : $row->name;
+            ->orderByDesc('scaled_score')->orderBy('seconds')->orderBy('submitted_at')->orderBy('id');
+    }
 
-                return $row;
-            });
+    private function present(object $row): object
+    {
+        $snapshot = json_decode($row->snapshot, true);
+        $row->name = ($snapshot['policies']['anonymous'] ?? true) ? 'Học viên ẩn danh' : $row->name;
+
+        return $row;
+    }
+
+    public function rankings(?ExamTemplate $exam = null): mixed
+    {
+        return $this->rankedQuery($exam)->paginate(30)->withQueryString()->through(fn ($row) => $this->present($row));
+    }
+
+    public function exportRankings(?ExamTemplate $exam = null): Collection
+    {
+        $rows = $this->rankedQuery($exam)->limit(ExportService::MAX_ROWS + 1)->get();
+        if ($rows->count() > ExportService::MAX_ROWS) {
+            throw ValidationException::withMessages(['export' => 'Báo cáo vượt 10.000 dòng. Hãy chọn một đề hoặc thu hẹp phạm vi.']);
+        }
+
+        return $rows->map(fn ($row) => $this->present($row));
     }
 
     /** Public response excludes internal IDs, account fields and snapshots. */

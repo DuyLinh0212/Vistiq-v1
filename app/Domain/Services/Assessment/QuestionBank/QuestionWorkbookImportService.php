@@ -2,19 +2,21 @@
 
 namespace VistiqCore\Services\Assessment\QuestionBank;
 
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Throwable;
 use VistiqCore\Models\ContentRevision;
 use VistiqCore\Models\ExamPart;
 use VistiqCore\Models\LearningStimulus;
 use VistiqCore\Models\QuestionDifficulty;
 use VistiqCore\Models\QuestionType;
-use Throwable;
 
 class QuestionWorkbookImportService
 {
@@ -35,7 +37,7 @@ class QuestionWorkbookImportService
             $reader->setReadDataOnly(true);
             $workbook = $reader->load($path);
         } catch (Throwable $exception) {
-            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+            throw new HttpResponseException(response()->json([
                 'message' => 'Không thể đọc workbook .xlsx. Hãy kiểm tra lại tệp.',
                 'errors' => ['file' => ['Workbook không hợp lệ hoặc bị hỏng.']],
             ], 422));
@@ -47,13 +49,13 @@ class QuestionWorkbookImportService
         ));
         if ($worksheets === [] || count($worksheets) > 50) {
             $workbook->disconnectWorksheets();
-            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+            throw new HttpResponseException(response()->json([
                 'message' => 'Workbook cần có từ 1 đến 50 sheet bài học.',
                 'errors' => ['file' => ['Workbook cần có từ 1 đến 50 sheet bài học.']],
             ], 422));
         }
 
-        $parts = ExamPart::with(['examType', 'skill'])->get()->keyBy(fn (ExamPart $part) => Str::lower($part->code));
+        $parts = ExamPart::with(['examType', 'skill'])->get()->groupBy(fn (ExamPart $part) => Str::lower($part->code));
         $questionTypeIds = QuestionType::pluck('id', 'code');
         $difficultyIds = QuestionDifficulty::pluck('id', 'code');
         $usedCodes = $this->existingCodes($kind);
@@ -109,6 +111,7 @@ class QuestionWorkbookImportService
 
             if ($sheet['blocked']) {
                 $sheets[] = $sheet;
+
                 continue;
             }
 
@@ -131,7 +134,10 @@ class QuestionWorkbookImportService
                 $examCode = Str::lower(trim((string) ($row['exam_type'] ?? '')));
                 $skillCode = Str::lower(trim((string) ($row['skill'] ?? '')));
                 $partCode = Str::lower(trim((string) ($row['exam_part'] ?? '')));
-                $part = $parts->get($partCode);
+                $candidates = $parts->get($partCode, collect());
+                $part = $candidates->first(fn (ExamPart $candidate) => $candidate->examType?->code === $examCode && $candidate->skill?->code === $kind)
+                    ?? $candidates->first(fn (ExamPart $candidate) => $candidate->skill?->code === $kind)
+                    ?? $candidates->first();
                 if (! $part || $part->skill?->code !== $kind) {
                     $rowErrors[] = 'exam_part không tồn tại hoặc không thuộc kỹ năng '.$kind.'.';
                 } elseif ($partId !== null && $partId !== (int) $part->id) {
@@ -202,6 +208,7 @@ class QuestionWorkbookImportService
                     foreach (array_unique($rowErrors) as $message) {
                         $this->error($sheet, $rowNumber, $message);
                     }
+
                     continue;
                 }
 
@@ -251,7 +258,7 @@ class QuestionWorkbookImportService
     public function template(string $kind): Spreadsheet
     {
         abort_unless(in_array($kind, ['listening', 'reading'], true), 404);
-        $workbook = new Spreadsheet();
+        $workbook = new Spreadsheet;
         $this->addGuideSheet($workbook, $kind);
         $headers = [...self::QUESTION_HEADERS, ...($kind === 'reading' ? ['reading_title', 'reading_body'] : [])];
         $this->addQuestionSheet($workbook->createSheet(), strtoupper($kind).'_001', $headers, $kind);
@@ -309,7 +316,7 @@ class QuestionWorkbookImportService
     {
         $sheet->setTitle($title);
         $sheet->fromArray($headers, null, 'A1');
-        $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+        $lastColumn = Coordinate::stringFromColumnIndex(count($headers));
         $sheet->freezePane('A2');
         $sheet->setAutoFilter('A1:'.$lastColumn.'1000');
         $sheet->getStyle('A1:'.$lastColumn.'1')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
@@ -317,7 +324,7 @@ class QuestionWorkbookImportService
         $sheet->getRowDimension(1)->setRowHeight(30);
         $columnByHeader = [];
         foreach ($headers as $index => $header) {
-            $column = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($index + 1);
+            $column = Coordinate::stringFromColumnIndex($index + 1);
             $columnByHeader[$header] = $column;
             $sheet->getColumnDimension($column)->setWidth(match ($header) {
                 'prompt', 'explanation', 'reading_body' => 44,
@@ -361,7 +368,7 @@ class QuestionWorkbookImportService
             if (! isset($columnByHeader[$header]) || $values === []) {
                 continue;
             }
-            $validation = new DataValidation();
+            $validation = new DataValidation;
             $validation->setType(DataValidation::TYPE_LIST)
                 ->setErrorStyle(DataValidation::STYLE_STOP)
                 ->setAllowBlank($header === 'difficulty')
@@ -395,14 +402,18 @@ class QuestionWorkbookImportService
             foreach (DB::table('question_groups')->get(['metadata']) as $group) {
                 $metadata = json_decode((string) $group->metadata, true) ?: [];
                 $code = Str::lower(trim((string) ($metadata['lesson_code'] ?? '')));
-                if ($code !== '') $codes[$code] = true;
+                if ($code !== '') {
+                    $codes[$code] = true;
+                }
             }
         } else {
             $stimuli = LearningStimulus::where('stimulus_type', 'reading')->get(['id']);
             foreach (ContentRevision::where('kind', 'stimulus')->whereIn('entity_id', $stimuli->pluck('id'))->get(['payload']) as $revision) {
                 $metadata = $revision->payload['metadata'] ?? [];
                 $code = Str::lower(trim((string) ($metadata['lesson_code'] ?? '')));
-                if ($code !== '') $codes[$code] = true;
+                if ($code !== '') {
+                    $codes[$code] = true;
+                }
             }
         }
 
@@ -412,6 +423,7 @@ class QuestionWorkbookImportService
     private function normalizeHeader(string $header): string
     {
         $header = Str::slug(Str::ascii(trim($header)), '_');
+
         return match ($header) {
             'part', 'exam_part_code' => 'exam_part',
             'exam', 'exam_code', 'exam_type_code' => 'exam_type',

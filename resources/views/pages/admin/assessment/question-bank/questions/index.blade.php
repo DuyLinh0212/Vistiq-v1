@@ -59,6 +59,7 @@
     </div>
 @endif
 
+@can('content.edit')<a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'readings']) }}">Mẫu bài đọc kèm câu hỏi</a>@endcan
 <div class="question-bank {{ $isThptEnglish ? 'is-thpt qb-preview-closed' : '' }}" data-question-bank>
     @if($isThptEnglish)
         <header class="qb-heading qb-heading-thpt">

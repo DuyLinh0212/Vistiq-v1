@@ -50,6 +50,10 @@ return [
                     'name' => 'Chấm bài',
                     'description' => 'Chấm câu trả lời Writing và Speaking.',
                 ],
+                'results.export' => [
+                    'name' => 'Xuất báo cáo',
+                    'description' => 'Tải báo cáo thống kê và bảng xếp hạng theo bộ lọc đang xem.',
+                ],
                 'reports.review' => [
                     'name' => 'Xử lý báo cáo',
                     'description' => 'Duyệt báo cáo và điều chỉnh trạng thái lượt thi.',

@@ -36,22 +36,22 @@
             ],
         ],
     ];
-    $canSeeSidebarItem = static fn (array $item): bool => auth()->user()?->hasPermission($item['permission']) ?? false;
-    $isSidebarItemActive = static fn (array $item): bool => request()->routeIs(...$item['active']);
-    $sidebarNavigationGroups = collect($sidebarNavigationGroups)->map(function (array $group) use ($canSeeSidebarItem, $isSidebarItemActive): array {
-        $group['items'] = collect($group['items'])->map(function (array $item) use ($canSeeSidebarItem, $isSidebarItemActive): ?array {
-            if (isset($item['children'])) {
-                $item['children'] = collect($item['children'])->filter($canSeeSidebarItem)->values();
-                $item['is_active'] = $item['children']->contains(fn (array $child): bool => $isSidebarItemActive($child));
-                return $canSeeSidebarItem($item) && $item['children']->isNotEmpty() ? $item : null;
+    $canSeeSidebarItem = static fn (array $navItem): bool => auth()->user()?->hasPermission($navItem['permission']) ?? false;
+    $isSidebarItemActive = static fn (array $navItem): bool => request()->routeIs(...$navItem['active']);
+    $sidebarNavigationGroups = collect($sidebarNavigationGroups)->map(function (array $navGroup) use ($canSeeSidebarItem, $isSidebarItemActive): array {
+        $navGroup['items'] = collect($navGroup['items'])->map(function (array $navItem) use ($canSeeSidebarItem, $isSidebarItemActive): ?array {
+            if (isset($navItem['children'])) {
+                $navItem['children'] = collect($navItem['children'])->filter($canSeeSidebarItem)->values();
+                $navItem['is_active'] = $navItem['children']->contains(fn (array $navChild): bool => $isSidebarItemActive($navChild));
+                return $canSeeSidebarItem($navItem) && $navItem['children']->isNotEmpty() ? $navItem : null;
             }
 
-            return $canSeeSidebarItem($item) ? $item : null;
+            return $canSeeSidebarItem($navItem) ? $navItem : null;
         })->filter()->values();
-        $group['is_active'] = $group['items']->contains(fn (array $item): bool => $isSidebarItemActive($item) || ($item['is_active'] ?? false));
+        $navGroup['is_active'] = $navGroup['items']->contains(fn (array $navItem): bool => $isSidebarItemActive($navItem) || ($navItem['is_active'] ?? false));
 
-        return $group;
-    })->filter(fn (array $group): bool => $group['items']->isNotEmpty())->values();
+        return $navGroup;
+    })->filter(fn (array $navGroup): bool => $navGroup['items']->isNotEmpty())->values();
 @endphp
 <div class="admin-shell">
     <aside class="admin-sidebar">
@@ -63,29 +63,29 @@
                     <span class="admin-nav-link-icon">@include('pages.dictionary.icon', ['name' => 'dashboard'])</span><span class="admin-nav-link-label">Tổng quan</span>
                 </a>
             @endcan
-            @foreach($sidebarNavigationGroups as $group)
-                <details class="admin-nav-group {{ $group['is_active'] ? 'is-active' : '' }}" data-sidebar-nav-group @if($group['is_active']) open @endif>
-                    <summary title="{{ $group['label'] }}" aria-label="{{ $group['label'] }}">
-                        <span class="admin-nav-group-icon">@include('pages.dictionary.icon', ['name' => $group['icon']])</span>
-                        <span class="admin-nav-group-label">{{ $group['label'] }}</span>
+            @foreach($sidebarNavigationGroups as $navGroup)
+                <details class="admin-nav-group {{ $navGroup['is_active'] ? 'is-active' : '' }}" data-sidebar-nav-group @if($navGroup['is_active']) open @endif>
+                    <summary title="{{ $navGroup['label'] }}" aria-label="{{ $navGroup['label'] }}">
+                        <span class="admin-nav-group-icon">@include('pages.dictionary.icon', ['name' => $navGroup['icon']])</span>
+                        <span class="admin-nav-group-label">{{ $navGroup['label'] }}</span>
                     </summary>
                     <div class="admin-nav-group-items">
-                        @foreach($group['items'] as $item)
-                            @php($itemIsActive = $isSidebarItemActive($item))
-                            @if(isset($item['children']))
-                                <details class="admin-nav-subgroup {{ $item['is_active'] ? 'is-active' : '' }}" @if($item['is_active']) open @endif>
-                                    <summary title="{{ $item['label'] }}" aria-label="{{ $item['label'] }}"><span class="admin-nav-link-icon">@include('pages.dictionary.icon', ['name' => $item['icon']])</span><span class="admin-nav-link-label">{{ $item['label'] }}</span></summary>
+                        @foreach($navGroup['items'] as $navItem)
+                            @php($itemIsActive = $isSidebarItemActive($navItem))
+                            @if(isset($navItem['children']))
+                                <details class="admin-nav-subgroup {{ $navItem['is_active'] ? 'is-active' : '' }}" @if($navItem['is_active']) open @endif>
+                                    <summary title="{{ $navItem['label'] }}" aria-label="{{ $navItem['label'] }}"><span class="admin-nav-link-icon">@include('pages.dictionary.icon', ['name' => $navItem['icon']])</span><span class="admin-nav-link-label">{{ $navItem['label'] }}</span></summary>
                                     <div class="admin-nav-subgroup-items">
-                                        @foreach($item['children'] as $child)
-                                            @php($childIsActive = $isSidebarItemActive($child))
-                                            <a class="{{ $childIsActive ? 'is-active' : '' }}" href="{{ route($child['route']) }}" aria-label="{{ $child['label'] }}" title="{{ $child['label'] }}" @if($childIsActive) aria-current="page" @endif><span class="admin-nav-link-label">{{ $child['label'] }}</span></a>
+                                        @foreach($navItem['children'] as $navChild)
+                                            @php($childIsActive = $isSidebarItemActive($navChild))
+                                            <a class="{{ $childIsActive ? 'is-active' : '' }}" href="{{ route($navChild['route']) }}" aria-label="{{ $navChild['label'] }}" title="{{ $navChild['label'] }}" @if($childIsActive) aria-current="page" @endif><span class="admin-nav-link-label">{{ $navChild['label'] }}</span></a>
                                         @endforeach
                                     </div>
                                 </details>
                             @else
-                                <a class="{{ $itemIsActive ? 'is-active' : '' }}" href="{{ route($item['route']) }}" aria-label="{{ $item['label'] }}" title="{{ $item['label'] }}" @if($itemIsActive) aria-current="page" @endif>
-                                    <span class="admin-nav-link-icon">@if($item['icon'] === 'resources')<i data-resource-icon="folder-open"></i>@else @include('pages.dictionary.icon', ['name' => $item['icon']]) @endif</span>
-                                    <span class="admin-nav-link-label">{{ $item['label'] }}</span>
+                                <a class="{{ $itemIsActive ? 'is-active' : '' }}" href="{{ route($navItem['route']) }}" aria-label="{{ $navItem['label'] }}" title="{{ $navItem['label'] }}" @if($itemIsActive) aria-current="page" @endif>
+                                    <span class="admin-nav-link-icon">@if($navItem['icon'] === 'resources')<i data-resource-icon="folder-open"></i>@else @include('pages.dictionary.icon', ['name' => $navItem['icon']]) @endif</span>
+                                    <span class="admin-nav-link-label">{{ $navItem['label'] }}</span>
                                 </a>
                             @endif
                         @endforeach
@@ -97,6 +97,6 @@
     </aside>
     <div class="admin-main">
         <header class="admin-topbar"><div class="breadcrumbs"><a href="{{ route('admin.dashboard') }}">Admin Studio</a></div><form method="get" action="{{ route('admin.search') }}"><input name="q" placeholder="Tìm câu hỏi, đề, kiến thức" aria-label="Tìm toàn hệ thống"></form></header>
-        <main class="page-wrap admin-page">@if(session('status'))<div class="admin-toast" role="status" aria-live="polite" data-admin-toast><span>{{ session('status') }}</span><button type="button" data-dismiss-admin-toast aria-label="Đóng thông báo">×</button></div>@endif @if($errors->any())<div class="admin-alert admin-alert-error" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif @include($page['view'])</main>
+        <main class="page-wrap admin-page">@include('shared.feedback') @include($page['view'])</main>
     </div>
 </div>

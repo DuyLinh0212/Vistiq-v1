@@ -1,5 +1,6 @@
 @import './confirmation-dialog.css';
 @import 'tailwindcss' source('../');
+@import './ui-feedback.css';
 @import './question-bank.css';
 @import './question-editor.css';
 @import './reading-library.css';

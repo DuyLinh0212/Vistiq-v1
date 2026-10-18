@@ -1,4 +1,5 @@
 import './admin-workspace.js';
+import './ui-feedback.js';
 import.meta.glob('./resource-library.js', { eager: true });
 import './question-bank.js';
 import './question-workbook-import.js';

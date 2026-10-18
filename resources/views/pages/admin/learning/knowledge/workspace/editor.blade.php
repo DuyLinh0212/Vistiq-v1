@@ -30,6 +30,8 @@
         </div>
     @endif
 
+    <a class="button button-quiet" href="#knowledge-preview">Xem trước bản nháp</a>
+    <div class="workspace-with-preview">
     <form class="knowledge-editor" method="post" action="{{ $item->exists ? route('admin.knowledge.update', $item) : route('admin.knowledge.store') }}" data-unsaved-form>
         @csrf
         @if($item->exists)@method('PUT')@endif
@@ -143,4 +145,6 @@
 
         <footer class="knowledge-editor-actions"><a class="button button-quiet" href="{{ route('admin.knowledge.index', ['type' => $selectedType]) }}">Hủy</a>@can('content.edit')<button class="button button-primary" type="submit">{{ $item->exists ? 'Lưu thay đổi' : 'Tạo bản nháp' }}</button>@endcan</footer>
     </form>
+    @include('pages.admin.learning.knowledge.workspace.preview')
+    </div>
 </section>

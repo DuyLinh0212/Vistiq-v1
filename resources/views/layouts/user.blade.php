@@ -26,6 +26,7 @@
     <button class="mobile-menu" aria-label="Mở điều hướng">@include('pages.dictionary.icon', ['name' => 'menu'])</button>
 </header>
 <main class="page-wrap">
+    @include('shared.feedback')
     @include($page['view'])
 </main>
 <footer class="site-footer"><span>© {{ date('Y') }} Vistiq English</span><span>Học có trọng tâm · Tiến bộ mỗi ngày</span><a href="{{ route('demo.page', 'welcome-demo') }}">Giới thiệu</a><a href="{{ route('login') }}">Đăng nhập</a></footer>

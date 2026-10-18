@@ -2,11 +2,11 @@
 
 namespace VistiqAdmin\Http\Controllers\Admin\Analytics;
 
-use Illuminate\Http\Request;
 use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqAdmin\Http\Requests\Admin\Analytics\AnalyticsFilterRequest;
 use VistiqCore\Services\Analytics\AnalyticsService;
 use VistiqCore\Services\Analytics\ExportService;
+use VistiqCore\Services\System\AuditService;
 
 class DashboardController extends AdminPageController
 {
@@ -36,12 +36,8 @@ class DashboardController extends AdminPageController
     public function export(AnalyticsFilterRequest $request, AnalyticsService $analytics, ExportService $export): mixed
     {
         $metrics = $analytics->dashboard($request);
-        $csv = $export->dashboardCsv($metrics);
-        $filename = 'analytics-report-'.now()->format('YmdHis').'.csv';
+        app(AuditService::class)->record('analytics.export', 'analytics', null, [], ['filters' => $metrics['filters'], 'format' => $request->input('format', 'csv')]);
 
-        return response($csv, 200, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
+        return $export->download($export->dashboardCsv($metrics), 'analytics-report', $request->input('format', 'csv'));
     }
 }
