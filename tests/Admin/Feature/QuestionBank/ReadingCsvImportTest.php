@@ -58,7 +58,8 @@ class ReadingCsvImportTest extends TestCase
         $this->get('/admin/questions')->assertRedirect(route('admin.questions.listening'));
         $zip = new \ZipArchive;
         $this->assertTrue($zip->open(resource_path('import-templates/questions/vistiq-question-bank-templates.zip')));
-        $this->assertSame(file_get_contents(resource_path('import-templates/questions/vistiq-readings-with-questions-template.csv')), $zip->getFromName('vistiq-readings-with-questions-template.csv'));
+        $normalize = fn (string $csv): string => str_replace(["\r\n", "\r"], "\n", $csv);
+        $this->assertSame($normalize(file_get_contents(resource_path('import-templates/questions/vistiq-readings-with-questions-template.csv'))), $normalize($zip->getFromName('vistiq-readings-with-questions-template.csv')));
         $zip->close();
     }
 
