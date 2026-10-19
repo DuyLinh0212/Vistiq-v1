@@ -35,10 +35,11 @@ class MediaService
             return $this->storeImage($file, $actorId, $questionId);
         }
 
-        $disk = 'r2';
+        // Local setups can use their configured filesystem without requiring Cloudflare R2.
+        $disk = app()->environment('local') ? $this->configure() : 'r2';
         $folder = $this->questionFolder($questionId);
         $path = $file->store($folder, $disk);
-        abort_unless(is_string($path), 503, 'Không thể lưu media lên R2.');
+        abort_unless(is_string($path), 503, 'Không thể lưu media lên ổ lưu trữ.');
 
         return MediaAsset::create([
             'disk' => $disk,

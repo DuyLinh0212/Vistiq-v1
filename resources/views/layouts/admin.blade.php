@@ -52,6 +52,16 @@
         return $navGroup;
     })->filter(fn (array $navGroup): bool => $navGroup['items']->isNotEmpty())->values();
 @endphp
+@php
+    $accountUser = auth()->user();
+    $accountAvatarPath = $accountUser?->avatar_path;
+    $accountAvatar = $accountAvatarPath
+        && str_starts_with($accountAvatarPath, 'avatars/'.$accountUser->id.'/')
+        && \Illuminate\Support\Facades\Storage::disk('public')->exists($accountAvatarPath)
+            ? \Illuminate\Support\Facades\Storage::disk('public')->url($accountAvatarPath)
+            : null;
+    $accountInitial = mb_strtoupper(mb_substr(trim($accountUser?->name ?? 'Admin'), 0, 1));
+@endphp
 <div class="admin-shell">
     <aside class="admin-sidebar">
         <a class="brand brand-light" href="{{ route('admin.dashboard') }}"><img class="brand-mark" src="{{ asset('images/vistiq-logo.png') }}" alt="Vistiq"></a>
@@ -95,7 +105,24 @@
         <div class="sidebar-bottom"><p>{{ auth()->user()?->name }}</p><form method="post" action="{{ route('admin.logout') }}">@csrf<button class="button button-quiet">Đăng xuất</button></form></div>
     </aside>
     <div class="admin-main">
-        <header class="admin-topbar"><div class="breadcrumbs"><a href="{{ route('admin.dashboard') }}">Admin Studio</a></div><form method="get" action="{{ route('admin.search') }}" data-ajax-filter-form data-ajax-target="#admin-search-results" data-ajax-debounce="350" data-ajax-history-first-push><input type="search" name="q" value="{{ request()->routeIs('admin.search') ? request('q') : '' }}" placeholder="Tìm câu hỏi, đề, kiến thức" aria-label="Tìm toàn hệ thống" autocomplete="off"></form></header>
+        <header class="admin-topbar">
+            <div class="breadcrumbs"><a href="{{ route('admin.dashboard') }}">Admin Studio</a></div>
+            <form class="admin-global-search" method="get" action="{{ route('admin.search') }}" data-ajax-filter-form data-ajax-target="#admin-search-results" data-ajax-debounce="350" data-ajax-history-first-push><input type="search" name="q" value="{{ request()->routeIs('admin.search') ? request('q') : '' }}" placeholder="Tìm câu hỏi, đề, kiến thức" aria-label="Tìm toàn hệ thống" autocomplete="off"></form>
+            <details class="admin-account-menu" data-admin-account-menu>
+                <summary aria-label="Tài khoản của {{ $accountUser?->name }}" title="Tài khoản">
+                    <span class="avatar" aria-hidden="true">
+                        @if($accountAvatar)<img src="{{ $accountAvatar }}" alt="">@else{{ $accountInitial }}@endif
+                    </span>
+                </summary>
+                <div class="admin-account-panel">
+                    <div class="admin-account-identity"><strong>{{ $accountUser?->name }}</strong><span>{{ $accountUser?->email }}</span></div>
+                    <form method="post" action="{{ route('admin.logout') }}">
+                        @csrf
+                        <button type="submit" class="button button-quiet admin-account-logout">Đăng xuất</button>
+                    </form>
+                </div>
+            </details>
+        </header>
         <main class="page-wrap admin-page">@include('shared.feedback') @unless(request()->routeIs('admin.search'))<div id="admin-search-results" data-ajax-results hidden></div>@endunless @include($page['view'])</main>
     </div>
 </div>

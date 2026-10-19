@@ -18,6 +18,9 @@
 .identity-workspace .identity-meta { display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:var(--muted); font-size:12px; }
 .identity-workspace .identity-filter { grid-template-columns:minmax(180px,2fr) repeat(2,minmax(130px,1fr)); }
 .identity-workspace .identity-filter-actions { align-self:end; justify-content:end; }
+.identity-users-workspace .identity-filter-options,.identity-users-workspace .identity-filter-fields { display:contents; }
+.identity-users-workspace .identity-filter-options::details-content { display:contents; }
+.identity-users-workspace .identity-filter-options > summary { display:none; }
 .identity-workspace .identity-table-panel { padding:0!important; overflow:hidden; }
 .identity-workspace .identity-table-heading { padding:16px 20px; margin:0; }
 .identity-workspace .identity-table-scroll { overflow-x:auto; }
@@ -81,12 +84,93 @@
 .identity-workspace .role-permission-form__footer { align-items:stretch; flex-direction:column; }
 .identity-workspace .role-permission-form__footer .button { white-space:normal; }
 }
+@media(max-width:680px) {
+/* Keep the account directory readable without a horizontally scrolling table. */
+.identity-users-workspace { gap:20px; }
+.identity-users-workspace .page-heading { gap:12px; }
+.identity-users-workspace .page-heading h1 { font-size:22px; line-height:1.3; }
+.identity-users-workspace .page-heading p { margin-top:6px; font-size:13px; line-height:1.5; }
+.identity-users-workspace .page-heading > .button { min-height:44px; font-size:13px; }
+.identity-users-workspace .identity-filter { grid-template-columns:minmax(0,1fr); gap:12px; }
+.identity-users-workspace .identity-filter label { font-size:13px; }
+.identity-users-workspace .identity-filter input:not([type=checkbox]),.identity-users-workspace .identity-filter select { min-height:44px; font-size:16px; }
+.identity-users-workspace .identity-filter-options { display:block; min-width:0; border-top:1px solid var(--line); }
+.identity-users-workspace .identity-filter-options::details-content { display:block; }
+.identity-users-workspace .identity-filter-options > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; cursor:pointer; list-style:none; color:var(--ink-soft); font-size:13px; font-weight:600; }
+.identity-users-workspace .identity-filter-options > summary::-webkit-details-marker { display:none; }
+.identity-users-workspace .identity-filter-options > summary > span:first-child { display:flex; align-items:center; gap:8px; }
+.identity-users-workspace .identity-filter-chevron { font-size:20px; line-height:1; }
+.identity-users-workspace .identity-filter-options[open] .identity-filter-chevron { transform:rotate(180deg); }
+.identity-users-workspace .identity-filter-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 10px; padding-top:8px; }
+.identity-users-workspace .identity-filter-fields > label:nth-child(-n+2) { grid-column:1/-1; }
+.identity-users-workspace .identity-filter-options:not([open]) > .identity-filter-fields { display:none; }
+.identity-users-workspace .identity-filter-actions { grid-column:1/-1; flex-wrap:nowrap; }
+.identity-users-workspace .identity-filter-actions .button { flex:1; min-width:0; min-height:44px; font-size:13px; }
+.identity-users-workspace .identity-table-panel { border:0; background:transparent; box-shadow:none; overflow:visible; }
+.identity-users-workspace .identity-table-heading { padding:0 0 12px; gap:6px; align-items:center; }
+.identity-users-workspace .identity-table-heading h2 { font-size:16px; }
+.identity-users-workspace .identity-table-heading .identity-meta { font-size:12px; }
+.identity-users-workspace .identity-table-scroll { overflow:visible; }
+.identity-users-workspace .admin-table { display:block; min-width:0; width:100%; overflow:visible; font-size:13px; }
+.identity-users-workspace .admin-table thead { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.identity-users-workspace .admin-table tbody { display:grid; gap:12px; }
+.identity-users-workspace .admin-table tbody tr { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px 12px; padding:16px; border:1px solid var(--line); border-radius:14px; background:var(--card); }
+.identity-users-workspace .admin-table tbody tr:hover { background:var(--card); }
+.identity-users-workspace .admin-table td { display:block; min-width:0; padding:0; border:0; line-height:1.5; text-align:left; white-space:normal; overflow-wrap:anywhere; }
+.identity-users-workspace .identity-user-person { grid-column:1; }
+.identity-users-workspace .identity-person { gap:4px; }
+.identity-users-workspace .identity-person strong { font-size:15px; line-height:1.4; }
+.identity-users-workspace .identity-person small { font-size:12px; }
+.identity-users-workspace .identity-user-status { grid-column:2; justify-self:end; align-self:start; }
+.identity-users-workspace .identity-user-status .badge { font-size:11px; padding:5px 8px; white-space:nowrap; }
+.identity-users-workspace .identity-user-roles { grid-column:1/-1; }
+.identity-users-workspace td[data-label]::before { content:attr(data-label); display:block; margin-bottom:5px; color:var(--ink-soft); font-size:11px; font-weight:600; }
+.identity-users-workspace .identity-user-roles .tag-row { display:flex; flex-wrap:wrap; gap:6px; }
+.identity-users-workspace .identity-user-roles .badge { font-size:11px; padding:4px 8px; }
+.identity-users-workspace .identity-user-activity { grid-column:1; }
+.identity-users-workspace .identity-user-created { grid-column:2; }
+.identity-users-workspace .identity-table-actions { grid-column:1/-1; padding-top:12px!important; border-top:1px solid var(--line)!important; }
+.identity-users-workspace .identity-table-actions .button { width:100%; min-height:44px; justify-content:center; font-size:13px; }
+.identity-users-workspace .identity-empty-row > td { grid-column:1/-1; }
+.identity-users-workspace .identity-empty { padding:16px 0; }
+.identity-users-workspace .identity-pagination { padding:16px 0; }
+body:has(.identity-users-workspace) .admin-topbar .breadcrumbs { display:none; }
+body:has(.identity-users-workspace) .admin-topbar form { max-width:none; }
+body:has(.identity-users-workspace) .admin-topbar form input { min-height:40px; font-size:16px; }
+}
+@media(max-width:360px) {
+.identity-users-workspace .identity-filter-fields > label:nth-child(n+3) { grid-column:1/-1; }
+.identity-users-workspace .admin-table tbody tr { padding:14px; gap:14px 8px; }
+.identity-users-workspace .identity-person strong { font-size:14px; }
+}
 @media(prefers-reduced-motion:reduce) { .identity-workspace .button { transition:none; transform:none; } }
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const root = document.querySelector('[data-identity-workspace]');
     if (!root) return;
+    const mobileFilters = root.querySelector('[data-mobile-filters]');
+    if (mobileFilters) {
+        const phone = window.matchMedia('(max-width:680px)');
+        let mobileOpen = Number(mobileFilters.dataset.activeFilters) > 0;
+        const syncFilters = () => { mobileFilters.open = !phone.matches || mobileOpen; };
+        mobileFilters.addEventListener('toggle', () => {
+            if (phone.matches) mobileOpen = mobileFilters.open;
+        });
+        phone.addEventListener('change', syncFilters);
+        syncFilters();
+        const updateFilterCount = () => {
+            const count = [...mobileFilters.querySelectorAll('input,select')].filter(input => input.value && input.value !== 'all').length;
+            const badge = mobileFilters.querySelector('[data-mobile-filter-count]');
+            badge.textContent = count;
+            badge.hidden = count === 0;
+        };
+        mobileFilters.addEventListener('change', updateFilterCount);
+        mobileFilters.closest('form').addEventListener('reset', () => setTimeout(updateFilterCount, 0));
+        document.addEventListener('vistiq:ajax-results-updated', event => {
+            if (event.detail.selector === '#admin-users-results') updateFilterCount();
+        });
+    }
     root.querySelector('[data-role-select]')?.addEventListener('change', event => { window.location.href = event.target.value; });
     root.querySelectorAll('[data-permission-group]').forEach(group => {
         const inputs = [...group.querySelectorAll('input[type=checkbox]')];

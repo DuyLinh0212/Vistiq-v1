@@ -237,3 +237,22 @@ if (sidebarGroups.length) {
         if (opened) { opened.open = false; opened.querySelector('summary').focus(); }
     });
 }
+
+const adminAccountMenu = document.querySelector('[data-admin-account-menu]');
+if (adminAccountMenu) {
+    adminAccountMenu.addEventListener('toggle', () => {
+        if (adminAccountMenu.open && matchMedia('(max-width: 680px)').matches) sidebarGroups.forEach(group => { group.open = false; });
+    });
+    sidebarGroups.forEach(group => group.addEventListener('toggle', () => {
+        if (group.open) adminAccountMenu.open = false;
+    }));
+    document.addEventListener('click', event => {
+        if (!adminAccountMenu.contains(event.target)) adminAccountMenu.open = false;
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && adminAccountMenu.open) {
+            adminAccountMenu.open = false;
+            adminAccountMenu.querySelector('summary').focus();
+        }
+    });
+}

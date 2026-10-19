@@ -363,6 +363,33 @@
     .listening-heading .qb-heading-actions { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
     .listening-heading .workbook-import { flex: 1 1 auto; }
     .listening-heading .workbook-import > summary { justify-content: center; }
+    .listening-heading .workbook-import[open] { flex-basis: 100%; min-width: 0; }
+    .listening-heading .workbook-import[open] > summary { width: 100%; }
+    .listening-library .workbook-import[open] .workbook-import-panel {
+        position: static;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        max-height: none;
+        grid-template-columns: minmax(0, 1fr);
+        margin: 8px 0 0;
+        padding: 12px;
+        overflow: visible;
+        box-shadow: none;
+    }
+    .listening-library .workbook-import-panel > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .listening-library .workbook-import-panel form[data-workbook-upload] { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+    .listening-library .workbook-import-panel .admin-label { display: grid; gap: 8px; width: 100%; min-width: 0; }
+    .listening-library .workbook-import-panel input { width: 100%; min-width: 0; max-width: 100%; font-size: 16px; }
+    .listening-library .workbook-import-panel .button,
+    .listening-heading .workbook-import > summary { min-height: 44px; max-width: 100%; white-space: normal; }
+    .listening-library .workbook-import-panel .button { width: 100%; }
+    .listening-library .workbook-sheet-row,
+    .listening-library .workbook-reading-card { min-width: 0; }
+    .listening-library .workbook-sheet-row > div,
+    .listening-library .workbook-reading-card-heading { flex-wrap: wrap; }
+    .listening-library .workbook-audio-row { min-width: 0; flex-direction: column; align-items: stretch; gap: 8px; }
+    .listening-library .workbook-image-row { grid-template-columns: minmax(0, 1fr); }
     .listening-heading .qb-heading-actions > .button { flex: 1 1 auto; }
     .listening-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
     .listening-stat { min-height: 54px; padding: 8px; }
