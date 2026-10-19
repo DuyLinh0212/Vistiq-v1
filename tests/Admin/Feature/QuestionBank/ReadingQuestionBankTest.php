@@ -64,6 +64,20 @@ class ReadingQuestionBankTest extends TestCase
         $this->assertCount(1, $rows->pluck('question_group_id')->unique());
     }
 
+    public function test_reading_detail_shows_single_and_bulk_approval_for_questions_waiting_review(): void
+    {
+        $reading = $this->reading();
+        $questionId = $this->postJson('/admin/questions', $this->fields($reading))->assertOk()->json('id');
+        $question = QuestionBankItem::findOrFail($questionId);
+        $question->draftRevision->update(['status' => 'review']);
+
+        $this->actingAs($this->admin('reviewer'));
+        $this->get('/admin/readings?stimulus='.$reading->id.'&preview_question='.$questionId)
+            ->assertOk()
+            ->assertSee('Duyệt 1 câu đang chờ')
+            ->assertSee('aria-label="Duyệt câu hỏi Q-'.$questionId.'"', false);
+    }
+
     public function test_embedded_save_preserves_group_order_and_rejects_stale_revision(): void
     {
         $reading = $this->reading();

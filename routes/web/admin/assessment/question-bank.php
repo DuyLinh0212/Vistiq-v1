@@ -13,6 +13,7 @@ Route::post('/questions/import/preview', [QuestionController::class, 'previewWor
 Route::post('/questions/import/confirm', [QuestionController::class, 'confirmWorkbook'])->middleware('can:content.edit')->name('questions.import.confirm');
 Route::get('/questions/export', [QuestionBankWorkflowController::class, 'export'])->middleware('can:content.view')->name('questions.export');
 Route::post('/questions/import', [QuestionController::class, 'import'])->middleware('can:content.edit')->name('questions.import');
+Route::post('/questions/approve', [QuestionBankWorkflowController::class, 'approveQuestions'])->middleware(['can:content.review', 'throttle:30,1'])->name('questions.approve');
 Route::post('/questions/bulk', [QuestionBankWorkflowController::class, 'bulk'])->middleware('can:content.edit')->name('questions.bulk');
 Route::get('/questions/bank-preview/{kind}/{id}', [QuestionController::class, 'bankPreview'])->middleware('can:content.view')->whereNumber('id')->name('questions.bank-preview');
 Route::get('/questions/listening', [StimulusController::class, 'listening'])->middleware('can:content.view')->name('questions.listening');

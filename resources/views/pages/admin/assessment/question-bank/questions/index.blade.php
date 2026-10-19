@@ -157,12 +157,15 @@
                     <script type="application/json" data-question-matching-ids>{!! json_encode($matchingQuestionIds) !!}</script>
                     <span data-question-selection-summary aria-live="polite"></span><input type="hidden" name="action" value="">
                     @can('content.edit')<button class="button button-danger" type="button" data-delete-selected-questions>Xóa câu đã chọn chưa dùng trong đề</button>@endcan
+                    @can('content.review')<button class="button button-primary" type="button" data-approve-selected-questions disabled>Duyệt câu đang chờ đã chọn</button>@endcan
+                    <script type="application/json" data-question-review-revisions>{!! json_encode(collect($bankData['records'])->filter(fn (array $record): bool => ($record['status'] ?? null) === 'review')->mapWithKeys(fn (array $record, $id): array => [(string) $id => (int) $record['question']->draft_revision_id])->all()) !!}</script>
                     @if($isThptEnglish)
                         @foreach($questions->getCollection() as $question)<input type="checkbox" form="question-bulk" name="ids[]" value="{{ $question->id }}" hidden aria-label="Chọn câu {{ $question->id }}">@endforeach
                     @else
                         @foreach($entries->getCollection()->flatMap(fn ($entry) => $entry['matching_ids'])->unique() as $id)<input type="checkbox" form="question-bulk" name="ids[]" value="{{ $id }}" hidden aria-label="Chọn câu {{ $id }}">@endforeach
                     @endif
                 </form>
+                @can('content.review')<form id="question-approval-bulk" method="post" action="{{ route('admin.questions.approve') }}" hidden>@csrf</form>@endcan
                 <div class="import-progress bulk-delete-progress" data-delete-progress hidden aria-live="polite"><div class="import-progress-heading"><b data-delete-progress-label>Đang xóa câu hỏi…</b><span data-delete-progress-count>0%</span></div><progress max="100" value="0" data-delete-progress-bar aria-label="Tiến độ xóa câu hỏi"></progress></div>
                 <div class="qb-table-scroll">
                     @if($isThptEnglish)
@@ -189,9 +192,9 @@
                                 <td>@if($group)<button class="reading-code" type="button" data-qb-preview="{{ $previewKey }}">{{ $group->title }}</button><small class="qb-part-name">Nhóm văn bản</small>@else<span class="qb-standalone">Câu độc lập</span>@endif</td>
                                 <td class="qb-resource-cell">@if($hasText)<span class="qb-resource-tag">Văn bản</span>@endif @if($hasImage)<span class="qb-resource-tag">Ảnh</span>@endif @if(!$hasText && !$hasImage)<span class="qb-empty-value">—</span>@endif</td>
                                 <td><span class="badge badge-soft">{{ $difficultyLabels[$question->difficulty?->code ?? ''] ?? '—' }}</span></td>
-                                <td><span class="badge {{ in_array($questionStatus, ['published', 'approved'], true) ? 'badge-mint' : 'badge-soft' }}">{{ $statusLabels[$questionStatus] ?? 'Bản nháp' }}</span></td>
+                                <td><span class="badge {{ in_array($questionStatus, ['published', 'approved'], true) ? 'badge-mint' : ($questionStatus === 'review' ? 'badge-amber' : 'badge-soft') }}">{{ $statusLabels[$questionStatus] ?? 'Bản nháp' }}</span></td>
                                 <td class="qb-updated">{{ ($question->draftRevision?->created_at ?? $question->publishedRevision?->created_at ?? $question->updated_at)?->locale('vi')->diffForHumans() }}</td>
-                                <td><div class="qb-row-actions"><button type="button" data-qb-preview="{{ $previewKey }}" aria-controls="qb-preview" aria-label="Xem câu hỏi Q-{{ $question->id }}">@include('pages.dictionary.icon',['name'=>'eye'])</button>@can('content.edit')<a href="{{ route('admin.questions.edit', ['question' => $question->id, 'from' => 'thpt']) }}" aria-label="Sửa câu hỏi Q-{{ $question->id }}">@include('pages.dictionary.icon',['name'=>'edit'])</a>@endcan</div></td>
+                                <td><div class="qb-row-actions"><button type="button" data-qb-preview="{{ $previewKey }}" aria-controls="qb-preview" aria-label="Xem câu hỏi Q-{{ $question->id }}">@include('pages.dictionary.icon',['name'=>'eye'])</button>@include('pages.admin.assessment.question-bank.workspace.approve-question', ['questionId' => $question->id, 'reviewRevisionId' => $question->draft_revision_id, 'questionStatus' => $questionStatus, 'questionLabel' => 'Q-'.$question->id])@can('content.edit')<a href="{{ route('admin.questions.edit', ['question' => $question->id, 'from' => 'thpt']) }}" aria-label="Sửa câu hỏi Q-{{ $question->id }}">@include('pages.dictionary.icon',['name'=>'edit'])</a>@endcan</div></td>
                             </tr>
                         @empty<tr><td colspan="10"><div class="qb-empty"><h3>Chưa có câu hỏi phù hợp</h3><p>Đổi bộ lọc, thêm câu hỏi hoặc import dữ liệu THPT.</p></div></td></tr>@endforelse
                         </tbody>

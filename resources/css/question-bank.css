@@ -59,6 +59,8 @@
 .qb-incomplete { display: block; margin-top: 3px; color: #d77827; font-size: 9px; }
 .qb-updated { min-width: 66px; color: #8894aa !important; font-size: 9px; }
 .qb-row-actions { display: flex; gap: 4px; }
+.qb-row-actions form.question-approval-action { margin: 0; }
+.qb-row-actions form.question-approval-action .button { width: auto; min-height: 23px; padding: 0 6px; font-size: 9px; }
 .qb-row-actions a, .qb-row-actions button { display: inline-grid; place-items: center; width: 23px; height: 23px; padding: 0; border: 1px solid #edf0f7; border-radius: 5px; color: #6c7892; background: white; font-size: 14px; }
 .qb-row-actions [aria-pressed="true"], .qb-row-actions a:hover, .qb-row-actions button:hover { color: var(--qb-blue); border-color: #cddfff; }
 .qb-pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 47px; padding: 6px 5px; color: var(--qb-muted); font-size: 10px; }

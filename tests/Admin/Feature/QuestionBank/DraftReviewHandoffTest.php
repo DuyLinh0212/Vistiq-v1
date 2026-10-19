@@ -6,6 +6,8 @@ use Database\Admin\Factories\QuestionBankItemFactory;
 use Database\Admin\Seeders\AdminCatalogSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\Admin\TestCase;
+use VistiqCore\Models\ExamPart;
+use VistiqCore\Models\QuestionBankItem;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
 
 class DraftReviewHandoffTest extends TestCase
@@ -31,5 +33,68 @@ class DraftReviewHandoffTest extends TestCase
         $this->get('/admin/questions')->assertRedirect('/admin/questions/listening');
         $this->actingAs($this->admin('reviewer'))->get('/admin/content-approval')->assertOk()->assertSee('Select the answer.');
         $this->post('/admin/questions/bulk', ['ids' => [$legacy->id], 'action' => 'review'])->assertForbidden();
+    }
+
+    public function test_reviewer_can_approve_single_or_multiple_questions_with_revision_guards(): void
+    {
+        $this->seed(AdminCatalogSeeder::class);
+        $this->actingAs($this->admin('content-admin'));
+        $revisions = app(ContentRevisionService::class);
+        $questions = collect([1, 2, 3])->map(function () use ($revisions): QuestionBankItem {
+            $question = QuestionBankItemFactory::new()->create();
+            $revision = $revisions->save('question', $question, $this->item(['exam_part_id' => $question->exam_part_id]), 0);
+            $revision->update(['status' => 'review']);
+
+            return $question->fresh();
+        });
+
+        $this->actingAs($this->admin('reviewer'));
+        $first = $questions->first();
+        $this->post('/admin/questions/approve', [
+            'ids' => [$first->id],
+            'revision_ids' => [$first->id => $first->draft_revision_id],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('approved', $first->fresh()->draftRevision->status);
+
+        $batch = $questions->slice(1)->values();
+        $this->post('/admin/questions/approve', [
+            'ids' => $batch->pluck('id')->all(),
+            'revision_ids' => $batch->mapWithKeys(fn (QuestionBankItem $question): array => [$question->id => $question->draft_revision_id])->all(),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $batch->each(fn (QuestionBankItem $question) => $this->assertSame('approved', $question->fresh()->draftRevision->status));
+
+        $this->actingAs($this->admin('content-admin'));
+        $staleQuestion = QuestionBankItemFactory::new()->create();
+        $staleRevision = $revisions->save('question', $staleQuestion, $this->item(['exam_part_id' => $staleQuestion->exam_part_id]), 0);
+        $staleRevision->update(['status' => 'review']);
+        $newRevision = $revisions->save('question', $staleQuestion->fresh(), $this->item(['exam_part_id' => $staleQuestion->exam_part_id, 'prompt' => 'Newer revision.']), 1);
+        $this->actingAs($this->admin('reviewer'));
+        $this->post('/admin/questions/approve', [
+            'ids' => [$staleQuestion->id],
+            'revision_ids' => [$staleQuestion->id => $staleRevision->id],
+        ])->assertConflict();
+        $this->assertSame('draft', $newRevision->fresh()->status);
+    }
+
+    public function test_thpt_bank_shows_single_and_bulk_approval_actions_for_questions_waiting_review(): void
+    {
+        $this->seed(AdminCatalogSeeder::class);
+        $this->actingAs($this->admin('content-admin'));
+        $part = ExamPart::with('skill')->where('code', 'tieng-anh-part-1')->firstOrFail();
+        $question = QuestionBankItemFactory::new()->create(['exam_part_id' => $part->id]);
+        $revision = app(ContentRevisionService::class)->save('question', $question, $this->item([
+            'id' => $question->id,
+            'exam_part_id' => $part->id,
+            'exam_type' => 'thpt',
+            'part' => $part->code,
+            'skill' => $part->skill->code,
+        ]), 0);
+        $revision->update(['status' => 'review']);
+
+        $this->actingAs($this->admin('reviewer'));
+        $this->get('/admin/questions/thpt')
+            ->assertOk()
+            ->assertSee('Duyệt câu đang chờ đã chọn')
+            ->assertSee('aria-label="Duyệt câu hỏi Q-'.$question->id.'"', false);
     }
 }

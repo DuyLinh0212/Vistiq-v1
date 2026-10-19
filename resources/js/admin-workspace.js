@@ -232,6 +232,51 @@ if (audioDeleteForm) {
 
 const questionBulkForm = document.querySelector('#question-bulk');
 const questionBulkEndpoint = questionBulkForm?.getAttribute('action');
+const questionApprovalForm = document.querySelector('#question-approval-bulk');
+const questionReviewRevisionsElement = questionBulkForm?.querySelector('[data-question-review-revisions]');
+const questionReviewRevisions = questionReviewRevisionsElement ? JSON.parse(questionReviewRevisionsElement.textContent) : {};
+questionBulkForm?.querySelector('[data-approve-selected-questions]')?.addEventListener('click', async event => {
+    const selectedIds = selectingAllMatchingQuestions
+        ? [...questionBulkForm.querySelectorAll('input[name="matching_ids[]"]')].map(input => input.value)
+        : [...questionBulkForm.querySelectorAll('input[form="question-bulk"][name="ids[]"]:checked')].map(input => input.value);
+    const reviewableIds = [...new Set(selectedIds)].filter(id => questionReviewRevisions[id]);
+    const button = event.currentTarget;
+
+    if (reviewableIds.length === 0) {
+        alert('Chọn ít nhất một câu ở trạng thái Chờ duyệt.');
+        return;
+    }
+    if (reviewableIds.length > 100) {
+        alert('Mỗi lượt duyệt tối đa 100 câu. Hãy chọn câu trên trang hiện tại hoặc thu hẹp bộ lọc.');
+        return;
+    }
+    if (button.dataset.confirmPending === 'true') return;
+    button.dataset.confirmPending = 'true';
+    const confirmed = await requestAdminConfirmation(`Duyệt ${reviewableIds.length} câu hỏi đang chờ? Các câu hợp lệ sẽ chuyển sang trạng thái Đã duyệt.`, {
+        title: 'Xác nhận duyệt câu hỏi',
+        confirmLabel: `Duyệt ${reviewableIds.length} câu`,
+        danger: false,
+    });
+    delete button.dataset.confirmPending;
+    if (!confirmed || !questionApprovalForm) return;
+
+    questionApprovalForm.querySelectorAll('input[name="ids[]"], input[name^="revision_ids["]').forEach(input => input.remove());
+    reviewableIds.forEach(id => {
+        const questionInput = document.createElement('input');
+        questionInput.type = 'hidden';
+        questionInput.name = 'ids[]';
+        questionInput.value = id;
+        const revisionInput = document.createElement('input');
+        revisionInput.type = 'hidden';
+        revisionInput.name = `revision_ids[${id}]`;
+        revisionInput.value = questionReviewRevisions[id];
+        questionApprovalForm.append(questionInput, revisionInput);
+    });
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = 'Đang duyệt…';
+    questionApprovalForm.requestSubmit();
+});
 questionBulkForm?.querySelector('[data-delete-selected-questions]')?.addEventListener('click', () => {
     if (!document.querySelector('input[form="question-bulk"][name="ids[]"]:checked') && !questionBulkForm.querySelector('input[name="matching_ids[]"]')) {
         alert('Hãy chọn ít nhất một câu hỏi cần xóa.');
@@ -986,6 +1031,8 @@ function updateQuestionSelectionSummary() {
     questionSelectionSummary.textContent = selectingAllMatchingQuestions
         ? `Đã chọn ${selectedMatchingQuestions}/${matchingQuestionIds.length} câu phù hợp bộ lọc.`
         : selectedVisibleQuestions > 0 ? `Đã chọn ${selectedVisibleQuestions} câu trên trang này.` : '';
+    const approveButton = questionBulkForm.querySelector('[data-approve-selected-questions]');
+    if (approveButton) approveButton.disabled = selectedCount === 0;
 }
 
 function setMatchingQuestionSelection(isSelected) {

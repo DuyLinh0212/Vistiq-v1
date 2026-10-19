@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
+use VistiqAdmin\Http\Requests\Admin\Assessment\QuestionBank\QuestionApprovalRequest;
 use VistiqAdmin\Http\Requests\Admin\Shared\AdminActionRequest;
 use VistiqCore\Models\ContentRevision;
 use VistiqCore\Models\ExamPart;
@@ -20,6 +21,28 @@ use VistiqCore\Services\System\AuditService;
 
 class QuestionBankWorkflowController extends AdminPageController
 {
+    public function approveQuestions(QuestionApprovalRequest $request, ContentRevisionService $revisions): mixed
+    {
+        Gate::authorize('content.review');
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data, $revisions): void {
+            foreach ($data['ids'] as $id) {
+                $question = QuestionBankItem::query()->lockForUpdate()->findOrFail($id);
+                $expectedRevisionId = (int) ($data['revision_ids'][$id] ?? 0);
+                abort_unless(
+                    $expectedRevisionId > 0 && (int) $question->draft_revision_id === $expectedRevisionId,
+                    409,
+                    "Câu hỏi Q-{$id} đã thay đổi revision. Tải lại danh sách rồi thử lại."
+                );
+
+                $revisions->transition('question', $question, 'approve');
+            }
+        });
+
+        return back()->with('status', 'Đã duyệt '.count($data['ids']).' câu hỏi.');
+    }
+
     public function bulk(AdminActionRequest $request, ContentRevisionService $revisions): mixed
     {
         $data = $request->validated();

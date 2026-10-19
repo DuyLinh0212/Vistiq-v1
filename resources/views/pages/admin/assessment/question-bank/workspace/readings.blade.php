@@ -9,6 +9,8 @@
     $entryStatus = $entry['status'] ?? 'draft';
     $entryStatusClass = in_array($entryStatus, ['approved', 'published'], true) ? 'badge-mint' : ($entryStatus === 'review' ? 'badge-amber' : 'badge-soft');
     $questionReturnParams = request()->except('create', 'edit', 'question', 'preview_question', 'page');
+    $reviewQuestions = $entry ? $entry['questions']->filter(fn ($question) => ($bankData['records'][$question->id]['status'] ?? null) === 'review')->values() : collect();
+    $reviewQuestionBatch = $reviewQuestions->take(100);
 @endphp
 <div class="question-bank reading-library listening-library reading-admin-library" data-reading-library data-auto-add="{{ $autoAdd ? '1' : '0' }}" data-editor-url="{{ $editorUrl }}" data-initial-question="{{ request()->integer('question') ?: '' }}">
     @if(session('import_summary'))
@@ -125,6 +127,18 @@
 
                         <section class="listening-linked-section">
                             <div class="listening-section-title"><h3>{{ $entry['questions']->count() }} câu hỏi liên kết</h3><a href="{{ route('admin.questions.index', ['q'=>$entry['code']]) }}">Mở ngân hàng</a></div>
+                            @can('content.review')
+                                @if($reviewQuestions->isNotEmpty())
+                                    <form method="post" action="{{ route('admin.questions.approve') }}" class="assessment-actions question-approval-bulk" data-confirm="Duyệt {{ $reviewQuestions->count() }} câu hỏi đang chờ trong bài đọc này?" data-confirm-title="Xác nhận duyệt câu hỏi" data-confirm-label="Duyệt {{ $reviewQuestions->count() }} câu" data-confirm-tone="safe" data-pending-label="Đang duyệt…">
+                                        @csrf
+                                        @foreach($reviewQuestionBatch as $reviewQuestion)
+                                            <input type="hidden" name="ids[]" value="{{ $reviewQuestion->id }}">
+                                            <input type="hidden" name="revision_ids[{{ $reviewQuestion->id }}]" value="{{ $reviewQuestion->draft_revision_id }}">
+                                        @endforeach
+                                        <button type="submit" class="button button-primary">Duyệt {{ $reviewQuestionBatch->count() }} câu đang chờ{{ $reviewQuestions->count() > 100 ? ' (còn '.($reviewQuestions->count() - 100).' câu)' : '' }}</button>
+                                    </form>
+                                @endif
+                            @endcan
                             <div class="listening-linked-list">
                                 @forelse($entry['questions'] as $question)
                                     @php
@@ -157,6 +171,7 @@
                                     </nav>
                                 </div>
                                 <div class="listening-question-preview">@include('pages.admin.assessment.question-bank.questions.preview', ['question'=>$selectedQuestion, 'payload'=>$selectedQuestionPayload, 'withinEntry'=>true, 'withinListening'=>true])</div>
+                                @include('pages.admin.assessment.question-bank.workspace.approve-question', ['questionId' => $selectedQuestion->id, 'reviewRevisionId' => $selectedQuestion->draft_revision_id, 'questionStatus' => $bankData['records'][$selectedQuestion->id]['status'] ?? null, 'questionLabel' => 'Q-'.$selectedQuestion->id])
                             </section>
                             <div class="listening-detail-accordions">
                                 <details><summary>Giải thích đáp án @include('pages.dictionary.icon', ['name'=>'chevron-down'])</summary>@if(filled($selectedQuestionPayload['explanation'] ?? ''))<div class="qb-rich-text">{!! app(\VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry::class)->sanitize($selectedQuestionPayload['explanation']) !!}</div>@else<p>Chưa có giải thích cho câu hỏi này.</p>@endif</details>
