@@ -51,6 +51,20 @@ class ReadingQuestionBankTest extends TestCase
         $this->get('/admin/readings?create=1')->assertOk()->assertSee('Lưu và thêm câu hỏi');
     }
 
+    public function test_reading_drafts_show_a_send_for_review_action_in_the_list(): void
+    {
+        $reading = $this->reading();
+        $reviewUrl = route('admin.content.transition', ['kind' => 'stimulus', 'id' => $reading->id, 'action' => 'review']);
+
+        $this->get('/admin/readings')
+            ->assertOk()
+            ->assertSee($reviewUrl, false)
+            ->assertSee('Gửi duyệt');
+
+        $this->post($reviewUrl)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('content_revisions', ['id' => $reading->draft_revision_id, 'status' => 'review']);
+    }
+
     public function test_five_linked_questions_produce_one_bank_row_and_full_preview(): void
     {
         $reading = $this->reading();

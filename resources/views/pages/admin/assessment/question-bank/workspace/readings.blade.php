@@ -78,7 +78,20 @@
                                     <td><a href="{{ $readingUrl }}" @if($entry && $entry['id'] === $reading['id'])data-selected-reading-count @endif>{{ $reading['questions']->count() }}</a></td>
                                     <td><span class="badge {{ $readingStatusClass }}">{{ $statusLabels[$readingStatus] ?? $readingStatus }}</span></td>
                                     <td class="qb-updated">{{ $reading['updated_at']?->locale('vi')->diffForHumans() }}</td>
-                                    <td><div class="qb-row-actions"><a href="{{ $readingUrl }}" aria-label="Xem {{ $reading['code'] }}">@include('pages.dictionary.icon', ['name'=>'eye'])</a>@can('content.edit')<a href="{{ $readingUrl.'&edit=1' }}" aria-label="Sửa {{ $reading['code'] }}">@include('pages.dictionary.icon', ['name'=>'edit'])</a>@endcan</div></td>
+                                    <td>
+                                        <div class="qb-row-actions">
+                                            <a href="{{ $readingUrl }}" aria-label="Xem {{ $reading['code'] }}">@include('pages.dictionary.icon', ['name'=>'eye'])</a>
+                                            @can('content.edit')
+                                                @if($readingStatus === 'draft' && $reading['stimulus']?->draft_revision_id)
+                                                    <form method="post" action="{{ route('admin.content.transition', ['kind'=>'stimulus', 'id'=>$reading['id'], 'action'=>'review']) }}" class="question-approval-action" data-pending-label="Đang gửi duyệt…">
+                                                        @csrf
+                                                        <button class="button button-quiet" type="submit">Gửi duyệt</button>
+                                                    </form>
+                                                @endif
+                                                <a href="{{ $readingUrl.'&edit=1' }}" aria-label="Sửa {{ $reading['code'] }}">@include('pages.dictionary.icon', ['name'=>'edit'])</a>
+                                            @endcan
+                                        </div>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr><td colspan="8"><div class="qb-empty"><span class="listening-empty-icon">@include('pages.dictionary.icon', ['name'=>'book-open'])</span><h3>Chưa có bài Reading phù hợp</h3><p>Thử đổi bộ lọc hoặc import workbook để thêm bài đọc.</p></div></td></tr>
