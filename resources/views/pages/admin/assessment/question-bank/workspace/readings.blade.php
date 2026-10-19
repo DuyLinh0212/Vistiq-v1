@@ -29,8 +29,6 @@
         </div>
         <div class="qb-heading-actions">
             @can('content.edit')
-                <a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'readings']) }}">Mẫu CSV kèm câu hỏi</a>
-                <a class="button button-quiet" href="#reading-csv-import">Import bài đọc CSV</a>
                 @include('pages.admin.assessment.question-bank.workspace.question-workbook-import', ['workbookKind'=>'reading'])
                 <a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'reading-xlsx']) }}">@include('pages.dictionary.icon', ['name'=>'saved']) Tải mẫu .xlsx</a>
                 @include('pages.admin.assessment.question-bank.workspace.send-all-review')
@@ -38,7 +36,6 @@
             @endcan
         </div>
     </header>
-    @if($canEdit)<div id="reading-csv-import">@include('pages.admin.assessment.question-bank.workspace.reading-import')</div>@endif
 
     <section class="listening-stats" aria-label="Tổng quan Reading">
         <article class="listening-stat"><span class="listening-stat-icon is-blue">@include('pages.dictionary.icon', ['name'=>'book-open'])</span><div><span>Tổng bài Reading</span><strong>{{ number_format($readingStats['readings']) }}</strong></div></article>

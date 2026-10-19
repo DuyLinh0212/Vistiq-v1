@@ -50,11 +50,15 @@ class ReadingCsvImportTest extends TestCase
         return $csv;
     }
 
-    public function test_template_is_downloadable_and_exposed_in_both_libraries(): void
+    public function test_csv_template_remains_available_by_url_but_csv_controls_are_hidden_from_reading_library(): void
     {
         $this->get(route('admin.questions.import-template', ['template' => 'readings']))
             ->assertDownload('vistiq-readings-with-questions-template.csv');
-        $this->get('/admin/readings')->assertOk()->assertSee('Mẫu CSV kèm câu hỏi')->assertSee('Import bài đọc CSV');
+        $this->get('/admin/readings')->assertOk()
+            ->assertDontSee('Mẫu CSV kèm câu hỏi')
+            ->assertDontSee('Import bài đọc CSV')
+            ->assertSee('Import Reading từ workbook .xlsx')
+            ->assertSee('Tải mẫu .xlsx');
         $this->get('/admin/questions')->assertRedirect(route('admin.questions.listening'));
         $zip = new \ZipArchive;
         $this->assertTrue($zip->open(resource_path('import-templates/questions/vistiq-question-bank-templates.zip')));
