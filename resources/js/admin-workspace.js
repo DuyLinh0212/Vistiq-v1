@@ -278,51 +278,6 @@ questionBulkForm?.querySelector('[data-approve-selected-questions]')?.addEventLi
     questionApprovalForm.requestSubmit();
 });
 
-const thptReviewForm = document.querySelector('[data-thpt-review-bulk]');
-if (thptReviewForm) {
-    const reviewCheckboxes = [...document.querySelectorAll('input[form="thpt-review-bulk"][data-thpt-review-select]')];
-    const reviewSelectAll = document.querySelector('[data-thpt-review-select-all]');
-    const reviewSummary = thptReviewForm.querySelector('[data-thpt-review-selection-summary]');
-    const reviewButton = thptReviewForm.querySelector('[data-thpt-review-submit]');
-    if (reviewSelectAll) reviewSelectAll.disabled = reviewCheckboxes.length === 0;
-
-    const updateThptReviewSelection = () => {
-        const selectedCount = reviewCheckboxes.filter(checkbox => checkbox.checked).length;
-        if (reviewSelectAll) {
-            reviewSelectAll.checked = selectedCount > 0 && selectedCount === reviewCheckboxes.length;
-            reviewSelectAll.indeterminate = selectedCount > 0 && selectedCount < reviewCheckboxes.length;
-        }
-        if (reviewSummary) {
-            reviewSummary.textContent = selectedCount
-                ? `Đã chọn ${selectedCount} câu nháp trên trang này để gửi duyệt.`
-                : 'Chọn câu nháp để gửi duyệt.';
-        }
-        if (reviewButton) reviewButton.disabled = selectedCount === 0;
-    };
-
-    reviewSelectAll?.addEventListener('change', () => {
-        reviewCheckboxes.forEach(checkbox => { checkbox.checked = reviewSelectAll.checked; });
-        updateThptReviewSelection();
-    });
-    reviewCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateThptReviewSelection));
-    thptReviewForm.addEventListener('submit', event => {
-        if (thptReviewForm.dataset.submitting === 'true') {
-            event.preventDefault();
-            return;
-        }
-        if (!reviewCheckboxes.some(checkbox => checkbox.checked)) {
-            event.preventDefault();
-            return;
-        }
-        thptReviewForm.dataset.submitting = 'true';
-        thptReviewForm.setAttribute('aria-busy', 'true');
-        reviewCheckboxes.forEach(checkbox => { checkbox.disabled = true; });
-        reviewButton.disabled = true;
-        reviewButton.textContent = thptReviewForm.dataset.pendingLabel || 'Đang gửi duyệt…';
-    });
-    updateThptReviewSelection();
-}
-
 document.querySelectorAll('[data-thpt-review-single]').forEach(form => form.addEventListener('submit', event => {
     if (form.dataset.submitting === 'true') {
         event.preventDefault();
@@ -1073,7 +1028,19 @@ const selectAllQuestions = document.querySelector('[data-select-all]');
 const matchingIdsScript = questionBulkForm?.querySelector('[data-question-matching-ids]');
 const matchingQuestionIds = matchingIdsScript ? JSON.parse(matchingIdsScript.textContent) : [];
 const questionSelectionSummary = questionBulkForm?.querySelector('[data-question-selection-summary]');
+const thptDraftIdsScript = questionBulkForm?.querySelector('[data-question-draft-ids]');
+const thptDraftIds = new Set(thptDraftIdsScript ? JSON.parse(thptDraftIdsScript.textContent).map(String) : []);
+const thptReviewForm = document.querySelector('#thpt-review-bulk');
+const thptReviewButton = questionBulkForm?.querySelector('[data-submit-selected-thpt-review]');
 let selectingAllMatchingQuestions = false;
+
+function getSelectedQuestionIds() {
+    if (!questionBulkForm) return [];
+
+    return selectingAllMatchingQuestions
+        ? [...questionBulkForm.querySelectorAll('input[name="matching_ids[]"]')].map(input => String(input.value))
+        : [...questionBulkForm.querySelectorAll('input[form="question-bulk"][name="ids[]"]:checked')].map(input => String(input.value));
+}
 
 function updateQuestionSelectionSummary() {
     if (!questionBulkForm || !selectAllQuestions || !questionSelectionSummary) {
@@ -1093,6 +1060,12 @@ function updateQuestionSelectionSummary() {
         : selectedVisibleQuestions > 0 ? `Đã chọn ${selectedVisibleQuestions} câu trên trang này.` : '';
     const approveButton = questionBulkForm.querySelector('[data-approve-selected-questions]');
     if (approveButton) approveButton.disabled = selectedCount === 0;
+
+    if (thptReviewButton) {
+        const draftCount = [...new Set(getSelectedQuestionIds())].filter(id => thptDraftIds.has(id)).length;
+        thptReviewButton.disabled = draftCount === 0;
+        thptReviewButton.textContent = draftCount ? `Gửi duyệt câu nháp đã chọn (${draftCount})` : 'Gửi duyệt câu nháp đã chọn';
+    }
 }
 
 function setMatchingQuestionSelection(isSelected) {
@@ -1130,6 +1103,42 @@ document.querySelectorAll('input[form="question-bulk"][name="ids[]"]').forEach(c
 
     updateQuestionSelectionSummary();
 }));
+
+thptReviewButton?.addEventListener('click', () => {
+    if (!thptReviewForm || thptReviewForm.dataset.submitting === 'true') return;
+
+    const draftIds = [...new Set(getSelectedQuestionIds())].filter(id => thptDraftIds.has(id));
+    if (draftIds.length === 0) return;
+    if (draftIds.length > 5000) {
+        alert('Mỗi lượt gửi duyệt tối đa 5.000 câu. Hãy thu hẹp bộ lọc rồi thử lại.');
+        return;
+    }
+
+    thptReviewForm.querySelectorAll('input[name="ids[]"], input[name="matching_ids[]"]').forEach(input => input.remove());
+    const fieldName = draftIds.length <= 100 ? 'ids[]' : 'matching_ids[]';
+    draftIds.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = fieldName;
+        input.value = id;
+        thptReviewForm.append(input);
+    });
+    thptReviewForm.requestSubmit();
+});
+
+thptReviewForm?.addEventListener('submit', event => {
+    if (thptReviewForm.dataset.submitting === 'true' || !thptReviewForm.querySelector('input[name="ids[]"], input[name="matching_ids[]"]')) {
+        event.preventDefault();
+        return;
+    }
+
+    thptReviewForm.dataset.submitting = 'true';
+    thptReviewForm.setAttribute('aria-busy', 'true');
+    if (thptReviewButton) {
+        thptReviewButton.disabled = true;
+        thptReviewButton.textContent = thptReviewForm.dataset.pendingLabel || 'Đang gửi duyệt…';
+    }
+});
 
 const readingReviewForm = document.querySelector('#reading-review-bulk');
 const readingReviewSelectAll = document.querySelector('[data-reading-review-select-all]');

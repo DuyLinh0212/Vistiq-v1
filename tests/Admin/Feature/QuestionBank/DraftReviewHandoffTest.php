@@ -119,11 +119,11 @@ class DraftReviewHandoffTest extends TestCase
 
         $this->get('/admin/questions/thpt')
             ->assertOk()
-            ->assertSee('data-thpt-review-bulk', false)
-            ->assertSee('data-thpt-review-select-all', false)
-            ->assertSee('data-thpt-review-select', false)
+            ->assertSee('data-select-all', false)
+            ->assertSee('data-submit-selected-thpt-review', false)
+            ->assertDontSee('data-thpt-review-select', false)
             ->assertSee('data-thpt-review-single', false)
-            ->assertSee('Gửi duyệt câu đã chọn');
+            ->assertSee('Gửi duyệt câu nháp đã chọn');
 
         $this->post('/admin/questions/bulk', ['ids' => [$questions[0]->id], 'action' => 'review'])
             ->assertRedirect()

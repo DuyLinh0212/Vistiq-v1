@@ -36,8 +36,6 @@
     $defaultQuestionTypeId = $questionTypes->firstWhere('code', 'multiple_choice')?->id ?? $questionTypes->first()?->id;
     $defaultDifficultyId = $difficulties->firstWhere('code', 'medium')?->id ?? $difficulties->first()?->id;
     $listPaginator = $isThptEnglish ? $questions : $entries;
-    $oldReviewIds = old('ids', []);
-    $oldReviewIds = is_array($oldReviewIds) ? array_map('intval', $oldReviewIds) : [];
 @endphp
 
 @if ($errors->any())
@@ -160,7 +158,9 @@
                     <span data-question-selection-summary aria-live="polite"></span><input type="hidden" name="action" value="">
                     @can('content.edit')<button class="button button-danger" type="button" data-delete-selected-questions>Xóa câu đã chọn chưa dùng trong đề</button>@endcan
                     @can('content.review')<button class="button button-primary" type="button" data-approve-selected-questions disabled>Duyệt câu đang chờ đã chọn</button>@endcan
+                    @if($isThptEnglish)@can('content.edit')<button class="button button-primary" type="button" data-submit-selected-thpt-review disabled>Gửi duyệt câu nháp đã chọn</button>@endcan @endif
                     <script type="application/json" data-question-review-revisions>{!! json_encode(collect($bankData['records'])->filter(fn (array $record): bool => ($record['status'] ?? null) === 'review')->mapWithKeys(fn (array $record, $id): array => [(string) $id => (int) $record['question']->draft_revision_id])->all()) !!}</script>
+                    @if($isThptEnglish)<script type="application/json" data-question-draft-ids>{!! json_encode(collect($bankData['records'])->filter(fn (array $record): bool => ($record['status'] ?? null) === 'draft')->keys()->map(fn ($id): string => (string) $id)->values()) !!}</script>@endif
                     @if($isThptEnglish)
                         @foreach($questions->getCollection() as $question)<input type="checkbox" form="question-bulk" name="ids[]" value="{{ $question->id }}" hidden aria-label="Chọn câu {{ $question->id }}">@endforeach
                     @else
@@ -168,21 +168,14 @@
                     @endif
                 </form>
                 @if($isThptEnglish)
-                    @can('content.edit')
-                        <form id="thpt-review-bulk" class="qb-bulk" method="post" action="{{ route('admin.questions.bulk') }}" data-thpt-review-bulk data-pending-label="Đang gửi duyệt…">
-                            @csrf
-                            <input type="hidden" name="action" value="review">
-                            <span data-thpt-review-selection-summary role="status" aria-live="polite">Chọn câu nháp để gửi duyệt.</span>
-                            <button class="button button-primary" type="submit" data-thpt-review-submit disabled>Gửi duyệt câu đã chọn</button>
-                        </form>
-                    @endcan
+                    @can('content.edit')<form id="thpt-review-bulk" method="post" action="{{ route('admin.questions.bulk') }}" data-thpt-review-bulk data-pending-label="Đang gửi duyệt…" hidden>@csrf<input type="hidden" name="action" value="review"><input type="hidden" name="return_to" value="thpt"></form>@endcan
                 @endif
                 @can('content.review')<form id="question-approval-bulk" method="post" action="{{ route('admin.questions.approve') }}" hidden>@csrf</form>@endcan
                 <div class="import-progress bulk-delete-progress" data-delete-progress hidden aria-live="polite"><div class="import-progress-heading"><b data-delete-progress-label>Đang xóa câu hỏi…</b><span data-delete-progress-count>0%</span></div><progress max="100" value="0" data-delete-progress-bar aria-label="Tiến độ xóa câu hỏi"></progress></div>
                 <div class="qb-table-scroll">
                     @if($isThptEnglish)
                     <table class="qb-table qb-thpt-table">
-                        <thead><tr><th class="qb-checkbox"><input type="checkbox" data-select-all aria-label="Chọn toàn bộ câu hỏi phù hợp bộ lọc"></th><th class="qb-checkbox">@can('content.edit')<label><input type="checkbox" data-thpt-review-select-all aria-label="Chọn tất cả câu nháp trên trang này để gửi duyệt"><span class="sr-only">Gửi duyệt</span></label>@else<span class="sr-only">Gửi duyệt</span>@endcan</th><th>Mã câu hỏi</th><th class="qb-content-cell">Nội dung rút gọn</th><th>Kỹ năng / Dạng</th><th>Mã đề / Nhóm</th><th>Tệp</th><th>Mức độ</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead>
+                        <thead><tr><th class="qb-checkbox"><input type="checkbox" data-select-all aria-label="Chọn toàn bộ câu hỏi phù hợp bộ lọc"></th><th>Mã câu hỏi</th><th class="qb-content-cell">Nội dung rút gọn</th><th>Kỹ năng / Dạng</th><th>Mã đề / Nhóm</th><th>Tệp</th><th>Mức độ</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead>
                         <tbody>
                         @forelse($questions as $question)
                             @php
@@ -198,7 +191,6 @@
                             @endphp
                             <tr data-qb-row="{{ $previewKey }}">
                                 <td class="qb-checkbox"><input type="checkbox" data-qb-select-entry data-question-ids="[{{ $question->id }}]" aria-label="Chọn câu Q-{{ str_pad((string)$question->id, 5, '0', STR_PAD_LEFT) }}"></td>
-                                <td class="qb-checkbox">@can('content.edit')@if($questionStatus === 'draft')<input type="checkbox" form="thpt-review-bulk" name="ids[]" value="{{ $question->id }}" data-thpt-review-select aria-label="Chọn câu Q-{{ str_pad((string)$question->id, 5, '0', STR_PAD_LEFT) }} để gửi duyệt" @checked(in_array((int)$question->id, $oldReviewIds, true))>@endif @endcan</td>
                                 <td class="qb-id"><button class="reading-code" type="button" data-qb-preview="{{ $previewKey }}" aria-controls="qb-preview">Q-{{ str_pad((string)$question->id, 5, '0', STR_PAD_LEFT) }}</button></td>
                                 <td class="qb-content-cell"><button class="qb-prompt" type="button" data-qb-preview="{{ $previewKey }}" aria-controls="qb-preview"><span>{{ \Illuminate\Support\Str::limit($promptText ?: 'Chưa nhập nội dung câu hỏi', 105) }}</span></button></td>
                                 <td><span class="qb-family-label">{{ $thptFamilyLabel($question->examPart) }}</span></td>
