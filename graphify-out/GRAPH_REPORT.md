@@ -1,17 +1,17 @@
 # Graph Report - Vistiq  (2026-10-19)
 
 ## Corpus Check
-- 574 files · ~563,282 words
+- 575 files · ~568,078 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 84 file(s) not represented in the graph (top: .csv 29, (none) 28, .css 17)
 
 ## Summary
-- 3754 nodes · 7280 edges · 379 communities (155 shown, 224 thin omitted)
+- 3761 nodes · 7289 edges · 378 communities (161 shown, 217 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 64 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c7a198d2`
+- Built from commit: `fdf811e0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -21,27 +21,28 @@
 - AdminCatalogSeeder
 - QuestionController.php
 - ExamGenerationTest
-- User
+- Role
 - Illuminate\View\View
-- LearningItem
-- Controller
+- Illuminate\Http\Request
+- AccountPasswordController
 - Illuminate\Database\Schema\Blueprint
 - run.py
 - QuestionEditorService.php
 - ExamAttempt
-- Illuminate\Database\Eloquent\Relations\HasMany
 - Illuminate\Database\Eloquent\Model
+- QuestionType
 - LearningStimulus
-- ExamPublishingService.php
 - QuestionController
 - User
 - 2026_10_02_121058_create_learning_content_tables.php
 - MediaAsset
+- StimulusController.php
+- Illuminate\Support\Facades\Route
 - modules/README.md
-- MediaUploadTest
-- Illuminate\Support\Facades\DB
+- ReviewQueueController
+- SettingsAndAuditTest
 - admin-workspace.js
-- AttemptRunnerController
+- AttemptService
 - Illuminate\Support\Facades\Schema
 - 2026_10_02_121059_create_assessment_catalog_tables.php
 - package.json
@@ -50,23 +51,23 @@
 - ExamTemplate
 - ExamBuilderController.php
 - CompactDatabase
-- AdminOperationsTest
+- QuestionBankCatalog.php
+- ContentReviewService
 - Learner/Models/LearningItem.php
 - Illuminate\Foundation\Testing\LazilyRefreshDatabase
 - Illuminate\Database\Eloquent\Relations\BelongsTo
 - 2026_10_02_121100_create_attempt_review_and_grading_tables.php
-- ContentRevision
+- ResourceLibraryTest
 - Admin/Models/LearningItem.php
 - ExportService
 - DatabaseOperationsService
-- ReadingCsvImportTest
+- ExamGenerationService
 - QuestionRegistry
 - Q: Explain why imported THPT draft questions were selectable but rejected in generated exam templates, and distinguish that from publishing a manual draft exam.
 - OperationsWorkflowTest
 - psr-4
-- ReadingQuestionBankTest.php
 - LearningItem
-- Illuminate\Foundation\Http\FormRequest
+- Illuminate\Contracts\Validation\ValidationRule
 - scripts
 - QuestionBankItem
 - composer.json
@@ -77,17 +78,17 @@
 - User
 - Illuminate\Support\Collection
 - config
-- Illuminate\Http\Request
+- PageResource.php
 - .view
 - PHPUnit\Framework\TestCase
 - exam-runner.js
 - ExamPart
-- app/Providers/AppServiceProvider.php
+- StaticPageController
 - require
-- Illuminate\Support\Str
+- Illuminate\Database\Eloquent\Factories\Factory
 - 0001_01_01_000002_create_jobs_table.php
 - ProfileUpdateRequest
-- DictionaryLookupRequest
+- ExamBuilderController
 - AdminQuestionBankTest
 - UserManagementController.php
 - ReviewQueueController.php
@@ -95,20 +96,20 @@
 - Illuminate\Database\Query\Builder
 - Kết quả kiểm tra module Danh — 18/10/2026
 - ReadingQuestionBankTest
-- AnalyticsAdminTest
-- QuestionWorkbookImportTest
+- ContentReviewService.php
+- QuestionEditorTest
 - extra
 - demo-page.blade.php
 - AuditService
-- ThptEnglishWorkbookImportService.php
+- QuestionWorkbookImportService
 - pages.auth.unified-shell
-- Controllers/Authentication/AuthController.php
+- Illuminate\Support\Facades\DB
 - exam/catalog.blade.php
 - Ai cần đọc tài liệu nào trước khi bắt đầu
 - readings.blade.php
 - ReviewQueueTest
 - layouts.admin-app
-- AuthController
+- RegisterRequest
 - pages.auth.admin-shell
 - result.blade.php
 - exam/runner.blade.php
@@ -133,10 +134,10 @@
 - Phạm vi module — Người dùng và phân quyền
 - questions/index.blade.php
 - questions/editor.blade.php
-- BackupRestoreTest
+- User
 - ExpireAttempts.php
 - QuestionEditorService
-- Illuminate\Database\Eloquent\Factories\HasFactory
+- QuestionDifficulty
 - puppeteer-core
 - listening-bank.blade.php
 - search.blade.php
@@ -184,9 +185,9 @@
 - updated.blade.php
 - grammar/index.blade.php
 - grammar/show.blade.php
-- ContentRevisionService
+- ContentRevision
 - Module: Luyện theo kỹ năng
-- KnowledgeItemService.php
+- Illuminate\Support\Str
 - list.blade.php
 - review.blade.php
 - SettingsUpdateRequest.php
@@ -228,7 +229,8 @@
 - Design: Quản lý bài tập theo kỹ năng
 - Design: Luyện theo kỹ năng
 - Design: Log và cài đặt hệ thống
-- profile/history.blade.php
+- web.php
+- SystemSetting.php
 - profile/show.blade.php
 - content.blade.php
 - UserManagementService
@@ -237,17 +239,17 @@
 - rules/graphify.md
 - Illuminate\Database\Eloquent\Builder
 - dictionary/index.blade.php
-- Tinh gọn CSDL Vistiq
+- ForgotPasswordRequest
 - search-form.blade.php
-- SettingsService
+- QuestionApprovalRequest
 - overview.blade.php
 - SettingsController.php
 - workflows/graphify.md
 - QuestionUpsertRequest
 - Module: Duyệt câu hỏi và đề thi
-- Illuminate\Support\Facades\Gate
-- ExamBuilderController
-- Illuminate\Support\ServiceProvider
+- AttemptController.php
+- ExamUpsertRequest
+- app/Providers/AppServiceProvider.php
 - password.blade.php
 - verify.blade.php
 - Design: Duyệt câu hỏi và đề thi
@@ -274,7 +276,7 @@
 - Controllers/Knowledge/GrammarController.php
 - AttemptAdministrationTest
 - TestCase
-- AdminOtpTest
+- Vistiq
 - RoleUpdateRequest
 - KnowledgeAdminTest
 - ApiAuthenticationTest
@@ -295,22 +297,20 @@
 - Báo cáo tích hợp Vistiq
 - PermissionCatalog
 - account-password.blade.php
-- saved.blade.php
+- pages.learner.profile.nav
 - NavigationAndLeaderboardTest
-- AudioBatchUploadRequest
+- MediaService
 - Hoàn thiện Khoa — Profile / System Operations
-- StoresClassifications
+- AdminWorkflowTest
 - Illuminate\Database\Seeder
-- AppServiceProvider
 - catalog-content.blade.php
 - Đề xuất căn cứ giao diện cho tài liệu module
 - E2E/README.md
 - Design: Authentication
-- AdminOtpController.php
+- AdminOtpController
 - Đề xuất kiến trúc module Vistiq
-- LearnerKnowledgeWorkflowTest
 - unified-shell.blade.php
-- AiEvaluationTest
+- AiEvaluationTest.php
 - KnowledgeValidationAndWorkflowTest
 - ContentRevision.php
 - RoleStoreRequest
@@ -318,9 +318,8 @@
 - ProfileController.php
 - dependencies
 - LoginRequest
-- Vistiq database schema
-- ReadingReviewRequest
-- KnowledgeImportRequest
+- Tinh gọn CSDL Vistiq
+- Illuminate\Foundation\Http\FormRequest
 - PasswordResetStabilityAuditTest
 
 ## God Nodes (most connected - your core abstractions)
@@ -329,9 +328,9 @@
 3. `ExamAttempt` - 98 edges
 4. `CompactDatabase` - 96 edges
 5. `MediaAsset` - 88 edges
-6. `User` - 82 edges
-7. `ExamTemplate` - 82 edges
-8. `LearningStimulus` - 82 edges
+6. `LearningStimulus` - 85 edges
+7. `User` - 82 edges
+8. `ExamTemplate` - 82 edges
 9. `ContentRevision` - 72 edges
 10. `ContentRevisionService` - 70 edges
 
@@ -340,8 +339,8 @@
   AGENTS.md → app/Domain/Support/PermissionCatalog.php
 - `Dữ liệu được chuyển đi đâu` --references--> `CompactDatabase`  [INFERRED]
   database/CONSOLIDATION.md → app/Domain/Services/Shared/CompactDatabase.php
-- `{closure#1}()` --calls--> `AdminCatalogSeeder`  [EXTRACTED]
-  app/Admin/Console/Commands/CreateSuperAdmin.php → database/seeders/Admin/AdminCatalogSeeder.php
+- `{closure#1}()` --calls--> `LearningStimulus`  [EXTRACTED]
+  tests/Admin/Feature/ContentApproval/ReviewQueueTest.php → app/Domain/Models/LearningStimulus.php
 - `{closure#2}()` --references--> `QuestionBankItem`  [EXTRACTED]
   tests/Admin/Feature/QuestionBank/DraftReviewHandoffTest.php → app/Domain/Models/QuestionBankItem.php
 - `{closure#3}()` --references--> `QuestionBankItem`  [EXTRACTED]
@@ -350,35 +349,35 @@
 ## Import Cycles
 - None detected.
 
-## Communities (379 total, 224 thin omitted)
+## Communities (378 total, 217 thin omitted)
 
 ### Community 0 - "schema.sql"
 Cohesion: 0.10
 Nodes (43): `admin_otp_challenges`, `ai_tasks`, `attempt_answers`, `attempt_events`, `attempt_reports`, `audit_logs`, `content_revisions`, `exam_attempts` (+35 more)
 
 ### Community 1 - "MediaController.php"
-Cohesion: 0.07
-Nodes (5): {closure#1}(), {closure#20}(), {closure#3}(), {closure#7}(), MediaUploadRequest
+Cohesion: 0.08
+Nodes (3): {closure#1}(), {closure#3}(), {closure#7}()
 
 ### Community 2 - "AdminCatalogSeeder"
-Cohesion: 0.07
-Nodes (3): AdminCatalogSeeder, {closure#1}(), {closure#1}()
+Cohesion: 0.06
+Nodes (5): {closure#1}(), CreateSuperAdmin, AnalyticsService, AdminCatalogSeeder, ImportIntegrityTest
 
-### Community 5 - "User"
-Cohesion: 0.05
-Nodes (14): User, Permission, Role, {closure#4}(), {closure#6}(), Architecture, Local setup, Vistiq (+6 more)
+### Community 4 - "ExamGenerationTest"
+Cohesion: 0.07
+Nodes (4): AdminOtpTest, ExamGenerationTest, AdminOperationsTest, QuestionWorkbookImportTest
+
+### Community 5 - "Role"
+Cohesion: 0.06
+Nodes (10): Permission, Role, {closure#2}(), {closure#6}(), 43 bảng giữ lại, Dữ liệu được chuyển đi đâu, IntegrationReadinessTest, RoleManagementTest (+2 more)
 
 ### Community 6 - "Illuminate\View\View"
-Cohesion: 0.11
-Nodes (10): ExamRuleController, GrammarController, DemoPageController, StaticPageController, ExamController, ResultController, DemoPageController, SkillPracticeController (+2 more)
+Cohesion: 0.13
+Nodes (7): ExamController, ResultController, AuthController, SkillPracticeController, LookupController, HomeController, StaticPageController
 
-### Community 7 - "LearningItem"
+### Community 7 - "Illuminate\Http\Request"
 Cohesion: 0.20
-Nodes (4): KnowledgeAdminController, LearningItem, {closure#2}(), KnowledgeItemService
-
-### Community 8 - "Controller"
-Cohesion: 0.22
-Nodes (3): AttemptHistoryController, AccountPasswordController, Controller
+Nodes (3): KnowledgeAdminController, LearningItem, KnowledgeItemService
 
 ### Community 9 - "Illuminate\Database\Schema\Blueprint"
 Cohesion: 0.11
@@ -389,48 +388,52 @@ Cohesion: 0.10
 Nodes (5): avatar_png(), dialog(), goto(), login(), submit()
 
 ### Community 13 - "ExamAttempt"
-Cohesion: 0.13
-Nodes (12): ExamAttempt, AttemptService, {closure#1}(), {closure#11}(), {closure#12}(), {closure#2}(), {closure#3}(), {closure#4}() (+4 more)
+Cohesion: 0.12
+Nodes (11): ExamAttempt, {closure#1}(), {closure#11}(), {closure#12}(), {closure#2}(), {closure#3}(), {closure#4}(), {closure#6}() (+3 more)
 
-### Community 14 - "Illuminate\Database\Eloquent\Relations\HasMany"
-Cohesion: 0.08
-Nodes (8): ReadsCompactCatalog, ExamType, QuestionDifficulty, Skill, ExamType, LearningStimulus, QuestionDifficulty, Skill
+### Community 14 - "Illuminate\Database\Eloquent\Model"
+Cohesion: 0.06
+Nodes (13): AttemptAnswer, LearningItem, User, Permission, ReadsCompactCatalog, QuestionOption, Skill, ExamType (+5 more)
 
-### Community 15 - "Illuminate\Database\Eloquent\Model"
-Cohesion: 0.11
-Nodes (7): AttemptAnswer, LearningItem, User, Permission, QuestionAcceptedAnswer, QuestionOption, QuestionType
+### Community 15 - "QuestionType"
+Cohesion: 0.14
+Nodes (7): {closure#29}(), {closure#37}(), {closure#46}(), {closure#48}(), {closure#49}(), {closure#5}(), QuestionType
 
 ### Community 16 - "LearningStimulus"
-Cohesion: 0.11
-Nodes (9): {closure#22}(), {closure#24}(), {closure#26}(), {closure#27}(), StimulusController, StimulusStoreRequest, LearningStimulus, AudioQuestionService (+1 more)
+Cohesion: 0.10
+Nodes (11): {closure#20}(), {closure#22}(), {closure#23}(), {closure#24}(), {closure#26}(), {closure#27}(), StimulusController, StimulusStoreRequest (+3 more)
 
 ### Community 18 - "QuestionController"
-Cohesion: 0.08
-Nodes (10): {closure#29}(), {closure#36}(), {closure#37}(), {closure#43}(), {closure#46}(), {closure#48}(), {closure#49}(), {closure#5}() (+2 more)
+Cohesion: 0.15
+Nodes (3): {closure#36}(), {closure#43}(), QuestionController
 
 ### Community 19 - "User"
-Cohesion: 0.17
-Nodes (4): AdminContentPolicy, AttemptPolicy, {closure#1}(), User
+Cohesion: 0.09
+Nodes (6): {closure#1}(), AdminContentPolicy, AttemptPolicy, {closure#1}(), User, {closure#1}()
 
 ### Community 20 - "2026_10_02_121058_create_learning_content_tables.php"
 Cohesion: 0.09
 Nodes (20): {closure#1}(), {closure#10}(), {closure#11}(), {closure#12}(), {closure#13}(), {closure#14}(), {closure#15}(), {closure#16}() (+12 more)
 
 ### Community 21 - "MediaAsset"
-Cohesion: 0.08
-Nodes (8): MediaController, MediaAsset, MediaLibraryService, MediaService, QuestionAudioService, {closure#1}(), ResourceLibraryService, ResourceQuestionLinkService
+Cohesion: 0.09
+Nodes (8): MediaController, MediaAsset, MediaLibraryService, QuestionAudioService, {closure#1}(), ResourceLibraryService, {closure#2}(), ResourceQuestionLinkService
 
 ### Community 24 - "modules/README.md"
 Cohesion: 0.18
 Nodes (3): Căn cứ chung, Danh sách, Design specs theo module
 
-### Community 26 - "Illuminate\Support\Facades\DB"
-Cohesion: 0.08
-Nodes (4): {closure#1}(), CreateSuperAdmin, ImportIntegrityTest, SettingsAndAuditTest
+### Community 25 - "ReviewQueueController"
+Cohesion: 0.25
+Nodes (3): ReviewQueueController, BulkReviewService, {closure#2}()
 
 ### Community 27 - "admin-workspace.js"
 Cohesion: 0.08
 Nodes (22): audioBatch, audioDeleteForm, audioEditorFile, audioLiveSearch, matchingIdsScript, mediaUpload, questionApprovalForm, questionBulkEndpoint (+14 more)
+
+### Community 28 - "AttemptService"
+Cohesion: 0.23
+Nodes (3): AttemptService, AttemptRunnerController, AttemptRequest
 
 ### Community 29 - "Illuminate\Support\Facades\Schema"
 Cohesion: 0.11
@@ -445,40 +448,48 @@ Cohesion: 0.11
 Nodes (20): name, optionalDependencies, @laravel/multiplex, private, $schema, scripts, build, dev (+12 more)
 
 ### Community 32 - "AdminPageController"
-Cohesion: 0.09
-Nodes (8): AdminPageController, DashboardController, AdminSearchController, AnalyticsFilterRequest, AnalyticsService, OverviewService, Khoa, Phân công
+Cohesion: 0.10
+Nodes (5): AdminPageController, DashboardController, AdminSearchController, AnalyticsFilterRequest, OverviewService
 
 ### Community 34 - "ExamTemplate"
-Cohesion: 0.17
-Nodes (6): LeaderboardController, LeaderboardFilterRequest, ExamTemplate, LeaderboardService, {closure#2}(), ExamLeaderboardController
+Cohesion: 0.14
+Nodes (8): LeaderboardController, LeaderboardFilterRequest, ExamTemplate, LeaderboardService, {closure#12}(), {closure#13}(), {closure#2}(), ExamLeaderboardController
 
 ### Community 36 - "CompactDatabase"
 Cohesion: 0.09
 Nodes (4): CompactDatabase, CompactSchemaMigration, AssertsCompactStorage, DatabaseConsolidationTest
 
+### Community 38 - "ContentReviewService"
+Cohesion: 0.16
+Nodes (3): ReviewDecisionRequest, {closure#3}(), ContentReviewService
+
+### Community 39 - "Learner/Models/LearningItem.php"
+Cohesion: 0.12
+Nodes (3): {closure#1}(), {closure#14}(), {closure#2}()
+
 ### Community 40 - "Illuminate\Foundation\Testing\LazilyRefreshDatabase"
-Cohesion: 0.05
-Nodes (12): {closure#1}(), DictionaryGrammarSeeder, AuthScreensTest, EmailRecoveryTest, DictionaryGrammarSeederTest, EmailRecoveryTest, ExamAttemptFlowTest, ExampleTest (+4 more)
+Cohesion: 0.09
+Nodes (10): {closure#1}(), DictionaryGrammarSeeder, DictionaryGrammarSeederTest, EmailRecoveryTest, ExamAttemptFlowTest, ExampleTest, DictionaryGrammarSeederTest, PersonalLibraryTest (+2 more)
 
 ### Community 41 - "Illuminate\Database\Eloquent\Relations\BelongsTo"
 Cohesion: 0.07
-Nodes (3): QuestionOption, QuestionAcceptedAnswer, QuestionBankItem
+Nodes (5): StoresClassifications, QuestionAcceptedAnswer, ExamPart, QuestionAcceptedAnswer, QuestionBankItem
 
 ### Community 42 - "2026_10_02_121100_create_attempt_review_and_grading_tables.php"
 Cohesion: 0.13
 Nodes (12): {closure#1}(), {closure#10}(), {closure#11}(), {closure#12}(), {closure#2}(), {closure#3}(), {closure#4}(), {closure#5}() (+4 more)
 
-### Community 44 - "ContentRevision"
-Cohesion: 0.17
-Nodes (3): {closure#23}(), ContentRevision, ResourceLibraryTest
+### Community 45 - "Admin/Models/LearningItem.php"
+Cohesion: 0.13
+Nodes (3): {closure#1}(), {closure#14}(), {closure#2}()
 
 ### Community 47 - "DatabaseOperationsService"
-Cohesion: 0.07
-Nodes (17): DatabaseBackupController, BackupRequest, {closure#2}(), {closure#3}(), DatabaseBackupService, DatabaseOperationsService, 1. Bộ mẫu, 2. Cách dùng (+9 more)
+Cohesion: 0.06
+Nodes (18): DatabaseBackupController, BackupRequest, {closure#2}(), {closure#3}(), DatabaseBackupService, DatabaseOperationsService, 1. Bộ mẫu, 2. Cách dùng (+10 more)
 
 ### Community 49 - "QuestionRegistry"
 Cohesion: 0.10
-Nodes (5): GradingService, {closure#2}(), ScoringService, QuestionRegistry, ScoringTest
+Nodes (4): {closure#2}(), ScoringService, QuestionRegistry, ScoringTest
 
 ### Community 50 - "Q: Explain why imported THPT draft questions were selectable but rejected in generated exam templates, and distinguish that from publishing a manual draft exam."
 Cohesion: 0.40
@@ -488,16 +499,20 @@ Nodes (4): Answer, Outcome, Q: Explain why imported THPT draft questions were se
 Cohesion: 0.18
 Nodes (11): autoload, psr-4, App\\, Database\\Admin\\Factories\\, Database\\Admin\\Seeders\\, Database\\Learner\\Factories\\, Database\\Learner\\Seeders\\, Database\\Seeders\\ (+3 more)
 
-### Community 55 - "Illuminate\Foundation\Http\FormRequest"
+### Community 54 - "LearningItem"
 Cohesion: 0.09
-Nodes (5): AudioBulkDeleteRequest, QuestionApprovalRequest, QuestionImportRequest, OtpRequest, AttemptAnswerRequest
+Nodes (3): {closure#16}(), LearningItem, DictionaryLookupTest
+
+### Community 55 - "Illuminate\Contracts\Validation\ValidationRule"
+Cohesion: 0.13
+Nodes (3): QuestionImportRequest, OtpRequest, AttemptAnswerRequest
 
 ### Community 56 - "scripts"
 Cohesion: 0.20
 Nodes (10): scripts, dev, post-autoload-dump, post-create-project-cmd, post-root-package-install, post-update-cmd, pre-package-uninstall, scheduler (+2 more)
 
 ### Community 57 - "QuestionBankItem"
-Cohesion: 0.10
+Cohesion: 0.09
 Nodes (17): {closure#1}(), {closure#5}(), {closure#6}(), {closure#8}(), {closure#9}(), {closure#11}(), {closure#17}(), {closure#24}() (+9 more)
 
 ### Community 59 - "composer.json"
@@ -514,18 +529,18 @@ Nodes (13): adminConfirmDialog, adminConfirmMessage, adminConfirmPanel, adminCon
 
 ### Community 64 - "QuestionBankItemFactory"
 Cohesion: 0.07
-Nodes (5): QuestionBankItemFactory, ContentRevisionTest, ReviewSafetyTest, ContentToolsTest, DraftReviewHandoffTest
+Nodes (4): QuestionBankItemFactory, ReviewSafetyTest, DraftReviewHandoffTest, MediaUploadTest
 
 ### Community 67 - "config"
 Cohesion: 0.29
 Nodes (7): pestphp/pest-plugin, php-http/discovery, config, allow-plugins, optimize-autoloader, preferred-install, sort-packages
 
-### Community 68 - "Illuminate\Http\Request"
-Cohesion: 0.14
-Nodes (8): DictionaryEntryResource, SessionController, ApiResponse, {closure#1}(), {closure#2}(), {closure#3}(), PageResource, UserResource
+### Community 68 - "PageResource.php"
+Cohesion: 0.16
+Nodes (7): DictionaryEntryResource, SessionController, {closure#1}(), {closure#2}(), {closure#3}(), PageResource, UserResource
 
 ### Community 69 - ".view"
-Cohesion: 0.14
+Cohesion: 0.15
 Nodes (3): KnowledgeReaderService, KnowledgeController, KnowledgeFilterRequest
 
 ### Community 71 - "exam-runner.js"
@@ -533,32 +548,28 @@ Cohesion: 0.27
 Nodes (3): canNavigateQuestion(), orderedOptions(), singleFlight()
 
 ### Community 72 - "ExamPart"
-Cohesion: 0.13
-Nodes (12): {closure#1}(), {closure#2}(), {closure#3}(), {closure#4}(), ExamPart, ExamGenerationService, {closure#10}(), {closure#11}() (+4 more)
+Cohesion: 0.08
+Nodes (14): {closure#1}(), {closure#2}(), {closure#3}(), {closure#4}(), ExamPart, {closure#10}(), {closure#11}(), {closure#2}() (+6 more)
 
-### Community 73 - "app/Providers/AppServiceProvider.php"
-Cohesion: 0.22
-Nodes (3): CompactPresenceVerifier, {closure#1}(), {closure#4}()
+### Community 73 - "StaticPageController"
+Cohesion: 0.19
+Nodes (4): ExamRuleController, GrammarController, DemoPageController, StaticPageController
 
 ### Community 74 - "require"
 Cohesion: 0.29
 Nodes (7): require, laravel/framework, laravel/tinker, league/flysystem-aws-s3-v3, php, phpoffice/phpspreadsheet, symfony/html-sanitizer
 
-### Community 75 - "Illuminate\Support\Str"
-Cohesion: 0.06
-Nodes (7): {closure#1}(), LearningItemFactory, LearningStimulusFactory, {closure#1}(), LearningItemFactory, UserFactory, QuestionEditorTest
+### Community 75 - "Illuminate\Database\Eloquent\Factories\Factory"
+Cohesion: 0.08
+Nodes (7): {closure#1}(), LearningItemFactory, LearningStimulusFactory, UserFactory, {closure#1}(), LearningItemFactory, UserFactory
 
 ### Community 76 - "0001_01_01_000002_create_jobs_table.php"
 Cohesion: 0.33
 Nodes (3): {closure#1}(), {closure#2}(), {closure#3}()
 
-### Community 81 - "ReviewQueueController.php"
-Cohesion: 0.05
-Nodes (7): ReviewQueueController, BulkReviewRequest, ReviewDecisionRequest, BulkReviewService, {closure#2}(), {closure#3}(), ContentReviewService
-
 ### Community 82 - "ConfigureFrontend.php"
-Cohesion: 0.15
-Nodes (4): {closure#1}(), ConfigureFrontend, ApiControllerDispatcher, FrontendContext
+Cohesion: 0.18
+Nodes (4): ApiResponse, {closure#1}(), ConfigureFrontend, ApiControllerDispatcher
 
 ### Community 84 - "Illuminate\Database\Query\Builder"
 Cohesion: 0.12
@@ -576,25 +587,25 @@ Nodes (3): extra, laravel, dont-discover
 Cohesion: 0.14
 Nodes (5): {closure#1}(), ContentApprovalController, QuestionBankWorkflowController, AdminActionRequest, AuditService
 
-### Community 93 - "ThptEnglishWorkbookImportService.php"
-Cohesion: 0.09
-Nodes (7): {closure#4}(), QuestionWorkbookImportService, {closure#1}(), {closure#2}(), {closure#4}(), {closure#5}(), ThptEnglishWorkbookImportService
+### Community 93 - "QuestionWorkbookImportService"
+Cohesion: 0.14
+Nodes (4): {closure#4}(), QuestionWorkbookImportService, {closure#5}(), ThptEnglishWorkbookImportService
 
-### Community 95 - "Controllers/Authentication/AuthController.php"
+### Community 95 - "Illuminate\Support\Facades\DB"
 Cohesion: 0.09
-Nodes (7): {closure#1}(), {closure#1}(), {closure#1}(), {closure#1}(), ResetPasswordEmail, ForgotPasswordRequest, ResetPasswordRequest
+Nodes (5): {closure#1}(), SettingsService, {closure#1}(), ResetPasswordEmail, EmailRecoveryTest
 
 ### Community 97 - "Ai cần đọc tài liệu nào trước khi bắt đầu"
-Cohesion: 0.12
-Nodes (15): Ai cần đọc tài liệu nào trước khi bắt đầu, Content Approval ↔ Exam Management: nguồn câu hỏi của đề, Danh, Hợp đồng giữa các module, Khoa ↔ các chủ module: đặc tả, Linh, Linh ↔ Phát: cấu hình đề thi và màn hình làm bài, Phát (+7 more)
+Cohesion: 0.11
+Nodes (17): Ai cần đọc tài liệu nào trước khi bắt đầu, Content Approval ↔ Exam Management: nguồn câu hỏi của đề, Danh, Hợp đồng giữa các module, Khoa, Khoa ↔ các chủ module: đặc tả, Linh, Linh ↔ Phát: cấu hình đề thi và màn hình làm bài (+9 more)
 
 ### Community 98 - "readings.blade.php"
 Cohesion: 0.20
 Nodes (9): pages.admin.assessment.question-bank.workspace.reading-questions, pages.admin.assessment.question-bank.questions.preview, pages.admin.assessment.question-bank.workspace.approve-question, pages.admin.assessment.question-bank.workspace.question-workbook-import, pages.admin.assessment.question-bank.workspace.send-all-review, pages.admin.assessment.question-bank.workspace.send-review, pages.admin.assessment.question-bank.workspace.standalone-questions, pages.dictionary.icon (+1 more)
 
 ### Community 107 - "KnowledgeImportService"
-Cohesion: 0.14
-Nodes (4): KnowledgeUpsertRequest, {closure#3}(), KnowledgeImportService, KnowledgeInput
+Cohesion: 0.13
+Nodes (5): KnowledgeUpsertRequest, {closure#2}(), {closure#3}(), KnowledgeImportService, KnowledgeInput
 
 ### Community 109 - "Phạm vi module — Phân tích và thống kê"
 Cohesion: 0.40
@@ -660,8 +671,12 @@ Nodes (6): pages.admin.assessment.question-bank.questions.bank-entry-preview, pa
 Cohesion: 0.40
 Nodes (4): pages.admin.assessment.question-bank.questions.editor-advanced, pages.admin.assessment.question-bank.questions.editor-preview, pages.dictionary.icon, shared.workflow-actions
 
+### Community 127 - "User"
+Cohesion: 0.06
+Nodes (7): User, ExportContractTest, AuthScreensTest, PortalIsolationTest, AttemptWorkflowTest, BackupRestoreTest, UserManagementTest
+
 ### Community 129 - "QuestionEditorService"
-Cohesion: 0.22
+Cohesion: 0.20
 Nodes (3): QuestionEditorController, Controller, QuestionEditorService
 
 ### Community 132 - "listening-bank.blade.php"
@@ -684,9 +699,9 @@ Nodes (3): pages.auth.password-field, pages.dictionary.icon, pages.learner.authe
 Cohesion: 0.50
 Nodes (3): pages.auth.password-field, pages.dictionary.icon, pages.learner.authentication.screens.form-feedback
 
-### Community 190 - "ContentRevisionService"
-Cohesion: 0.14
-Nodes (5): {closure#4}(), {closure#5}(), {closure#6}(), {closure#7}(), ContentRevisionService
+### Community 190 - "ContentRevision"
+Cohesion: 0.10
+Nodes (7): ContentRevision, {closure#4}(), {closure#5}(), {closure#6}(), {closure#7}(), ContentRevisionService, ContentToolsTest
 
 ### Community 191 - "Module: Luyện theo kỹ năng"
 Cohesion: 0.22
@@ -833,12 +848,8 @@ Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: Fix THPT English Excel import error for missing category, question type, and difficulty initialization, Source Nodes
 
 ### Community 244 - "Illuminate\Database\Eloquent\Builder"
-Cohesion: 0.10
-Nodes (12): {closure#1}(), {closure#2}(), {closure#1}(), {closure#3}(), {closure#4}(), {closure#5}(), {closure#1}(), {closure#2}() (+4 more)
-
-### Community 246 - "Tinh gọn CSDL Vistiq"
-Cohesion: 0.20
-Nodes (7): 43 bảng giữ lại, Chạy chuyển đổi, Dữ liệu được chuyển đi đâu, Hoàn tác, Kết quả kiểm chứng cục bộ ngày 19/10/2026, Seed và file SQL trong repository, Tinh gọn CSDL Vistiq
+Cohesion: 0.11
+Nodes (9): {closure#1}(), {closure#3}(), {closure#4}(), {closure#5}(), {closure#1}(), {closure#2}(), {closure#7}(), {closure#8}() (+1 more)
 
 ### Community 263 - "SettingsController.php"
 Cohesion: 0.12
@@ -848,17 +859,13 @@ Nodes (4): {closure#2}(), SettingsController, AuditFilterRequest, SettingsUpdate
 Cohesion: 0.20
 Nodes (10): Chức năng cần có, CRUD và vòng đời, Hiện trạng trong repo, Kế hoạch test, Module: Duyệt câu hỏi và đề thi, Mục tiêu và ranh giới, Quyền và audit, Tiêu chí nghiệm thu và phụ thuộc (+2 more)
 
-### Community 270 - "Illuminate\Support\Facades\Gate"
-Cohesion: 0.10
-Nodes (6): AttemptController, AttemptFilterRequest, ModerationRequest, AttemptModerationService, {closure#1}(), AttemptQueryService
+### Community 270 - "AttemptController.php"
+Cohesion: 0.14
+Nodes (4): AttemptController, AttemptFilterRequest, ModerationRequest, AttemptModerationService
 
-### Community 271 - "ExamBuilderController"
-Cohesion: 0.11
-Nodes (4): ExamBuilderController, ExamGenerationRequest, {closure#1}(), ExamUpsertRequest
-
-### Community 272 - "Illuminate\Support\ServiceProvider"
-Cohesion: 0.20
-Nodes (3): AppServiceProvider, AttemptPolicy, AppServiceProvider
+### Community 272 - "app/Providers/AppServiceProvider.php"
+Cohesion: 0.09
+Nodes (7): AppServiceProvider, CompactPresenceVerifier, AttemptPolicy, AppServiceProvider, AppServiceProvider, {closure#1}(), {closure#4}()
 
 ### Community 278 - "Design: Duyệt câu hỏi và đề thi"
 Cohesion: 0.33
@@ -873,16 +880,16 @@ Cohesion: 0.08
 Nodes (11): EnsureAccountActive, EnsureAdminAccess, EnsureAdminGuest, SurfaceIntendedUrl, ThrottleActionRequests, EnsureAccountActive, EnsureLearnerGuest, {closure#2}() (+3 more)
 
 ### Community 287 - "ExamPublishingService"
-Cohesion: 0.10
-Nodes (4): ExamRevision, ExamPublishingService, ExamTemplateFactory, ExamWorkspaceTest
+Cohesion: 0.09
+Nodes (6): ExamRevision, ExamPublishingService, ExamTemplateFactory, {closure#1}(), {closure#1}(), ExamWorkspaceTest
 
 ### Community 288 - "AiService"
 Cohesion: 0.19
 Nodes (3): ProcessAiTask, AiService, {closure#1}()
 
 ### Community 291 - "LearningItem"
-Cohesion: 0.06
-Nodes (7): {closure#1}(), {closure#2}(), DictionaryApiController, DictionaryEntryResource, {closure#16}(), LearningItem, DictionaryLookupTest
+Cohesion: 0.05
+Nodes (8): {closure#1}(), {closure#2}(), DictionaryApiController, DictionaryLookupRequest, DictionaryEntryResource, {closure#16}(), LearningItem, DictionaryLookupTest
 
 ### Community 296 - "2026_10_02_121101_create_user_engagement_tables.php"
 Cohesion: 0.33
@@ -906,7 +913,7 @@ Nodes (3): {closure#1}(), {closure#2}(), {closure#3}()
 
 ### Community 301 - "AttemptAnswer"
 Cohesion: 0.15
-Nodes (4): GradingController, ManualGradeRequest, AttemptAnswer, {closure#1}()
+Nodes (5): GradingController, ManualGradeRequest, AttemptAnswer, {closure#1}(), GradingService
 
 ### Community 303 - "Rà lại UI và chức năng Danh — 18/10/2026"
 Cohesion: 0.40
@@ -918,7 +925,11 @@ Nodes (6): adminLoginForm, bank, syncSelection(), thptQuickForm, library, openEd
 
 ### Community 308 - "TestCase"
 Cohesion: 0.05
-Nodes (12): ExportContractTest, OverviewTest, PortalIsolationTest, GradingConcurrencyTest, PublishValidationTest, ExampleTest, PublicStorageContractTest, ThrottleContractTest (+4 more)
+Nodes (11): AnalyticsAdminTest, OverviewTest, ContentRevisionTest, GradingConcurrencyTest, PublishValidationTest, ExampleTest, PublicStorageContractTest, ThrottleContractTest (+3 more)
+
+### Community 309 - "Vistiq"
+Cohesion: 0.50
+Nodes (3): Architecture, Local setup, Vistiq
 
 ### Community 320 - "devDependencies"
 Cohesion: 0.29
@@ -932,13 +943,17 @@ Nodes (4): {closure#1}(), {closure#2}(), {closure#3}(), {closure#4}()
 Cohesion: 0.40
 Nodes (4): Các phần chưa đáp ứng tại mốc đầu, Kiểm thử, Kiểm tra Viên — Knowledge Base / Analytics, Kết quả trên develop sau tích hợp
 
+### Community 330 - "runtime/result.blade.php"
+Cohesion: 0.50
+Nodes (3): layouts.app, pages.dictionary.icon, pages.learner.assessment.exam-taking-and-submission.results.styles
+
 ### Community 338 - "Báo cáo tích hợp Vistiq"
 Cohesion: 0.15
 Nodes (11): Giới hạn, Kiểm chứng, Phát hiện và kết quả, Sửa phản hồi sau tích hợp, Báo cáo tích hợp Vistiq, Các sửa tích hợp, Giới hạn và bàn giao, Kiểm chứng cuối (+3 more)
 
 ### Community 339 - "PermissionCatalog"
 Cohesion: 0.18
-Nodes (4): {closure#1}(), {closure#1}(), {closure#2}(), PermissionCatalog
+Nodes (4): {closure#1}(), {closure#1}(), {closure#4}(), PermissionCatalog
 
 ### Community 340 - "account-password.blade.php"
 Cohesion: 0.50
@@ -964,18 +979,26 @@ Nodes (5): Design: Authentication, Hành vi và trạng thái, Phạm vi áp d�
 Cohesion: 0.50
 Nodes (4): Cách đọc trạng thái hiện tại, Quy tắc xem xét, Tài liệu, Đề xuất kiến trúc module Vistiq
 
+### Community 371 - "ProfileController.php"
+Cohesion: 0.11
+Nodes (5): AttemptQueryService, AttemptHistoryController, Controller, ProfileController, HistoryFilterRequest
+
 ### Community 372 - "dependencies"
 Cohesion: 0.29
 Nodes (7): dependencies, lucide, @tiptap/core, @tiptap/extension-image, @tiptap/extension-table, @tiptap/pm, @tiptap/starter-kit
 
-### Community 374 - "Vistiq database schema"
-Cohesion: 0.33
-Nodes (4): Migrations, MySQL connection, Table count, Vistiq database schema
+### Community 374 - "Tinh gọn CSDL Vistiq"
+Cohesion: 0.18
+Nodes (9): Chạy chuyển đổi, Hoàn tác, Kết quả kiểm chứng cục bộ ngày 19/10/2026, Seed và file SQL trong repository, Tinh gọn CSDL Vistiq, Migrations, MySQL connection, Table count (+1 more)
+
+### Community 376 - "Illuminate\Foundation\Http\FormRequest"
+Cohesion: 0.11
+Nodes (4): AudioBulkDeleteRequest, MediaUploadRequest, KnowledgeImportRequest, ResetPasswordRequest
 
 ## Knowledge Gaps
-- **599 isolated node(s):** `$schema`, `name`, `type`, `description`, `keywords` (+594 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1660 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **224 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **601 isolated node(s):** `$schema`, `name`, `type`, `description`, `keywords` (+596 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1663 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **217 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Work-memory lessons
 
@@ -987,17 +1010,17 @@ Nodes (4): Migrations, MySQL connection, Table count, Vistiq database schema
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `CompactDatabase` connect `CompactDatabase` to `AdminCatalogSeeder`, `QuestionController.php`, `User`, `QuestionEditorService.php`, `AnalyticsService.php`, `ExamAttempt`, `AttemptRunnerController.php`, `Illuminate\Support\Facades\DB`, `Illuminate\Support\Facades\Schema`, `bootstrap/app.php`, `ExamPublishingService`, `LeaderboardService.php`, `ExamBuilderController.php`, `LearningItem`, `Learner/Models/LearningItem.php`, `Illuminate\Foundation\Testing\LazilyRefreshDatabase`, `AdminQuestionBankTest.php`, `Admin/Models/LearningItem.php`, `AttemptQueryService.php`, `QuestionRegistry`, `Controllers/Knowledge/GrammarController.php`, `ReadingQuestionBankTest.php`, `ExamGenerationTest.php`, `QuestionBankItem`, `ExamGenerationService.php`, `ContentRevisionService`, `KnowledgeReaderService.php`, `KnowledgeItemService.php`, `Illuminate\Support\Collection`, `.view`, `app/Providers/AppServiceProvider.php`, `CompactSchemaMigration.php`, `Illuminate\Support\Str`, `UserManagementController.php`, `Illuminate\Database\Query\Builder`, `Illuminate\Database\Seeder`, `ProfileController.php`, `Illuminate\Database\Eloquent\Builder`, `Tinh gọn CSDL Vistiq`?**
-  _High betweenness centrality (0.074) - this node is a cross-community bridge._
-- **Why does `TestCase` connect `TestCase` to `AdminCatalogSeeder`, `ExamGenerationTest`, `User`, `MediaUploadTest`, `Illuminate\Support\Facades\DB`, `ExamPublishingService`, `ExamTemplate`, `CompactDatabase`, `AdminOperationsTest`, `Illuminate\Foundation\Testing\LazilyRefreshDatabase`, `AdminQuestionBankTest.php`, `ContentRevision`, `ExportService`, `ReadingCsvImportTest`, `QuestionRegistry`, `AttemptAdministrationTest`, `OperationsWorkflowTest`, `AdminOtpTest`, `ReadingQuestionBankTest.php`, `ExamGenerationTest.php`, `QuestionBankItem`, `KnowledgeAdminTest`, `QuestionBankItemFactory`, `Illuminate\Support\Str`, `AdminQuestionBankTest`, `ReadingQuestionBankTest`, `AnalyticsAdminTest`, `QuestionWorkbookImportTest`, `ReviewQueueTest`, `ResourceLibraryTest.php`, `AiEvaluationTest`, `KnowledgeValidationAndWorkflowTest`, `BackupRestoreTest`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
-- **Why does `QuestionBankItem` connect `QuestionBankItem` to `MediaController.php`, `QuestionEditorService`, `QuestionController.php`, `ExamGenerationTest`, `AdminCatalogSeeder`, `QuestionEditorService.php`, `AnalyticsService.php`, `Illuminate\Database\Eloquent\Relations\HasMany`, `ExamBuilderController`, `Illuminate\Database\Eloquent\Model`, `ExamPublishingService.php`, `QuestionController`, `User`, `LearningStimulus`, `MediaAsset`, `AdminPageController`, `ExamBuilderController.php`, `CompactDatabase`, `QuestionBankCatalog.php`, `AdminOperationsTest`, `Illuminate\Foundation\Testing\LazilyRefreshDatabase`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `AdminQuestionBankTest.php`, `ReadingCsvImportTest`, `ReadingQuestionBankTest.php`, `ExamGenerationTest.php`, `ExamGenerationService.php`, `ContentRevisionService`, `QuestionBankItemFactory`, `ExamPart`, `Illuminate\Support\Str`, `AdminQuestionBankTest`, `ReviewQueueController.php`, `ReadingQuestionBankTest`, `QuestionWorkbookImportTest`, `StoresClassifications`, `Illuminate\Database\Eloquent\Builder`?**
-  _High betweenness centrality (0.034) - this node is a cross-community bridge._
+- **Why does `CompactDatabase` connect `CompactDatabase` to `AdminCatalogSeeder`, `QuestionController.php`, `Role`, `QuestionEditorService.php`, `AnalyticsService.php`, `ExamAttempt`, `app/Providers/AppServiceProvider.php`, `AttemptRunnerController.php`, `Illuminate\Support\Facades\Schema`, `bootstrap/app.php`, `ExamPublishingService`, `LeaderboardService.php`, `ExamBuilderController.php`, `LearningItem`, `Learner/Models/LearningItem.php`, `Illuminate\Foundation\Testing\LazilyRefreshDatabase`, `AdminQuestionBankTest.php`, `Admin/Models/LearningItem.php`, `AttemptQueryService.php`, `QuestionRegistry`, `Controllers/Knowledge/GrammarController.php`, `TestCase`, `ReadingQuestionBankTest.php`, `ExamGenerationTest.php`, `QuestionBankItem`, `ExamGenerationService.php`, `ContentRevision`, `KnowledgeReaderService.php`, `Illuminate\Support\Str`, `Illuminate\Support\Collection`, `.view`, `ExamPart`, `CompactSchemaMigration.php`, `Illuminate\Database\Eloquent\Factories\Factory`, `UserManagementController.php`, `Illuminate\Database\Query\Builder`, `Illuminate\Database\Seeder`, `KnowledgeImportService`, `AiEvaluationTest.php`, `ProfileController.php`, `Illuminate\Database\Eloquent\Builder`, `User`?**
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
+- **Why does `TestCase` connect `TestCase` to `AdminCatalogSeeder`, `ExamGenerationTest`, `Role`, `SettingsAndAuditTest`, `ExamPublishingService`, `CompactDatabase`, `AdminQuestionBankTest.php`, `ResourceLibraryTest`, `ExportService`, `QuestionRegistry`, `AttemptAdministrationTest`, `OperationsWorkflowTest`, `ReadingQuestionBankTest.php`, `ExamGenerationTest.php`, `QuestionBankItem`, `KnowledgeAdminTest`, `ContentRevision`, `QuestionBankItemFactory`, `AdminQuestionBankTest`, `ReadingQuestionBankTest`, `QuestionEditorTest`, `Illuminate\Support\Facades\DB`, `AdminWorkflowTest`, `ReviewQueueTest`, `ResourceLibraryTest.php`, `AiEvaluationTest.php`, `KnowledgeValidationAndWorkflowTest`, `User`?**
+  _High betweenness centrality (0.048) - this node is a cross-community bridge._
+- **Why does `QuestionBankItem` connect `QuestionBankItem` to `MediaController.php`, `QuestionDifficulty`, `QuestionController.php`, `QuestionEditorService`, `ExamGenerationTest`, `AdminCatalogSeeder`, `QuestionEditorService.php`, `AnalyticsService.php`, `Illuminate\Database\Eloquent\Model`, `QuestionType`, `LearningStimulus`, `Illuminate\Validation\ValidationException`, `QuestionController`, `User`, `MediaAsset`, `AdminPageController`, `ExamTemplate`, `ExamBuilderController.php`, `CompactDatabase`, `QuestionBankCatalog.php`, `ContentReviewService`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `AdminQuestionBankTest.php`, `ExamGenerationService`, `ReadingQuestionBankTest.php`, `ExamGenerationTest.php`, `ExamGenerationService.php`, `ContentRevision`, `QuestionBankItemFactory`, `Illuminate\Database\Eloquent\Factories\Factory`, `ExamBuilderController`, `AdminQuestionBankTest`, `ReadingQuestionBankTest`, `ContentReviewService.php`, `Illuminate\Database\Eloquent\Builder`?**
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **What connects `$schema`, `name`, `type` to the rest of the system?**
-  _599 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _601 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `schema.sql` be split into smaller, more focused modules?**
   _Cohesion score 0.09830866807610994 - nodes in this community are weakly interconnected._
 - **Should `MediaController.php` be split into smaller, more focused modules?**
-  _Cohesion score 0.07407407407407407 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._
 - **Should `AdminCatalogSeeder` be split into smaller, more focused modules?**
-  _Cohesion score 0.06976744186046512 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0641025641025641 - nodes in this community are weakly interconnected._

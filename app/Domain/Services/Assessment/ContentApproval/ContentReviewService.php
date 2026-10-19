@@ -28,9 +28,14 @@ class ContentReviewService
 
     public function preview(string $kind, int $id, bool $lock = false): array
     {
-        abort_unless(in_array($kind, ['question', 'exam'], true), 404);
-        $query = $kind === 'exam' ? ExamTemplate::query() : QuestionBankItem::query();
+        abort_unless(in_array($kind, ['question', 'stimulus', 'exam'], true), 404);
+        $query = match ($kind) {
+            'exam' => ExamTemplate::query(),
+            'stimulus' => LearningStimulus::query(),
+            default => QuestionBankItem::query(),
+        };
         $root = ($lock ? $query->lockForUpdate() : $query)->findOrFail($id);
+        abort_if($kind === 'stimulus' && $root->stimulus_type !== 'reading', 404);
         $errors = [];
         $dependencies = [];
         $previous = null;
@@ -84,6 +89,20 @@ class ContentReviewService
                 } elseif (! $availability) {
                     $errors[] = 'Media #'.$assetId.' không còn tồn tại hoặc không tải được.';
                 }
+            }
+        } elseif ($kind === 'stimulus') {
+            $revisionQuery = ContentRevision::query()->where('id', $root->draft_revision_id)->where('kind', 'stimulus')->where('entity_id', $id);
+            $revision = ($lock ? $revisionQuery->lockForUpdate() : $revisionQuery)->firstOrFail();
+            $payload = $revision->payload;
+            $status = $root->status === 'archived' ? 'archived' : $revision->status;
+            $author = $revision->created_by;
+            $number = $revision->number;
+            $submittedAt = $revision->getRawOriginal('updated_at');
+            $previous = ContentRevision::query()->where('kind', 'stimulus')->where('entity_id', $id)->where('number', '<', $number)->orderByDesc('number')->first()?->payload;
+            try {
+                $this->revisions->validate('stimulus', $payload);
+            } catch (ValidationException $exception) {
+                $errors = array_merge($errors, array_merge(...array_values($exception->errors())));
             }
         } else {
             $status = $root->status === 'archived' ? 'archived' : $root->draft_status;
@@ -177,7 +196,7 @@ class ContentReviewService
             if ($action === 'reject' && $note === '') {
                 throw ValidationException::withMessages(['note' => 'Nhập lý do trả chỉnh sửa.']);
             }
-            if ($kind === 'question') {
+            if (in_array($kind, ['question', 'stimulus'], true)) {
                 $revision = $this->revisions->transition($kind, $review['root'], $action, $note ?: null);
                 $status = $revision->status;
             } else {

@@ -18,7 +18,11 @@ class BulkReviewService
         $entries = collect($entries)->map(fn ($entry) => [
             'kind' => $entry->kind, 'id' => (int) $entry->id,
             'revision' => (int) $entry->revision, 'submitted_at' => (string) $entry->submitted_at,
-            'label' => ($entry->kind === 'exam' ? 'Đề thi' : 'Câu hỏi').' #'.$entry->id.' · '.Str::limit(strip_tags((string) $entry->title), 100),
+            'label' => match ($entry->kind) {
+                'exam' => 'Đề thi',
+                'stimulus' => 'Bài Reading',
+                default => 'Câu hỏi',
+            }.' #'.$entry->id.' · '.Str::limit(strip_tags((string) $entry->title), 100),
         ])->values()->all();
         $this->save($id, ['owner' => (int) auth()->id(), 'entries' => $entries, 'filters' => $filters,
             'total' => count($entries), 'processed' => 0, 'approved' => 0, 'skipped' => []]);

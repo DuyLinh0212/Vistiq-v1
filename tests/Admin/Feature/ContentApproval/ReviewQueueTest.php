@@ -12,6 +12,7 @@ use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
 use VistiqCore\Services\Assessment\Exams\ExamPublishingService;
 use VistiqCore\Services\System\AuditService;
 use VistiqCore\Models\Role;
+use VistiqCore\Models\LearningStimulus;
 
 class ReviewQueueTest extends TestCase
 {
@@ -53,6 +54,93 @@ class ReviewQueueTest extends TestCase
         $this->get('/admin/content-approval/question/'.$question->id)->assertOk()->assertSee('Revision 1')->assertSee('Secret explanation.');
         $this->assertSame($count, DB::table('audit_logs')->count());
         $this->assertDatabaseCount('exam_attempts', 0);
+    }
+
+    public function test_submitted_reading_appears_in_queue_and_can_be_approved_without_publishing(): void
+    {
+        $author = $this->admin('content-admin');
+        $this->actingAs($author, 'admin');
+        $part = DB::table('exam_parts')->where('code', 'part-7')->first();
+        $reading = LearningStimulus::create([
+            'created_by' => $author->id,
+            'title' => 'Reading awaiting review',
+            'stimulus_type' => 'reading',
+            'body' => '<p>The library opens at nine.</p>',
+            'status' => 'draft',
+        ]);
+        $revision = app(ContentRevisionService::class)->save('stimulus', $reading, [
+            'title' => 'Reading awaiting review',
+            'stimulus_type' => 'reading',
+            'body' => '<p>The library opens at nine.</p>',
+            'metadata' => ['exam_part_id' => $part->id, 'content_kind' => 'passage'],
+        ], 0);
+        app(ContentRevisionService::class)->transition('stimulus', $reading, 'review');
+
+        $this->actingAs($this->admin('reviewer'), 'admin');
+        $this->get('/admin/content-approval?kind=stimulus&exam_type='.$part->exam_type_id.'&part='.$part->id)
+            ->assertOk()
+            ->assertSee('Reading awaiting review')
+            ->assertSee('Bài Reading');
+        $this->get('/admin/content-approval/stimulus/'.$reading->id.'?modal=1')
+            ->assertOk()
+            ->assertSee('The library opens at nine.')
+            ->assertSee('Xác nhận duyệt');
+
+        $review = app(ContentReviewService::class)->preview('stimulus', $reading->id);
+        $this->postJson('/admin/content-approval/stimulus/'.$reading->id.'/approve', [
+            'revision_counter' => $review['number'],
+            'review_token' => $review['token'],
+        ])->assertOk()->assertJsonPath('status', 'approved');
+
+        $this->assertDatabaseHas('content_revisions', ['id' => $revision->id, 'status' => 'approved']);
+        $this->assertSame('approved', $reading->fresh()->status);
+        $this->assertNull($reading->fresh()->published_revision_id);
+        $this->get('/admin/content-approval?kind=stimulus')->assertOk()->assertDontSee('Reading awaiting review');
+    }
+
+    public function test_selected_readings_can_be_bulk_approved(): void
+    {
+        $author = $this->admin('content-admin');
+        $this->actingAs($author, 'admin');
+        $part = DB::table('exam_parts')->where('code', 'part-7')->first();
+        $readings = collect(range(1, 2))->map(function ($number) use ($author, $part) {
+            $reading = LearningStimulus::create([
+                'created_by' => $author->id,
+                'title' => 'Bulk Reading '.$number,
+                'stimulus_type' => 'reading',
+                'body' => '<p>Reading content '.$number.'.</p>',
+                'status' => 'draft',
+            ]);
+            app(ContentRevisionService::class)->save('stimulus', $reading, [
+                'title' => $reading->title,
+                'stimulus_type' => 'reading',
+                'body' => $reading->body,
+                'metadata' => ['exam_part_id' => $part->id, 'content_kind' => 'passage'],
+            ], 0);
+            app(ContentRevisionService::class)->transition('stimulus', $reading, 'review');
+
+            return $reading;
+        });
+
+        $this->actingAs($this->admin('reviewer'), 'admin');
+        $queue = $this->get('/admin/content-approval?kind=stimulus')->assertOk()->getContent();
+        preg_match('/name="selection_snapshot" value="([a-f0-9]{64})"/', $queue, $snapshot);
+        $this->assertNotEmpty($snapshot[1] ?? null);
+        $start = $this->postJson('/admin/content-approval/approve-all', [
+            'selection_mode' => 'selected',
+            'expected_count' => 2,
+            'selection_snapshot' => $snapshot[1],
+            'kind' => 'stimulus',
+            'selected' => $readings->map(fn ($reading) => 'stimulus:'.$reading->id)->all(),
+        ])->assertOk()->assertJsonPath('total', 2);
+
+        $this->postJson($start->json('next_url'))->assertOk()
+            ->assertJsonPath('approved', 2)
+            ->assertJsonPath('done', true);
+        foreach ($readings as $reading) {
+            $this->assertSame('approved', $reading->fresh()->status);
+            $this->assertNull($reading->fresh()->published_revision_id);
+        }
     }
 
     public function test_queue_opens_review_details_in_modal_with_approve_and_reject_actions(): void

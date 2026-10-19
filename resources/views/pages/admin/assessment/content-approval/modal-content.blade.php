@@ -1,9 +1,10 @@
-@php($labels=['review'=>'Chờ duyệt','approved'=>'Chờ xuất bản','draft'=>'Bản nháp / Trả chỉnh sửa','published'=>'Đã xuất bản','archived'=>'Đã lưu trữ'])
+@php($labels=['review'=>'Chờ duyệt','approved'=>$kind==='stimulus'?'Đã duyệt':'Chờ xuất bản','draft'=>'Bản nháp / Trả chỉnh sửa','published'=>'Đã xuất bản','archived'=>'Đã lưu trữ'])
+@php($kindLabel=match($kind){'exam'=>'Đề thi','stimulus'=>'Bài Reading',default=>'Câu hỏi'})
 <article class="content-review-item" data-review-item="{{ $kind }}-{{ $root->id }}">
     <header class="content-review-item-heading">
         <div>
-            <p class="content-review-kicker">{{ $kind==='exam'?'Đề thi':'Câu hỏi' }} · #{{ $root->id }}</p>
-            <h3>{{ $kind==='exam' ? ($payload['title']??$root->title??'Đề thi') : \Illuminate\Support\Str::limit(strip_tags($payload['prompt']??$payload['body']??'Câu hỏi'), 160) }}</h3>
+            <p class="content-review-kicker">{{ $kindLabel }} · #{{ $root->id }}</p>
+            <h3>{{ in_array($kind,['exam','stimulus'],true) ? ($payload['title']??$root->title??$kindLabel) : \Illuminate\Support\Str::limit(strip_tags($payload['prompt']??$payload['body']??'Câu hỏi'), 160) }}</h3>
             <p>Revision {{ $number }} · <span class="badge badge-soft">{{ $labels[$status]??$status }}</span></p>
         </div>
     </header>
@@ -45,9 +46,11 @@
                 <p class="admin-alert" role="status">Super Admin có thể duyệt mọi revision, kể cả nội dung do chính mình tạo. Lần duyệt này sẽ được ghi vào nhật ký.</p>
             @endif
             @if(!$blockers && (!$isOwnRevision || $canSuperAdminSelfReview))
-                @php($approvalConfirmation = $isOwnRevision
-                    ? 'Super Admin duyệt '.$kind.' #'.$root->id.', revision '.$number.' do chính mình tạo? Thao tác sẽ được ghi vào nhật ký và chuyển nội dung sang Chờ xuất bản; người học chưa thấy nội dung cho đến khi phát hành.'
-                    : 'Duyệt '.$kind.' #'.$root->id.', revision '.$number.'? Nội dung sẽ chuyển sang Chờ xuất bản; người học chưa thấy nội dung cho đến khi phát hành.')
+                @php($approvalConfirmation = $kind==='stimulus'
+                    ? 'Duyệt bài Reading #'.$root->id.', revision '.$number.'? Bài sẽ chuyển sang Đã duyệt.'
+                    : ($isOwnRevision
+                        ? 'Super Admin duyệt '.$kind.' #'.$root->id.', revision '.$number.' do chính mình tạo? Thao tác sẽ được ghi vào nhật ký và chuyển nội dung sang Chờ xuất bản; người học chưa thấy nội dung cho đến khi phát hành.'
+                        : 'Duyệt '.$kind.' #'.$root->id.', revision '.$number.'? Nội dung sẽ chuyển sang Chờ xuất bản; người học chưa thấy nội dung cho đến khi phát hành.'))
                 <form method="post" action="{{ route('admin.content-approval.decide',[$kind,$root->id,'approve']) }}" data-content-review-decision data-review-action="approve" data-review-confirm-message="{{ $approvalConfirmation }}">
                     @csrf
                     <input type="hidden" name="revision_counter" value="{{ $number }}">

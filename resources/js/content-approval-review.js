@@ -77,6 +77,17 @@ if (dialog) {
                 return;
             }
             const count = allFiltered ? Math.max(0, total - excluded.size) : selected.size;
+        const filteredKind = form.querySelector('[name="kind"]')?.value;
+        const selectedKinds = allFiltered
+            ? new Set(filteredKind ? [filteredKind] : ['question', 'stimulus', 'exam'])
+            : new Set([...selected].map(value => value.split(':', 1)[0]));
+        const approvalOutcome = allFiltered && !filteredKind
+            ? 'Bài Reading (nếu có) sẽ chuyển sang Đã duyệt; câu hỏi và đề thi (nếu có) sẽ chuyển sang Chờ xuất bản.'
+            : selectedKinds.has('stimulus')
+            ? (selectedKinds.has('question') || selectedKinds.has('exam')
+                ? 'Bài Reading sẽ chuyển sang Đã duyệt; câu hỏi và đề thi sẽ chuyển sang Chờ xuất bản.'
+                : 'Bài Reading sẽ chuyển sang Đã duyệt, không cần xuất bản thêm.')
+            : 'Nội dung sẽ chuyển sang Chờ xuất bản, chưa hiển thị cho người học.';
             if (batchProgress && count === 0) showProgress(batchProgress);
             else {
                 progressBar.max = Math.max(1, count || total);
@@ -98,8 +109,8 @@ if (dialog) {
                 : `Đã chọn ${count} revision trên trang này.`;
             submitButton.textContent = allFiltered ? `Duyệt tất cả (${count})` : `Duyệt mục đã chọn (${count})`;
             submitButton.dataset.reviewConfirmMessage = allFiltered
-                ? `Bạn sắp duyệt ${count} revision trong toàn bộ kết quả phù hợp với bộ lọc hiện tại${excluded.size ? `, đã bỏ chọn ${excluded.size} mục` : ''}. Hệ thống chỉ duyệt revision còn chờ duyệt và đủ điều kiện; mục có lỗi nội dung, đã thay đổi hoặc bạn tự gửi (trừ Super Admin) sẽ được bỏ qua và nêu rõ lý do sau thao tác. Nội dung được duyệt sẽ chuyển sang Chờ xuất bản, chưa hiển thị cho người học. Tiếp tục?`
-                : `Bạn sắp duyệt ${count} revision đã chọn trên trang này. Hệ thống chỉ duyệt revision còn chờ duyệt và đủ điều kiện; mục có lỗi nội dung, đã thay đổi hoặc bạn tự gửi (trừ Super Admin) sẽ được bỏ qua và nêu rõ lý do sau thao tác. Nội dung được duyệt sẽ chuyển sang Chờ xuất bản, chưa hiển thị cho người học. Tiếp tục?`;
+                ? `Bạn sắp duyệt ${count} revision trong toàn bộ kết quả phù hợp với bộ lọc hiện tại${excluded.size ? `, đã bỏ chọn ${excluded.size} mục` : ''}. Hệ thống chỉ duyệt revision còn chờ duyệt và đủ điều kiện; mục có lỗi nội dung, đã thay đổi hoặc bạn tự gửi (trừ Super Admin) sẽ được bỏ qua và nêu rõ lý do sau thao tác. ${approvalOutcome} Tiếp tục?`
+                : `Bạn sắp duyệt ${count} revision đã chọn trên trang này. Hệ thống chỉ duyệt revision còn chờ duyệt và đủ điều kiện; mục có lỗi nội dung, đã thay đổi hoặc bạn tự gửi (trừ Super Admin) sẽ được bỏ qua và nêu rõ lý do sau thao tác. ${approvalOutcome} Tiếp tục?`;
             syncHiddenValues();
         };
 

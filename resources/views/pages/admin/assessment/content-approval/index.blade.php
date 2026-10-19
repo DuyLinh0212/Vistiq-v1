@@ -1,4 +1,5 @@
 <h1>Duyệt nội dung</h1>
+@php($kindLabels=['question'=>'Câu hỏi','stimulus'=>'Bài Reading','exam'=>'Đề thi'])
 @if($draftCount)<div class="review-draft-notice" role="status"><p>{{ number_format($draftCount) }} câu hỏi đang ở bản nháp, chưa gửi duyệt. Mở đúng ngân hàng để gửi duyệt:</p><nav class="assessment-actions" aria-label="Ngân hàng câu hỏi nháp"><a class="text-link" href="{{ route('admin.questions.listening', ['status'=>'draft']) }}">Listening →</a><a class="text-link" href="{{ route('admin.readings.index', ['status'=>'draft']) }}">Reading →</a><a class="text-link" href="{{ route('admin.questions.thpt', ['status'=>'draft']) }}">Tiếng Anh THPT →</a></nav></div>@endif
 @if(session('review_bulk_skipped'))
     <section class="admin-alert admin-alert-error review-bulk-skipped" role="alert">
@@ -8,7 +9,7 @@
 @endif
 <section class="panel">
     <nav class="assessment-actions" aria-label="Loại nội dung">
-        @foreach([''=>'Tất cả','question'=>'Câu hỏi','exam'=>'Đề thi'] as $kind=>$label)
+        @foreach([''=>'Tất cả','question'=>'Câu hỏi','stimulus'=>'Bài Reading','exam'=>'Đề thi'] as $kind=>$label)
             <a class="button button-quiet" href="{{ route('admin.content-approval.index', array_merge(request()->except('page'), ['kind'=>$kind])) }}" @if(($filters['kind']??'')===$kind) aria-current="page" @endif>{{ $label }}</a>
         @endforeach
     </nav>
@@ -44,12 +45,12 @@
                         <th>Nội dung</th><th>Người gửi</th><th>Revision</th><th>Thời điểm cập nhật</th><th>Kiểm tra nội dung</th><th>Thao tác</th>
                     </tr></thead>
                     <tbody>@forelse($entries as $entry)<tr data-review-entry="{{ $entry->kind }}-{{ $entry->id }}">
-                        <td><label class="review-row-select"><input type="checkbox" data-review-select-row value="{{ $entry->kind }}:{{ $entry->id }}" aria-label="Chọn {{ $entry->kind==='exam'?'đề thi':'câu hỏi' }} #{{ $entry->id }}"><span>{{ $entry->kind==='exam'?'Đề thi':'Câu hỏi' }}</span></label></td>
+                        <td><label class="review-row-select"><input type="checkbox" data-review-select-row value="{{ $entry->kind }}:{{ $entry->id }}" aria-label="Chọn {{ $kindLabels[$entry->kind]??'nội dung' }} #{{ $entry->id }}"><span>{{ $kindLabels[$entry->kind]??'Nội dung' }}</span></label></td>
                         <td>#{{ $entry->id }} · {{ \Illuminate\Support\Str::limit(strip_tags($entry->title), 120) }}</td>
                         <td>{{ $entry->author_name??'Không rõ' }}</td><td>{{ $entry->revision }}</td><td>{{ $entry->submitted_at }}</td>
                         <td>@if($entry->blockers)<details><summary>{{ count($entry->blockers) }} lỗi cần sửa</summary><ul>@foreach($entry->blockers as $blocker)<li>{{ $blocker }}</li>@endforeach</ul></details>@else Sẵn sàng duyệt @endif</td>
                         <td><button type="button" class="button button-primary review-open-button" data-review-open data-review-url="{{ route('admin.content-approval.show',['kind'=>$entry->kind,'id'=>$entry->id,'modal'=>1]) }}" aria-haspopup="dialog">Duyệt</button></td>
-                    </tr>@empty<tr><td colspan="7">Không có revision chờ duyệt phù hợp. Biên tập viên gửi duyệt từ module nội dung hoặc đề thi.</td></tr>@endforelse</tbody>
+                    </tr>@empty<tr><td colspan="7">Không có revision chờ duyệt phù hợp. Biên tập viên gửi duyệt từ ngân hàng câu hỏi, bài Reading hoặc đề thi.</td></tr>@endforelse</tbody>
                 </table>
             </div>
             <div class="review-bulk-progress" data-review-progress>
