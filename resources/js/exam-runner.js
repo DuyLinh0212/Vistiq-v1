@@ -221,7 +221,7 @@ export const initializeExamRunner = (rootOverride = undefined) => {
     const flush = singleFlight(async () => {
         if (conflicting || saving || submitting || state.paused || state.status === 'expired' || !Object.keys(pending).length) { return !saving && !conflicting; }
         if (config.preview) { return true; }
-        saving = true; const batch = JSON.parse(JSON.stringify(pending));
+        saving = true; const batch = JSON.parse(JSON.stringify(pending)), sectionBeforeSave = state.active_section;
         try {
             const data = await request(config.endpoints.answers, { answers: Object.values(batch) });
             for (const answer of data.answers) {
@@ -235,8 +235,35 @@ export const initializeExamRunner = (rootOverride = undefined) => {
             if (error.status === 409) {
                 const latest = await request(config.endpoints.state);
                 if (latest.status !== 'in_progress') { await refresh(); return false; }
+                const sectionChanged = latest.active_section !== sectionBeforeSave;
+                const stateChanged = latest.active_section !== state.active_section || latest.status !== state.status || ((policies.lock_previous || policies.navigation === 'linear') && latest.current_item_index !== state.current_item_index);
+                state = latest; config.snapshot = latest.snapshot; offset = Date.parse(state.server_time) - Date.now();
                 latest.answers.forEach(answer => savedAnswers.set(answer.item_key, answer));
                 pending = reconcileAnswers(pending, latest.answers); persist();
+                const inaccessible = Object.keys(pending).filter(key => {
+                    const item = config.snapshot.items.find(entry => entry.key === key);
+                    if (!item) { return true; }
+                    const active = config.snapshot.sections[state.active_section], section = config.snapshot.sections[item.section];
+                    if (!active || !section) { return true; }
+                    if (policies.navigation === 'linear' || policies.lock_previous) { return item.section !== state.active_section; }
+                    return active.duration_minutes > 0 && (active.timing_group ?? state.active_section) !== (section.timing_group ?? item.section);
+                });
+                if (inaccessible.length) {
+                    inaccessible.forEach(key => { delete pending[key]; }); persist();
+                    const sectionTitle = config.snapshot.sections[state.active_section]?.title ?? `phần ${state.active_section + 1}`;
+                    selected = state.current_item_index ?? Math.max(0, config.snapshot.items.findIndex(item => item.section === state.active_section)); render();
+                    showWarning(`Đã chuyển sang ${sectionTitle}. ${inaccessible.length} câu ở phần đã kết thúc chưa kịp đồng bộ nên không được ghi nhận.`);
+                    status.textContent = 'Có đáp án chưa đồng bộ vì phần thi đã kết thúc';
+                    if (Object.keys(pending).length) { window.setTimeout(() => { void flush(); }, 0); }
+                    return !sectionChanged && !Object.keys(pending).length;
+                }
+                if (stateChanged) { selected = state.current_item_index ?? Math.max(0, config.snapshot.items.findIndex(item => item.section === state.active_section)); render(); }
+                if (sectionChanged && !Object.keys(pending).length) {
+                    const sectionTitle = config.snapshot.sections[state.active_section]?.title ?? `phần ${state.active_section + 1}`;
+                    showWarning(`Server đã chuyển sang ${sectionTitle}.`);
+                    status.textContent = 'Đã cập nhật phần thi từ server';
+                    return false;
+                }
                 if (Object.keys(pending).length) {
                     conflicting = true; showWarning(error.message);
                     for (const [label, action] of [['Dùng bản trên server','use-server'],['Lưu lại bản cục bộ','retry-local']]) {

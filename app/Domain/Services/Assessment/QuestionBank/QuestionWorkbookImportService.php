@@ -59,14 +59,21 @@ class QuestionWorkbookImportService
         $questionTypeIds = QuestionType::pluck('id', 'code');
         $difficultyIds = QuestionDifficulty::pluck('id', 'code');
         $usedCodes = $this->existingCodes($kind);
-        $sheetCodeCounts = collect($worksheets)->countBy(fn ($sheet) => Str::lower(trim($sheet->getTitle())));
+        $listeningCodes = $kind === 'listening'
+            ? $this->generatedListeningCodes(count($worksheets), $usedCodes)
+            : [];
+        $sheetCodeCounts = $kind === 'reading'
+            ? collect($worksheets)->countBy(fn ($sheet) => Str::lower(trim($sheet->getTitle())))
+            : collect();
         $totalQuestions = 0;
         $sheets = [];
 
-        foreach ($worksheets as $worksheet) {
-            $code = trim($worksheet->getTitle());
+        foreach ($worksheets as $index => $worksheet) {
+            $sourceSheet = trim($worksheet->getTitle());
+            $code = $kind === 'listening' ? $listeningCodes[$index] : $sourceSheet;
             $sheet = [
                 'code' => $code,
+                'source_sheet' => $sourceSheet,
                 'question_count' => 0,
                 'questions' => [],
                 'errors' => [],
@@ -79,17 +86,19 @@ class QuestionWorkbookImportService
                 'exam_part' => null,
             ];
 
-            if (! preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]{0,30}$/', $code)) {
-                $this->error($sheet, 1, 'Tên sheet phải là mã bài gồm tối đa 31 ký tự chữ, số, gạch dưới hoặc gạch ngang.');
-                $sheet['blocked'] = true;
-            }
-            if (($sheetCodeCounts[Str::lower($code)] ?? 0) > 1) {
-                $this->error($sheet, 1, 'Mã sheet bị trùng trong workbook.');
-                $sheet['blocked'] = true;
-            }
-            if (isset($usedCodes[Str::lower($code)])) {
-                $this->error($sheet, 1, 'Mã bài đã tồn tại trong ngân hàng '.$kind.'.');
-                $sheet['blocked'] = true;
+            if ($kind === 'reading') {
+                if (! preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]{0,30}$/', $code)) {
+                    $this->error($sheet, 1, 'Tên sheet phải là mã bài gồm tối đa 31 ký tự chữ, số, gạch dưới hoặc gạch ngang.');
+                    $sheet['blocked'] = true;
+                }
+                if (($sheetCodeCounts[Str::lower($code)] ?? 0) > 1) {
+                    $this->error($sheet, 1, 'Mã sheet bị trùng trong workbook.');
+                    $sheet['blocked'] = true;
+                }
+                if (isset($usedCodes[Str::lower($code)])) {
+                    $this->error($sheet, 1, 'Mã bài đã tồn tại trong ngân hàng '.$kind.'.');
+                    $sheet['blocked'] = true;
+                }
             }
 
             $lastColumn = $worksheet->getHighestDataColumn();
@@ -117,6 +126,7 @@ class QuestionWorkbookImportService
 
             $firstDataRow = null;
             $partId = null;
+            $partKey = null;
             foreach ($values as $index => $cells) {
                 $rowNumber = $index + 2;
                 $cells = array_slice($cells, 0, count($headers));
@@ -134,13 +144,24 @@ class QuestionWorkbookImportService
                 $examCode = Str::lower(trim((string) ($row['exam_type'] ?? '')));
                 $skillCode = Str::lower(trim((string) ($row['skill'] ?? '')));
                 $partCode = Str::lower(trim((string) ($row['exam_part'] ?? '')));
+                $ieltsSection = null;
+                if ($examCode === 'ielts' && $kind === 'listening') {
+                    $sectionCode = preg_replace('/[^a-z0-9]+/', '', Str::ascii($partCode));
+                    if ($sectionCode === 'ieltslistening') {
+                        $partCode = 'listening';
+                    } elseif (preg_match('/^(?:ielts)?(?:listening)?(?:part|section)([1-4])$/', $sectionCode, $matches)) {
+                        $ieltsSection = (int) $matches[1];
+                        $partCode = 'listening-part-'.$ieltsSection;
+                    }
+                }
                 $candidates = $parts->get($partCode, collect());
                 $part = $candidates->first(fn (ExamPart $candidate) => $candidate->examType?->code === $examCode && $candidate->skill?->code === $kind)
                     ?? $candidates->first(fn (ExamPart $candidate) => $candidate->skill?->code === $kind)
                     ?? $candidates->first();
+                $resolvedPartKey = $part ? (string) $part->id.':'.($ieltsSection ?? 0) : null;
                 if (! $part || $part->skill?->code !== $kind) {
                     $rowErrors[] = 'exam_part không tồn tại hoặc không thuộc kỹ năng '.$kind.'.';
-                } elseif ($partId !== null && $partId !== (int) $part->id) {
+                } elseif ($partId !== null && $partKey !== $resolvedPartKey) {
                     $rowErrors[] = 'Một sheet chỉ được chứa câu hỏi thuộc cùng một exam_part.';
                 }
                 if ($examCode === '') {
@@ -213,6 +234,7 @@ class QuestionWorkbookImportService
                 }
 
                 $partId = (int) $part->id;
+                $partKey = $resolvedPartKey;
                 $sheet['exam_part_id'] = $partId;
                 $sheet['exam_type'] = $examCode;
                 $sheet['skill'] = $skillCode;
@@ -228,7 +250,7 @@ class QuestionWorkbookImportService
                         'options' => $options,
                         'correct_options' => [$correctOption],
                         'status' => 'draft',
-                        'metadata' => [],
+                        'metadata' => $ieltsSection === null ? [] : ['ielts_section' => $ieltsSection],
                     ],
                 ];
                 $sheet['question_count']++;
@@ -277,14 +299,19 @@ class QuestionWorkbookImportService
         $sheet->setCellValue('A1', 'HƯỚNG DẪN IMPORT CÂU HỎI '.$label);
         $instructions = [
             ['Mục', 'Hướng dẫn chi tiết'],
-            ['Sheet dữ liệu', 'Mỗi sheet dữ liệu là một bài '.$label.'. Đổi tên LISTENING_001 / LISTENING_002 hoặc READING_001 / READING_002 thành mã bài riêng; tối đa 31 ký tự chữ, số, dấu gạch dưới hoặc gạch ngang. Không dùng tên HUONG_DAN.'],
-            ['Mã bài', 'Mã bài phải duy nhất trong workbook và chưa tồn tại trong ngân hàng. Mỗi sheet chỉ chứa câu hỏi của một phần thi (exam_part).'],
+            ['Sheet dữ liệu', $kind === 'listening'
+                ? 'Mỗi sheet dữ liệu là một bài Listening. Tên sheet chỉ dùng để nhận diện tab; hệ thống tự tạo mã theo giờ Việt Nam. Không dùng tên HUONG_DAN.'
+                : 'Mỗi sheet dữ liệu là một bài Reading. Đổi tên READING_001 / READING_002 thành mã bài riêng; tối đa 31 ký tự chữ, số, dấu gạch dưới hoặc gạch ngang. Không dùng tên HUONG_DAN.'],
+            ['Mã bài', $kind === 'listening'
+                ? 'Mã Listening được hệ thống tự sinh theo giờ Việt Nam, dạng LISTENING_YYYYMMDD_HHMMSS_01 (năm, tháng, ngày, giờ, số thứ tự sheet). Mỗi sheet chỉ chứa câu hỏi của một phần thi (exam_part).'
+                : 'Mã bài phải duy nhất trong workbook và chưa tồn tại trong ngân hàng. Mỗi sheet chỉ chứa câu hỏi của một phần thi (exam_part).'],
             ['Dòng tiêu đề', 'Giữ nguyên các tên cột ở dòng 1. Không xóa cột bắt buộc và không gộp ô trong sheet dữ liệu. Mỗi dòng từ dòng 2 trở đi là một câu hỏi.'],
             ['Phân loại', 'Mỗi dòng cần có exam_type (toeic hoặc ielts), skill ('.$skill.'), exam_part (mã part phù hợp) và question_type=multiple_choice. exam_type và skill phải khớp với exam_part.'],
             ['Câu hỏi', 'prompt là nội dung câu hỏi; option_a, option_b, option_c, option_d đều bắt buộc. Mẫu này hỗ trợ trắc nghiệm một đáp án; chọn loại khác sẽ bị báo lỗi khi xem trước.'],
             ['Đáp án', 'correct_option chỉ nhận một giá trị A, B, C hoặc D. difficulty nhận easy, medium hoặc hard; để trống sẽ dùng medium. explanation không bắt buộc.'],
         ];
         if ($kind === 'listening') {
+            $instructions[] = ['IELTS Listening', 'Với IELTS, dùng listening-part-1 đến listening-part-4 (có thể ghi part-1 đến part-4 hoặc section-1 đến section-4). Mã listening chỉ dành cho bài không tách Part.'];
             $instructions[] = ['Audio', 'Sau khi xem trước workbook, đính kèm một file audio cho từng sheet có câu hợp lệ. Hỗ trợ MP3, WAV, M4A, OGG; giới hạn dung lượng theo cấu hình Tài nguyên của hệ thống.'];
             $instructions[] = ['Ảnh TOEIC Part 1', 'Nếu exam_type=toeic, skill=listening và exam_part=part-1, bước xác nhận sẽ yêu cầu một ảnh JPG, PNG hoặc WEBP cho mỗi câu hợp lệ.'];
             $instructions[] = ['Xác nhận', 'Chọn Xem trước workbook để kiểm tra số câu và lỗi theo sheet/dòng. Sau đó gán audio đúng mã bài và xác nhận import. Câu hợp lệ được lưu ở trạng thái bản nháp.'];
@@ -336,7 +363,7 @@ class QuestionWorkbookImportService
         $comments = [
             'exam_type' => 'Mã kỳ thi: toeic hoặc ielts. Phải khớp với exam_part.',
             'skill' => 'Kỹ năng của workbook này: '.$skill.'.',
-            'exam_part' => 'Mã part thuộc đúng kỳ thi và kỹ năng, ví dụ part-3 hoặc reading.',
+            'exam_part' => 'Mã part thuộc đúng kỳ thi và kỹ năng, ví dụ TOEIC listening: part-1 đến part-4; IELTS listening: listening-part-1 đến listening-part-4, hoặc listening cho bài không tách Part.',
             'question_type' => 'Mẫu hiện hỗ trợ multiple_choice: bốn lựa chọn và một đáp án đúng.',
             'prompt' => 'Nội dung câu hỏi. Mỗi dòng từ dòng 2 là một câu.',
             'option_a' => 'Nội dung lựa chọn A; bắt buộc nhập đủ A, B, C, D.',
@@ -387,6 +414,36 @@ class QuestionWorkbookImportService
     public function writer(Spreadsheet $workbook): Xlsx
     {
         return new Xlsx($workbook);
+    }
+
+    /**
+     * @param array<string,true> $usedCodes
+     * @return list<string>
+     */
+    private function generatedListeningCodes(int $count, array $usedCodes): array
+    {
+        $createdAt = now('Asia/Ho_Chi_Minh');
+        $secondsOffset = 0;
+
+        do {
+            $timestamp = $createdAt->copy()->addSeconds($secondsOffset)->format('Ymd_His');
+            $codes = [];
+            for ($index = 1; $index <= $count; $index++) {
+                $codes[] = sprintf('LISTENING_%s_%02d', $timestamp, $index);
+            }
+
+            $hasConflict = false;
+            foreach ($codes as $code) {
+                if (isset($usedCodes[Str::lower($code)])) {
+                    $hasConflict = true;
+
+                    break;
+                }
+            }
+            $secondsOffset++;
+        } while ($hasConflict);
+
+        return $codes;
     }
 
     public function codeExists(string $kind, string $code): bool

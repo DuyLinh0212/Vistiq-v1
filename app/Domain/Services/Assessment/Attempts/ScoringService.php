@@ -8,6 +8,8 @@ use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
 
 class ScoringService
 {
+    public const RESULT_VERSION = 2;
+
     public function __construct(private QuestionRegistry $registry) {}
 
     public function normalize(string $value): string
@@ -59,7 +61,7 @@ class ScoringService
     public function calculate(ExamAttempt $attempt): array
     {
         $answers = $attempt->answers()->get()->keyBy('item_key');
-        $details = ['correct' => 0, 'wrong' => 0, 'unanswered' => 0, 'pending_tasks' => 0, 'by_skill' => [], 'bands' => [], 'estimated' => true];
+        $details = ['scoring_version' => self::RESULT_VERSION, 'correct' => 0, 'wrong' => 0, 'unanswered' => 0, 'pending_tasks' => 0, 'by_skill' => [], 'bands' => [], 'estimated' => true];
         $raw = 0;
         $writing = [];
         $speaking = [];
@@ -99,6 +101,8 @@ class ScoringService
         foreach ($details['by_skill'] as $skill => $score) {
             if (isset($tables[$skill][$score['raw']])) {
                 $details['bands'][$skill] = (float) $tables[$skill][$score['raw']];
+            } elseif (($attempt->snapshot['exam_type'] ?? null) === 'ielts' && $skill === 'listening' && $score['total'] === 40) {
+                $details['bands']['listening'] = $this->estimatedIeltsListeningBand($score['raw'], $details['unanswered']);
             }
         }
         if ($writing !== [] && count($writing) === collect($attempt->snapshot['items'])->where('skill', 'writing')->count()) {
@@ -119,7 +123,11 @@ class ScoringService
         }
         if ($scaled === null && $details['pending_tasks'] === 0 && $attempt->snapshot['mode'] !== 'full') {
             $total = array_sum(array_column($details['by_skill'], 'total'));
-            $scaled = $total > 0 ? round($raw / $total * 100, 2) : (count($details['bands']) > 0 ? round(array_sum($details['bands']) / count($details['bands']) * 2) / 2 : null);
+            if (($attempt->snapshot['exam_type'] ?? null) === 'ielts') {
+                $scaled = count($details['bands']) === 1 ? (float) reset($details['bands']) : null;
+            } else {
+                $scaled = $total > 0 ? round($raw / $total * 100, 2) : (count($details['bands']) > 0 ? round(array_sum($details['bands']) / count($details['bands']) * 2) / 2 : null);
+            }
         }
         $details['duration_seconds'] = max(0, ($attempt->submitted_at ?? now())->timestamp - $attempt->started_at->timestamp - $attempt->paused_seconds);
         $status = $details['pending_tasks'] > 0 ? 'pending' : 'completed';
@@ -127,5 +135,21 @@ class ScoringService
         $attempt->update(['status' => $status === 'pending' ? 'pending_grading' : 'completed']);
 
         return [...$details, 'raw_score' => $raw, 'scaled_score' => $scaled, 'grading_status' => $status];
+    }
+
+    private function estimatedIeltsListeningBand(int $rawScore, int $unanswered): float
+    {
+        foreach ([
+            [39, 40, 9.0], [37, 38, 8.5], [35, 36, 8.0], [32, 34, 7.5],
+            [30, 31, 7.0], [26, 29, 6.5], [23, 25, 6.0], [18, 22, 5.5],
+            [16, 17, 5.0], [13, 15, 4.5], [11, 12, 4.0], [8, 10, 3.5],
+            [6, 7, 3.0], [4, 5, 2.5], [2, 3, 2.0], [1, 1, 1.0],
+        ] as [$minimum, $maximum, $band]) {
+            if ($rawScore >= $minimum && $rawScore <= $maximum) {
+                return $band;
+            }
+        }
+
+        return $unanswered === 40 ? 0.0 : 1.0;
     }
 }

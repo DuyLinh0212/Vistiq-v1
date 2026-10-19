@@ -9,6 +9,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -753,6 +754,7 @@ class QuestionController extends StaticPageController
         $preview = $validated['kind'] === 'thpt_english'
             ? $thptWorkbooks->preview($request->file('file')->getRealPath())
             : $workbooks->preview($request->file('file')->getRealPath(), $validated['kind']);
+        $this->pruneExpiredWorkbookAudio((int) $request->user()->id);
         $token = (string) Str::uuid();
         Cache::put('question-workbook:'.$request->user()->id.':'.$token, $preview, now()->addMinutes(30));
 
@@ -761,9 +763,16 @@ class QuestionController extends StaticPageController
             'kind' => $preview['kind'],
             'total_questions' => $preview['total_questions'],
             'can_import' => $preview['can_import'] ?? true,
+            'max_audio_megabytes' => $preview['kind'] === 'listening'
+                ? (int) (app(SettingsService::class)->get('media')['max_megabytes'] ?? 50)
+                : null,
+            'max_audio_file_bytes' => $preview['kind'] === 'listening' ? $this->workbookAudioUploadLimitBytes() : null,
             'sheets' => collect($preview['sheets'])->map(fn (array $sheet): array => [
                 'code' => $sheet['code'],
-                'title' => $sheet['title'] ?? null,
+                'source_sheet' => $sheet['source_sheet'] ?? null,
+                'title' => $preview['kind'] === 'listening'
+                    ? 'Sheet '.$sheet['source_sheet'].' → '.$sheet['code']
+                    : ($sheet['title'] ?? null),
                 'question_count' => $sheet['question_count'],
                 'expected_count' => $sheet['expected_count'] ?? null,
                 'errors' => $sheet['errors'],
@@ -789,6 +798,69 @@ class QuestionController extends StaticPageController
                 'requires_group_image' => $sheet['requires_group_image'] ?? false,
             ])->values(),
         ]);
+    }
+
+    public function stageWorkbookAudio(Request $request): mixed
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'uuid'],
+            'code' => ['required', 'string', 'max:120'],
+            'audio' => ['required', 'file'],
+        ]);
+        $userId = (int) $request->user()->id;
+        $cacheKey = 'question-workbook:'.$userId.':'.$validated['token'];
+        $preview = Cache::get($cacheKey);
+        abort_unless(is_array($preview) && ($preview['kind'] ?? null) === 'listening', 404, 'Bản xem trước Listening đã hết hạn. Hãy tải workbook lên lại.');
+
+        $sheet = collect($preview['sheets'] ?? [])->first(fn (array $candidate): bool => ($candidate['code'] ?? null) === $validated['code'] && ! ($candidate['blocked'] ?? true) && ($candidate['questions'] ?? []) !== []);
+        if (! $sheet) {
+            return response()->json(['message' => 'Không tìm thấy bài Listening cần nhận audio.'], 422);
+        }
+
+        $file = $request->file('audio');
+        if (! $file instanceof UploadedFile || ! $file->isValid()) {
+            return response()->json(['message' => 'Máy chủ không nhận được file audio hợp lệ. Kiểm tra giới hạn tải lên của PHP rồi thử lại.'], 422);
+        }
+
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mime = strtolower((string) $file->getMimeType());
+        $validMime = str_starts_with($mime, 'audio/') || ($extension === 'm4a' && $mime === 'video/mp4');
+        if (! in_array($extension, ['mp3', 'wav', 'm4a', 'ogg'], true) || ! $validMime) {
+            return response()->json(['message' => 'File audio phải là MP3, WAV, M4A hoặc OGG.'], 422);
+        }
+
+        $maximumBytes = min(
+            ((int) (app(SettingsService::class)->get('media')['max_megabytes'] ?? 50)) * 1024 * 1024,
+            $this->workbookAudioUploadLimitBytes(),
+        );
+        if ($file->getSize() > $maximumBytes) {
+            return response()->json(['message' => 'File '.$file->getClientOriginalName().' vượt giới hạn tải lên hiện tại ('.number_format($maximumBytes / 1024 / 1024, 1).' MB/file).'], 422);
+        }
+
+        $directory = $this->workbookAudioSheetDirectory($userId, $validated['token'], $validated['code']);
+        $disk = Storage::disk('local');
+        $disk->deleteDirectory($directory);
+        $storedPath = $file->storeAs($directory, 'audio.'.$extension, 'local');
+        if (! is_string($storedPath)) {
+            return response()->json(['message' => 'Không thể lưu tạm audio trên máy chủ.'], 500);
+        }
+        if (! $disk->put($directory.'/original-name.txt', $file->getClientOriginalName())) {
+            $disk->deleteDirectory($directory);
+
+            return response()->json(['message' => 'Không thể lưu tên file audio tạm.'], 500);
+        }
+
+        return response()->json(['code' => $validated['code'], 'stored' => true]);
+    }
+
+    public function discardWorkbookAudio(Request $request): mixed
+    {
+        $validated = $request->validate(['token' => ['required', 'uuid']]);
+        $userId = (int) $request->user()->id;
+        $this->deleteWorkbookAudioStaging($userId, $validated['token']);
+        Cache::forget('question-workbook:'.$userId.':'.$validated['token']);
+
+        return response()->json(['discarded' => true]);
     }
 
     public function confirmWorkbook(Request $request, QuestionWorkbookImportService $workbooks, MediaService $media): mixed
@@ -834,6 +906,29 @@ class QuestionController extends StaticPageController
         }
 
         $audioFiles = $request->file('audio', []);
+        if ($preview['kind'] === 'listening') {
+            $disk = Storage::disk('local');
+            foreach ($preview['sheets'] as $sheet) {
+                if ($sheet['blocked'] || $sheet['questions'] === []) {
+                    continue;
+                }
+
+                $directory = $this->workbookAudioSheetDirectory((int) $request->user()->id, $validated['token'], $sheet['code']);
+                $stagedPath = collect($disk->files($directory))->first(fn (string $path): bool => preg_match('/^audio\\.(mp3|wav|m4a|ogg)$/i', basename(str_replace(chr(92), '/', $path))) === 1);
+                if (! $stagedPath) {
+                    continue;
+                }
+
+                $absolutePath = $disk->path($stagedPath);
+                $audioFiles[$sheet['code']] = new UploadedFile(
+                    $absolutePath,
+                    $disk->get($directory.'/original-name.txt') ?: basename($stagedPath),
+                    null,
+                    UPLOAD_ERR_OK,
+                    true,
+                );
+            }
+        }
         $imageFiles = $request->file('images', []);
         $audioErrors = [];
         $requiresQuestionImages = static fn (array $sheet): bool => $preview['kind'] === 'listening'
@@ -1014,6 +1109,9 @@ class QuestionController extends StaticPageController
         }
 
         Cache::forget($cacheKey);
+        if ($preview['kind'] === 'listening') {
+            $this->deleteWorkbookAudioStaging((int) $request->user()->id, $validated['token']);
+        }
         $summary = ['total' => $preview['total_questions'], 'imported' => $imported, 'failed' => collect($errors)->flatten()->count()];
         $redirect = route($preview['kind'] === 'listening' ? 'admin.questions.listening' : 'admin.readings.index');
         $request->session()->flash('import_summary', $summary);
@@ -1409,6 +1507,52 @@ class QuestionController extends StaticPageController
         $safeToken = Str::isUuid($token) ? $token : 'no-token';
 
         return 'question-import:'.$userId.':'.$safeToken;
+    }
+
+    private function workbookAudioUploadLimitBytes(): int
+    {
+        $configuredAudioBytes = ((int) (app(SettingsService::class)->get('media')['max_megabytes'] ?? 50)) * 1024 * 1024;
+        $uploadLimit = function_exists('ini_parse_quantity') ? (int) ini_parse_quantity((string) ini_get('upload_max_filesize')) : 0;
+        $postLimit = function_exists('ini_parse_quantity') ? (int) ini_parse_quantity((string) ini_get('post_max_size')) : 0;
+        $uploadLimit = $uploadLimit > 0 ? $uploadLimit : PHP_INT_MAX;
+        $postLimit = $postLimit > 0 ? max(0, $postLimit - 262144) : PHP_INT_MAX;
+
+        return max(1, min($configuredAudioBytes, $uploadLimit, $postLimit));
+    }
+
+    private function workbookAudioDirectory(int $userId, string $token): string
+    {
+        $safeToken = Str::isUuid($token) ? $token : 'no-token';
+
+        return 'question-workbook-imports/'.$userId.'/'.$safeToken;
+    }
+
+    private function workbookAudioSheetDirectory(int $userId, string $token, string $code): string
+    {
+        $safeCode = preg_replace('/[^A-Za-z0-9_-]/', '_', $code) ?: 'unknown';
+
+        return $this->workbookAudioDirectory($userId, $token).'/'.$safeCode;
+    }
+
+    private function deleteWorkbookAudioStaging(int $userId, string $token): void
+    {
+        Storage::disk('local')->deleteDirectory($this->workbookAudioDirectory($userId, $token));
+    }
+
+    private function pruneExpiredWorkbookAudio(int $userId): void
+    {
+        $disk = Storage::disk('local');
+        $userDirectory = 'question-workbook-imports/'.$userId;
+        $expiredAt = now()->subMinutes(30)->getTimestamp();
+        foreach ($disk->directories($userDirectory) as $directory) {
+            try {
+                if ($disk->lastModified($directory) < $expiredAt) {
+                    $disk->deleteDirectory($directory);
+                }
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
     }
 
     /** @return list<string> */

@@ -9,7 +9,15 @@
     };
 @endphp
 <div class="question-bank listening-library">
-    @if(session('import_summary'))<div class="admin-toast {{ session('import_summary.failed') ? 'admin-toast-warning' : '' }}" role="status"><span>Đã import {{ number_format(session('import_summary.imported')) }}/{{ number_format(session('import_summary.total')) }} câu.{{ session('import_summary.failed') ? ' Có lỗi theo sheet.' : '' }}</span>@if(session('import_errors'))<details class="import-errors"><summary>Xem lỗi</summary><ul>@foreach(session('import_errors') as $error)<li>{{ $error }}</li>@endforeach</ul></details>@endif</div>@endif
+    @if(session('import_summary'))
+        <div class="admin-toast {{ session('import_summary.failed') ? 'admin-toast-warning' : '' }}" role="{{ session('import_summary.failed') ? 'alert' : 'status' }}" aria-live="polite" data-admin-toast data-admin-toast-timeout="{{ session('import_summary.failed') ? 0 : 6000 }}">
+            <span>Đã import {{ number_format(session('import_summary.imported')) }}/{{ number_format(session('import_summary.total')) }} câu.{{ session('import_summary.failed') ? ' Có lỗi theo sheet.' : '' }}</span>
+            @if(session('import_errors'))
+                <details class="import-errors"><summary>Xem lỗi</summary><ul>@foreach(session('import_errors') as $error)<li>{{ $error }}</li>@endforeach</ul></details>
+            @endif
+            <button type="button" data-dismiss-admin-toast aria-label="Đóng thông báo">×</button>
+        </div>
+    @endif
 
     <header class="qb-heading listening-heading">
         <div>
@@ -60,8 +68,8 @@
                             $audioCode = $lesson['audio_group_code'] ?: ($lesson['audio_id'] ? 'AUDIO_'.str_pad((string) $lesson['audio_id'], 3, '0', STR_PAD_LEFT) : '—');
                         @endphp
                         <tr class="{{ $entry && $entry['id'] === $lesson['id'] ? 'is-active' : '' }}">
-                            <td><a class="reading-code" href="{{ $lessonUrl }}">{{ $lesson['code'] }}</a></td>
-                            <td><a href="{{ $lessonUrl }}"><b>{{ $lesson['title'] }}</b></a><small>{{ $lesson['has_audio'] ? 'Có audio' : 'Chưa có audio' }}</small></td>
+                            <td><a class="reading-code listening-lesson-code" href="{{ $lessonUrl }}" title="{{ $lesson['code'] }}">{{ $lesson['code'] }}</a></td>
+                            <td><a class="listening-lesson-title" href="{{ $lessonUrl }}" title="{{ $lesson['title'] }}"><b>{{ $lesson['title'] }}</b></a><small>{{ $lesson['has_audio'] ? 'Có audio' : 'Chưa có audio' }}</small></td>
                             <td>@foreach($lesson['parts']->pluck('examType')->filter()->unique('id') as $examType)<span class="listening-exam-tag {{ $examType->code === 'ielts' ? 'is-ielts' : '' }}">{{ strtoupper($examType->code) }}</span>@endforeach</td>
                             <td>@foreach($lesson['parts'] as $part)<span class="badge badge-soft listening-part-tag">{{ $part->name }}</span>@endforeach</td>
                             <td><span class="listening-audio-code">{{ $audioCode }}</span></td>

@@ -57,10 +57,203 @@
     top: calc(100% + 8px);
     right: 0;
     width: min(420px, calc(100vw - 32px));
+    min-width: 0;
+    box-sizing: border-box;
     padding: 15px;
     border-color: var(--listen-line);
     border-radius: 10px;
     box-shadow: 0 18px 48px rgba(24, 45, 86, .16);
+}
+
+.listening-library .workbook-sheet-list {
+    min-height: 0;
+    max-height: min(44dvh, 420px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding-right: 4px;
+    align-content: start;
+}
+
+.listening-library .workbook-sheet-row,
+.listening-library .workbook-sheet-heading,
+.listening-library .workbook-sheet-title,
+.listening-library .workbook-audio-row { min-width: 0; }
+
+.listening-library .workbook-sheet-row > .workbook-sheet-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+}
+
+.listening-library .workbook-sheet-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.listening-library .workbook-sheet-title b {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.listening-library .workbook-sheet-title span { flex: none; }
+
+.listening-library .workbook-sheet-heading .workbook-audio-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.listening-library .workbook-sheet-heading .workbook-audio-row > span { flex: none; }
+
+.listening-library .workbook-sheet-heading .workbook-audio-row input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.listening-library .workbook-sheet-heading .workbook-audio-row > span {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    color: var(--listen-muted);
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.listening-library .workbook-sheet-heading .workbook-audio-row.is-matched > span {
+    color: #244c38;
+}
+
+.listening-library .workbook-sheet-heading .workbook-audio-row .button {
+    width: auto;
+    min-height: 27px;
+    flex: 0 0 auto;
+    padding: 4px 7px;
+    font-size: 9px;
+    white-space: nowrap;
+}
+
+.listening-library .workbook-audio-batch {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    margin-bottom: 9px;
+    padding: 10px;
+    border: 1px solid var(--listen-line);
+    border-radius: 8px;
+    background: #f8faff;
+}
+
+.listening-library .workbook-audio-batch-pickers {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.listening-library .workbook-audio-batch label {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    color: var(--listen-ink);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.listening-library .workbook-audio-batch label input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.listening-library .workbook-audio-batch small,
+.listening-library .workbook-audio-batch p {
+    margin: 0;
+    color: var(--listen-muted);
+    font-size: 9px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.listening-library .workbook-audio-batch p { color: var(--listen-ink); }
+
+.listening-library .workbook-audio-batch > .button {
+    width: auto;
+    min-height: 28px;
+    justify-self: start;
+    padding: 4px 9px;
+    font-size: 9px;
+}
+
+.listening-library .workbook-progress {
+    display: grid;
+    gap: 6px;
+    margin: 9px 0;
+    padding: 10px;
+    border: 1px solid var(--listen-line);
+    border-radius: 8px;
+    background: #f8faff;
+}
+
+.listening-library .workbook-progress[hidden] { display: none; }
+
+.listening-library .workbook-progress-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--listen-ink);
+    font-size: 10px;
+}
+
+.listening-library .workbook-progress-heading span,
+.listening-library .workbook-progress small {
+    color: var(--listen-muted);
+}
+
+.listening-library .workbook-progress progress {
+    display: block;
+    width: 100%;
+    height: 9px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 99px;
+    background: #e4eaf5;
+    accent-color: var(--listen-blue);
+}
+
+.listening-library .workbook-progress progress::-webkit-progress-bar {
+    border-radius: 99px;
+    background: #e4eaf5;
+}
+
+.listening-library .workbook-progress progress::-webkit-progress-value {
+    border-radius: 99px;
+    background: var(--listen-blue);
+}
+
+.listening-library .workbook-progress small {
+    font-size: 9px;
+    line-height: 1.45;
+}
+
+.listening-library .workbook-audio-batch-pickers > .button {
+    min-height: 32px;
+    padding: 4px 8px;
+    font-size: 9px;
+    white-space: nowrap;
 }
 
 .listening-stats {
@@ -203,7 +396,9 @@
 .listening-table th:nth-child(9) { width: 88px; }
 .listening-table th:nth-child(10) { width: 70px; }
 .listening-table td:nth-child(1), .listening-table td:nth-child(5), .listening-table td:nth-child(6), .listening-table td:nth-child(7), .listening-table td:nth-child(9), .listening-table td:nth-child(10) { white-space: nowrap; }
-.listening-table td:nth-child(2) a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.listening-table td:nth-child(1) { overflow: hidden; }
+.listening-table .listening-lesson-code,
+.listening-table .listening-lesson-title { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .listening-table td:nth-child(2) b { color: #2c3d60; font-size: 9px; font-weight: 650; }
 .listening-table td:nth-child(2) small { display: block; margin-top: 2px; color: #8794a9; font-size: 8px; }
 .listening-table .reading-code { font-size: 9px; }
@@ -370,13 +565,14 @@
         width: 100%;
         min-width: 0;
         max-width: 100%;
-        max-height: none;
         grid-template-columns: minmax(0, 1fr);
         margin: 8px 0 0;
         padding: 12px;
-        overflow: visible;
         box-shadow: none;
     }
+    .listening-library .workbook-sheet-list { max-height: min(42dvh, 320px); }
+    .listening-library .workbook-sheet-row > .workbook-sheet-heading { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
+    .listening-library .workbook-sheet-title { flex-wrap: wrap; }
     .listening-library .workbook-import-panel > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .listening-library .workbook-import-panel form[data-workbook-upload] { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; }
     .listening-library .workbook-import-panel .admin-label { display: grid; gap: 8px; width: 100%; min-width: 0; }
@@ -384,11 +580,14 @@
     .listening-library .workbook-import-panel .button,
     .listening-heading .workbook-import > summary { min-height: 44px; max-width: 100%; white-space: normal; }
     .listening-library .workbook-import-panel .button { width: 100%; }
+    .listening-library .workbook-audio-batch-pickers { grid-template-columns: minmax(0, 1fr); }
+    .listening-library .workbook-audio-batch-pickers > .button { white-space: normal; }
     .listening-library .workbook-sheet-row,
     .listening-library .workbook-reading-card { min-width: 0; }
     .listening-library .workbook-sheet-row > div,
     .listening-library .workbook-reading-card-heading { flex-wrap: wrap; }
     .listening-library .workbook-audio-row { min-width: 0; flex-direction: column; align-items: stretch; gap: 8px; }
+    .listening-library .workbook-sheet-heading .workbook-audio-row { flex-direction: row; align-items: center; gap: 5px; }
     .listening-library .workbook-image-row { grid-template-columns: minmax(0, 1fr); }
     .listening-heading .qb-heading-actions > .button { flex: 1 1 auto; }
     .listening-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }

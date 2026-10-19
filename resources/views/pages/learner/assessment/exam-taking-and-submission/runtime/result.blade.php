@@ -6,19 +6,39 @@
     $titleLower = strtolower($title);
     $isIelts = str_contains($titleLower, 'ielts');
     $isToeic = str_contains($titleLower, 'toeic');
+    $bands = is_array($details['bands'] ?? null) ? $details['bands'] : [];
     $scoreValue = $result['scaled_score'] ?? null;
     $scoreIsRaw = false;
     if (!is_numeric($scoreValue) && ($result['grading_status'] ?? '') !== 'pending' && is_numeric($result['raw_score'] ?? null)) {
         $scoreValue = $result['raw_score'];
         $scoreIsRaw = true;
     }
+    $scoreIsIeltsBand = $isIelts && !$scoreIsRaw && is_numeric($scoreValue) && (float) $scoreValue <= 9 && count($bands) > 0;
+    $scoreIsIeltsPercentage = $isIelts && !$scoreIsRaw && is_numeric($scoreValue) && !$scoreIsIeltsBand;
     $scoreDisplay = is_numeric($scoreValue)
-        ? number_format((float) $scoreValue, (float) $scoreValue === floor((float) $scoreValue) ? 0 : 1)
+        ? number_format((float) $scoreValue, $scoreIsIeltsBand || (float) $scoreValue !== floor((float) $scoreValue) ? 1 : 0)
         : null;
-    $scoreMaximum = $scoreIsRaw ? null : ($isIelts ? '9.0' : ($isToeic ? '990' : null));
+    $scoreMaximum = $scoreIsRaw ? null : ($scoreIsIeltsBand ? '9.0' : ($scoreIsIeltsPercentage ? '100' : ($isToeic ? '990' : null)));
     $scoreFill = $scoreMaximum && is_numeric($scoreValue)
         ? min(100, max(0, round((float) $scoreValue / (float) $scoreMaximum * 100, 1))).'%'
         : '0%';
+    $singleBandSkill = count($bands) === 1 ? array_key_first($bands) : null;
+    $scoreHeading = $scoreIsRaw
+        ? 'Điểm thô'
+        : ($scoreIsIeltsBand
+            ? ($singleBandSkill === 'listening' ? 'Band Listening ước tính' : (count($bands) === 4 ? 'Band IELTS ước tính' : 'Band kỹ năng ước tính'))
+            : ($scoreIsIeltsPercentage ? 'Tỷ lệ câu đúng' : ($isIelts ? 'Kết quả IELTS ước tính' : ($isToeic ? 'Điểm số ước tính TOEIC' : 'Điểm số ước tính'))));
+    if ($scoreIsIeltsBand && $singleBandSkill && isset($details['by_skill'][$singleBandSkill])) {
+        $bandRaw = (int) ($details['by_skill'][$singleBandSkill]['raw'] ?? 0);
+        $bandTotal = (int) ($details['by_skill'][$singleBandSkill]['total'] ?? 0);
+        $scoreNote = 'Ước tính từ '.$bandRaw.'/'.$bandTotal.' câu đúng; ngưỡng quy đổi có thể thay đổi theo phiên bản đề.';
+    } elseif ($scoreIsIeltsBand) {
+        $scoreNote = 'Band IELTS tổng hợp ước tính từ kết quả các kỹ năng.';
+    } elseif ($scoreIsIeltsPercentage) {
+        $scoreNote = 'Đây là tỷ lệ câu đúng; bài này chưa có đủ dữ liệu để quy đổi thành band IELTS.';
+    } else {
+        $scoreNote = $scoreIsRaw ? 'Chưa có bảng quy đổi cho bài làm này.' : 'Điểm quy đổi được ước tính từ các câu đã chấm.';
+    }
     $correct = (int) ($details['correct'] ?? 0);
     $wrong = (int) ($details['wrong'] ?? 0);
     $unanswered = (int) ($details['unanswered'] ?? 0);
@@ -44,6 +64,8 @@
             'correct' => $skillCorrect,
             'total' => $skillTotal,
             'percent' => $skillTotal > 0 ? round($skillCorrect / $skillTotal * 100) : 0,
+            'band' => $bands[$skill] ?? null,
+            'band_progress' => is_numeric($bands[$skill] ?? null) ? round((float) $bands[$skill] / 9 * 100) : null,
         ];
     }
     $weakestSkill = null;
@@ -91,15 +113,11 @@
                         <div><strong>{{ $scoreDisplay ?? '—' }}</strong><span>{{ $scoreMaximum ? '/ '.$scoreMaximum : 'điểm' }}</span></div>
                     </div>
                     <div class="ar-score-copy">
-                        <h2>{{ $scoreIsRaw ? 'Điểm thô' : ($isIelts ? 'Band điểm ước tính' : ($isToeic ? 'Điểm số ước tính TOEIC' : 'Điểm số ước tính')) }}</h2>
+                        <h2>{{ $scoreHeading }}</h2>
                         <div class="ar-score-line">{{ $scoreDisplay ?? 'Chờ chấm' }} @if ($scoreMaximum)<small>/ {{ $scoreMaximum }}</small>@endif</div>
                         <div class="ar-score-note">
                             <b>{{ ($result['grading_status'] ?? '') === 'pending' ? 'Đang chờ chấm một số phần' : 'Bài làm đã được nộp' }}</b>
-                            @if ($scoreDisplay)
-                                {{ $scoreIsRaw ? 'Điểm quy đổi chưa khả dụng cho bài làm này.' : 'Điểm quy đổi được ước tính từ các câu đã chấm.' }}
-                            @else
-                                Điểm cuối sẽ xuất hiện sau khi hoàn tất chấm bài.
-                            @endif
+                            {{ $scoreDisplay ? $scoreNote : 'Điểm cuối sẽ xuất hiện sau khi hoàn tất chấm bài.' }}
                         </div>
                     </div>
                     <ul class="ar-metrics" aria-label="Thống kê bài làm">
@@ -248,10 +266,12 @@
                     @if (count($skillStats))
                         <div class="ar-part-list">
                             @foreach ($skillStats as $skill)
+                                @php($hasSkillBand = $isIelts && is_numeric($skill['band']))
+                                @php($skillProgress = $hasSkillBand ? $skill['band_progress'] : $skill['percent'])
                                 <div class="ar-part-row">
                                     <span class="ar-part-name">{{ $skill['label'] }}</span>
-                                    <div class="ar-progress" role="img" aria-label="{{ $skill['percent'] }} phần trăm"><span style="width:{{ $skill['percent'] }}%"></span></div>
-                                    <span class="ar-part-score">{{ $skill['percent'] }}%</span>
+                                    <div class="ar-progress" role="img" aria-label="{{ $hasSkillBand ? $skill['label'].' band '.number_format((float) $skill['band'], 1).' trên 9.0' : $skill['percent'].' phần trăm' }}"><span style="width:{{ $skillProgress }}%"></span></div>
+                                    <span class="ar-part-score">{{ $hasSkillBand ? 'Band '.number_format((float) $skill['band'], 1) : $skill['percent'].'%' }}</span>
                                 </div>
                             @endforeach
                         </div>

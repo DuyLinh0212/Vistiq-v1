@@ -10,6 +10,8 @@ use VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank\MediaController;
 Route::get('/questions/import-template', [QuestionController::class, 'importTemplate'])->middleware('can:content.edit')->name('questions.import-template');
 Route::get('/questions/import-progress/{token}', [QuestionController::class, 'importProgress'])->middleware('can:content.edit')->name('questions.import-progress');
 Route::post('/questions/import/preview', [QuestionController::class, 'previewWorkbook'])->middleware('can:content.edit')->name('questions.import.preview');
+Route::post('/questions/import/audio', [QuestionController::class, 'stageWorkbookAudio'])->middleware('can:content.edit')->name('questions.import.audio');
+Route::post('/questions/import/discard-audio', [QuestionController::class, 'discardWorkbookAudio'])->middleware('can:content.edit')->name('questions.import.discard-audio');
 Route::post('/questions/import/confirm', [QuestionController::class, 'confirmWorkbook'])->middleware('can:content.edit')->name('questions.import.confirm');
 Route::get('/questions/export', [QuestionBankWorkflowController::class, 'export'])->middleware('can:content.view')->name('questions.export');
 Route::post('/questions/import', [QuestionController::class, 'import'])->middleware('can:content.edit')->name('questions.import');

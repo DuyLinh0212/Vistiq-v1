@@ -560,6 +560,11 @@ class AttemptService
         $attempt = $this->synchronize($attempt);
         abort_unless($attempt->submitted_at, 409, 'Bài chưa nộp.');
         $result = DB::table('attempt_results')->where('exam_attempt_id', $attempt->id)->first();
+        $storedDetails = json_decode($result?->details ?? '{}', true) ?: [];
+        if ($result && ($attempt->snapshot['exam_type'] ?? null) === 'ielts' && ($storedDetails['scoring_version'] ?? 0) < ScoringService::RESULT_VERSION) {
+            $this->scoring->calculate($attempt);
+            $result = DB::table('attempt_results')->where('exam_attempt_id', $attempt->id)->first();
+        }
         $policies = $attempt->snapshot['policies'];
         $review = [];
         if ($this->allowedReview($policies['answer_review'] ?? 'never', $attempt)) {

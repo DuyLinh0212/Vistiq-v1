@@ -78,11 +78,14 @@ class QuestionWorkbookImportTest extends TestCase
             ],
         ]);
 
-        $this->postJson(route('admin.questions.import.preview'), ['kind' => 'listening', 'file' => $workbook])
+        $response = $this->postJson(route('admin.questions.import.preview'), ['kind' => 'listening', 'file' => $workbook])
             ->assertOk()
             ->assertJsonPath('total_questions', 1)
-            ->assertJsonCount(1, 'sheets')
-            ->assertJsonPath('sheets.0.code', 'LISTENING_010');
+            ->assertJsonCount(1, 'sheets');
+
+        $code = $response->json('sheets.0.code');
+        $this->assertMatchesRegularExpression('/^LISTENING_\d{8}_\d{6}_01$/', $code);
+        $this->assertNotSame('LISTENING_010', $code);
     }
 
     public function test_preview_rejects_exam_skill_and_question_type_mismatches(): void
@@ -90,7 +93,7 @@ class QuestionWorkbookImportTest extends TestCase
         $workbook = $this->uploadWorkbook([
             'LISTENING_011' => [
                 ['exam_type', 'skill', 'exam_part', 'question_type', 'prompt', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_option', 'difficulty', 'explanation'],
-                ['ielts', 'listening', 'part-1', 'multiple_choice', 'Which door is open?', 'A', 'B', 'C', 'D', 'B', 'easy', 'Door B is open.'],
+                ['toeic', 'listening', 'listening', 'multiple_choice', 'Which door is open?', 'A', 'B', 'C', 'D', 'B', 'easy', 'Door B is open.'],
                 ['toeic', 'reading', 'part-1', 'sentence_completion', 'Which room is open?', 'A', 'B', 'C', 'D', 'A', 'medium', 'Room A is open.'],
             ],
         ]);
@@ -122,33 +125,37 @@ class QuestionWorkbookImportTest extends TestCase
         $preview = $this->postJson(route('admin.questions.import.preview'), ['kind' => 'listening', 'file' => $workbook])
             ->assertOk()
             ->assertJsonPath('total_questions', 2)
-            ->assertJsonPath('sheets.0.code', 'LISTENING_001')
             ->assertJsonPath('sheets.0.question_count', 1)
             ->assertJsonPath('sheets.0.errors.0.row', 3)
             ->assertJsonPath('sheets.1.question_count', 1)
             ->json();
+        $firstCode = $preview['sheets'][0]['code'];
+        $secondCode = $preview['sheets'][1]['code'];
+        $this->assertMatchesRegularExpression('/^LISTENING_\d{8}_\d{6}_01$/', $firstCode);
+        $this->assertMatchesRegularExpression('/^LISTENING_\d{8}_\d{6}_02$/', $secondCode);
+        $this->assertStringContainsString('Sheet LISTENING_001 → '.$firstCode, $preview['sheets'][0]['title']);
 
         $this->postJson(route('admin.questions.import.confirm'), ['token' => $preview['token']])
             ->assertUnprocessable()
-            ->assertJsonStructure(['sheets' => ['LISTENING_001', 'LISTENING_002']]);
+            ->assertJsonStructure(['sheets' => [$firstCode, $secondCode]]);
 
         $response = $this->postJson(route('admin.questions.import.confirm'), [
             'token' => $preview['token'],
             'audio' => [
-                'LISTENING_001' => UploadedFile::fake()->create('lesson-001.mp3', 20, 'audio/mpeg'),
-                'LISTENING_002' => UploadedFile::fake()->create('lesson-002.ogg', 20, 'audio/ogg'),
+                $firstCode => UploadedFile::fake()->create('lesson-001.mp3', 20, 'audio/mpeg'),
+                $secondCode => UploadedFile::fake()->create('lesson-002.ogg', 20, 'audio/ogg'),
             ],
             // TOEIC Part 1 requires an image for every valid question row.
             'images' => [
-                'LISTENING_001' => [2 => UploadedFile::fake()->createWithContent('question-001.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6oFEAAAAASUVORK5CYII='))],
-                'LISTENING_002' => [2 => UploadedFile::fake()->createWithContent('question-002.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6oFEAAAAASUVORK5CYII='))],
+                $firstCode => [2 => UploadedFile::fake()->createWithContent('question-001.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6oFEAAAAASUVORK5CYII='))],
+                $secondCode => [2 => UploadedFile::fake()->createWithContent('question-002.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC0lEQVR42mP8/x8AAusB9Wl6oFEAAAAASUVORK5CYII='))],
             ],
         ])->assertOk();
         $this->assertSame(2, $response->json('summary.imported'), json_encode($response->json(), JSON_UNESCAPED_UNICODE));
         $response->assertJsonPath('summary.failed', 1);
 
         $this->assertDatabaseCount('question_bank_items', 2);
-        foreach (['LISTENING_001' => 'B', 'LISTENING_002' => 'D'] as $code => $correctOption) {
+        foreach ([$firstCode => 'B', $secondCode => 'D'] as $code => $correctOption) {
             $group = DB::table('question_groups')->get()->first(fn ($row) => (json_decode($row->metadata, true)['lesson_code'] ?? null) === $code);
             $this->assertNotNull($group);
             $assetId = json_decode($group->metadata, true)['audio_id'] ?? null;
@@ -159,7 +166,7 @@ class QuestionWorkbookImportTest extends TestCase
             $this->assertSame($assetId, $payload['metadata']['audio_id']);
             $this->assertSame([$correctOption], $payload['correct_options']);
         }
-        $this->assertTrue(app(QuestionBankCatalog::class)->catalog()['entries']->contains(fn (array $entry) => $entry['code'] === 'LISTENING_001'));
+        $this->assertTrue(app(QuestionBankCatalog::class)->catalog()['entries']->contains(fn (array $entry) => $entry['code'] === $firstCode));
         $this->assertSame($response->json('redirect'), route('admin.questions.listening'));
     }
 
