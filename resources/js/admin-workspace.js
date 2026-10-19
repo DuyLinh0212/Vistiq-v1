@@ -1071,6 +1071,63 @@ document.querySelectorAll('input[form="question-bulk"][name="ids[]"]').forEach(c
     updateQuestionSelectionSummary();
 }));
 
+const readingReviewForm = document.querySelector('#reading-review-bulk');
+const readingReviewSelectAll = document.querySelector('[data-reading-review-select-all]');
+const readingReviewCheckboxes = [...document.querySelectorAll('[data-reading-review-checkbox]')];
+const readingReviewSummary = readingReviewForm?.querySelector('[data-reading-review-summary]');
+const readingReviewSubmit = readingReviewForm?.querySelector('[data-reading-review-submit]');
+const readingReviewCount = readingReviewForm?.querySelector('[data-reading-review-count]');
+if (readingReviewSelectAll) readingReviewSelectAll.disabled = readingReviewCheckboxes.length === 0;
+
+function updateReadingReviewSelection() {
+    if (!readingReviewForm) return;
+
+    const selected = readingReviewCheckboxes.filter(checkbox => checkbox.checked);
+    readingReviewForm.querySelectorAll('[data-reading-review-value]').forEach(input => input.remove());
+    selected.forEach(checkbox => {
+        const id = checkbox.value;
+        const idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'ids[]';
+        idInput.value = id;
+        idInput.dataset.readingReviewValue = '';
+        readingReviewForm.append(idInput);
+
+        const revisionInput = document.createElement('input');
+        revisionInput.type = 'hidden';
+        revisionInput.name = `revision_ids[${id}]`;
+        revisionInput.value = checkbox.dataset.revisionId;
+        revisionInput.dataset.readingReviewValue = '';
+        readingReviewForm.append(revisionInput);
+    });
+
+    if (readingReviewSelectAll) {
+        readingReviewSelectAll.checked = selected.length > 0 && selected.length === readingReviewCheckboxes.length;
+        readingReviewSelectAll.indeterminate = selected.length > 0 && selected.length < readingReviewCheckboxes.length;
+    }
+    if (readingReviewSummary) {
+        readingReviewSummary.textContent = selected.length
+            ? `Đã chọn ${selected.length} bài Reading trên trang này.`
+            : 'Chọn bài đọc nháp để gửi duyệt.';
+    }
+    if (readingReviewCount) readingReviewCount.textContent = selected.length ? `(${selected.length})` : '';
+    if (readingReviewSubmit) readingReviewSubmit.disabled = selected.length === 0;
+}
+
+readingReviewSelectAll?.addEventListener('change', event => {
+    readingReviewCheckboxes.forEach(checkbox => { checkbox.checked = event.currentTarget.checked; });
+    updateReadingReviewSelection();
+});
+readingReviewCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateReadingReviewSelection));
+readingReviewForm?.addEventListener('submit', event => {
+    if (!readingReviewCheckboxes.some(checkbox => checkbox.checked)) {
+        event.preventDefault();
+        return;
+    }
+
+    readingReviewForm.querySelectorAll('button[type="submit"]').forEach(button => { button.disabled = true; });
+});
+
 document.addEventListener('click', event => {
     const addButton = event.target.closest('[data-knowledge-add]');
     if (addButton) {

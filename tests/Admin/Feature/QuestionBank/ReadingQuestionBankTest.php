@@ -65,6 +65,42 @@ class ReadingQuestionBankTest extends TestCase
         $this->assertDatabaseHas('content_revisions', ['id' => $reading->draft_revision_id, 'status' => 'review']);
     }
 
+    public function test_reading_list_can_send_multiple_draft_passages_for_review_atomically(): void
+    {
+        $first = $this->reading('First passage');
+        $second = $this->reading('Second passage');
+        $this->get('/admin/readings')
+            ->assertOk()
+            ->assertSee('data-reading-review-select-all', false)
+            ->assertSee('data-reading-review-checkbox', false)
+            ->assertSee('Gửi duyệt bài đã chọn');
+
+        $this->post('/admin/readings/review-bulk', [
+            'ids' => [$first->id, $second->id],
+            'revision_ids' => [$first->id => $first->draft_revision_id, $second->id => $second->draft_revision_id],
+        ])->assertRedirect()->assertSessionHas('status', 'Đã gửi duyệt 2 bài Reading.');
+
+        $this->assertDatabaseHas('content_revisions', ['id' => $first->draft_revision_id, 'status' => 'review']);
+        $this->assertDatabaseHas('content_revisions', ['id' => $second->draft_revision_id, 'status' => 'review']);
+    }
+
+    public function test_reading_bulk_review_rejects_stale_selection_without_partial_transition(): void
+    {
+        $first = $this->reading('First passage');
+        $second = $this->reading('Second passage');
+        $firstRevisionId = $first->draft_revision_id;
+        $secondRevisionId = $second->draft_revision_id;
+        ContentRevision::findOrFail($secondRevisionId)->update(['status' => 'review']);
+
+        $this->post('/admin/readings/review-bulk', [
+            'ids' => [$first->id, $second->id],
+            'revision_ids' => [$first->id => $firstRevisionId, $second->id => $secondRevisionId],
+        ])->assertConflict();
+
+        $this->assertDatabaseHas('content_revisions', ['id' => $firstRevisionId, 'status' => 'draft']);
+        $this->assertDatabaseHas('content_revisions', ['id' => $secondRevisionId, 'status' => 'review']);
+    }
+
     public function test_five_linked_questions_produce_one_bank_row_and_full_preview(): void
     {
         $reading = $this->reading();

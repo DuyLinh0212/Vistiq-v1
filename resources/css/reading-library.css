@@ -31,27 +31,58 @@
 }
 
 .reading-admin-library .reading-admin-table {
-    min-width: 850px;
+    min-width: 880px;
 }
 
-.reading-admin-library .reading-admin-table th:nth-child(1) { width: 92px; }
-.reading-admin-library .reading-admin-table th:nth-child(2) { width: 210px; }
-.reading-admin-library .reading-admin-table th:nth-child(3) { width: 66px; }
-.reading-admin-library .reading-admin-table th:nth-child(4) { width: 125px; }
-.reading-admin-library .reading-admin-table th:nth-child(5) { width: 52px; }
-.reading-admin-library .reading-admin-table th:nth-child(6) { width: 86px; }
-.reading-admin-library .reading-admin-table th:nth-child(7) { width: 82px; }
-.reading-admin-library .reading-admin-table th:nth-child(8) { width: 66px; }
-.reading-admin-library .reading-admin-table td:nth-child(1),
-.reading-admin-library .reading-admin-table td:nth-child(3),
-.reading-admin-library .reading-admin-table td:nth-child(5),
+.reading-admin-library .reading-admin-table th:first-child,
+.reading-admin-library .reading-admin-table td:first-child { width: 30px; }
+.reading-admin-library .reading-admin-table .qb-checkbox { text-align: center; }
+.reading-admin-library .reading-admin-table .qb-checkbox input { margin: 0; vertical-align: middle; }
+.reading-admin-library .qb-row-actions form.question-approval-action .button-primary {
+    min-height: 27px;
+    padding: 0 9px;
+    color: #fff;
+    background: var(--listen-blue, #315dff);
+    box-shadow: 0 4px 11px rgba(49, 93, 255, .15);
+    font-size: 9px;
+}
+.reading-admin-library .qb-row-actions form.question-approval-action .button-primary:hover {
+    color: #fff;
+    background: #244fe8;
+}
+.reading-admin-library .reading-review-bulk {
+    min-height: 42px;
+    margin: 0 0 5px;
+    color: #536987;
+    background: #f3f7ff;
+}
+.reading-admin-library .reading-review-bulk .button { min-height: 30px; font-size: 10px; }
+.reading-admin-library .reading-review-bulk .button:disabled {
+    color: #71809b;
+    background: #e5ebf5;
+    box-shadow: none;
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+.reading-admin-library .reading-admin-table th:nth-child(2) { width: 92px; }
+.reading-admin-library .reading-admin-table th:nth-child(3) { width: 210px; }
+.reading-admin-library .reading-admin-table th:nth-child(4) { width: 66px; }
+.reading-admin-library .reading-admin-table th:nth-child(5) { width: 125px; }
+.reading-admin-library .reading-admin-table th:nth-child(6) { width: 52px; }
+.reading-admin-library .reading-admin-table th:nth-child(7) { width: 86px; }
+.reading-admin-library .reading-admin-table th:nth-child(8) { width: 82px; }
+.reading-admin-library .reading-admin-table th:nth-child(9) { width: 66px; }
+.reading-admin-library .reading-admin-table td:nth-child(2),
+.reading-admin-library .reading-admin-table td:nth-child(4),
 .reading-admin-library .reading-admin-table td:nth-child(6),
 .reading-admin-library .reading-admin-table td:nth-child(7),
-.reading-admin-library .reading-admin-table td:nth-child(8) { white-space: nowrap; }
-.reading-admin-library .reading-admin-table td:nth-child(2) a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.reading-admin-library .reading-admin-table td:nth-child(2) b { color: #2c3d60; font-size: 9px; font-weight: 650; }
-.reading-admin-library .reading-admin-table td:nth-child(2) small { display: block; margin-top: 2px; color: #8794a9; font-size: 8px; }
-.reading-admin-library .reading-admin-table td:nth-child(4) { overflow: hidden; text-overflow: ellipsis; }
+.reading-admin-library .reading-admin-table td:nth-child(8),
+.reading-admin-library .reading-admin-table td:nth-child(9) { white-space: nowrap; }
+.reading-admin-library .reading-admin-table td:nth-child(3) a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reading-admin-library .reading-admin-table td:nth-child(3) b { color: #2c3d60; font-size: 9px; font-weight: 650; }
+.reading-admin-library .reading-admin-table td:nth-child(3) small { display: block; margin-top: 2px; color: #8794a9; font-size: 8px; }
+.reading-admin-library .reading-admin-table td:nth-child(5) { overflow: hidden; text-overflow: ellipsis; }
 .reading-admin-library .reading-admin-table .listening-part-tag { display: inline-flex; }
 
 .reading-admin-detail .assessment-actions {

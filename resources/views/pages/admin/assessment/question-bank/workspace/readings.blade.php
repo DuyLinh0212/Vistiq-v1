@@ -59,9 +59,16 @@
 
             <div class="qb-list listening-list">
                 <div class="qb-list-heading"><span>{{ $readings->firstItem() ?? 0 }}–{{ $readings->lastItem() ?? 0 }} / {{ number_format($readings->total()) }} bài Reading</span><span>Sắp xếp: <b>Mới cập nhật</b></span></div>
+                @can('content.edit')
+                    <form id="reading-review-bulk" method="post" action="{{ route('admin.readings.review-bulk') }}" class="qb-bulk reading-review-bulk" data-pending-label="Đang gửi duyệt…">
+                        @csrf
+                        <span data-reading-review-summary aria-live="polite">Chọn bài đọc nháp để gửi duyệt.</span>
+                        <button class="button button-primary" type="submit" data-reading-review-submit disabled>Gửi duyệt bài đã chọn <span data-reading-review-count></span></button>
+                    </form>
+                @endcan
                 <div class="qb-table-scroll">
                     <table class="qb-table listening-table reading-admin-table">
-                        <thead><tr><th>Mã bài</th><th>Bài đọc</th><th>Kỳ thi</th><th>Phần thi</th><th>Số câu</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead>
+                        <thead><tr><th class="qb-checkbox"><span class="sr-only">Chọn</span>@can('content.edit')<input type="checkbox" data-reading-review-select-all aria-label="Chọn tất cả bài Reading nháp trên trang này">@endcan</th><th>Mã bài</th><th>Bài đọc</th><th>Kỳ thi</th><th>Phần thi</th><th>Số câu</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead>
                         <tbody>
                             @forelse($readings as $reading)
                                 @php
@@ -71,6 +78,7 @@
                                     $readingExamTypes = $reading['parts']->pluck('examType')->filter()->unique('id');
                                 @endphp
                                 <tr class="{{ $entry && $entry['id'] === $reading['id'] ? 'is-active' : '' }}">
+                                    <td class="qb-checkbox">@can('content.edit')@if($readingStatus === 'draft' && $reading['stimulus']?->draft_revision_id)<input type="checkbox" value="{{ $reading['id'] }}" data-revision-id="{{ $reading['stimulus']->draft_revision_id }}" data-reading-review-checkbox aria-label="Chọn bài đọc {{ $reading['code'] }} để gửi duyệt">@endif @endcan</td>
                                     <td><a class="reading-code" href="{{ $readingUrl }}">{{ $reading['code'] }}</a></td>
                                     <td><a href="{{ $readingUrl }}"><b>{{ $reading['title'] }}</b></a><small class="reading-excerpt">{{ \Illuminate\Support\Str::limit(strip_tags($reading['payload']['body'] ?? ''), 90) }}</small></td>
                                     <td>@foreach($readingExamTypes as $examType)<span class="listening-exam-tag {{ $examType->code === 'ielts' ? 'is-ielts' : '' }}">{{ strtoupper($examType->code) }}</span>@endforeach</td>
@@ -94,7 +102,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="8"><div class="qb-empty"><span class="listening-empty-icon">@include('pages.dictionary.icon', ['name'=>'book-open'])</span><h3>Chưa có bài Reading phù hợp</h3><p>Thử đổi bộ lọc hoặc import workbook để thêm bài đọc.</p></div></td></tr>
+                                <tr><td colspan="9"><div class="qb-empty"><span class="listening-empty-icon">@include('pages.dictionary.icon', ['name'=>'book-open'])</span><h3>Chưa có bài Reading phù hợp</h3><p>Thử đổi bộ lọc hoặc import workbook để thêm bài đọc.</p></div></td></tr>
                             @endforelse
                         </tbody>
                     </table>

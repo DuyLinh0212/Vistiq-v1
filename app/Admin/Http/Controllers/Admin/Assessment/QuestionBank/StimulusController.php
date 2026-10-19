@@ -10,6 +10,7 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqAdmin\Http\Requests\Admin\Assessment\QuestionBank\AudioBatchUploadRequest;
 use VistiqAdmin\Http\Requests\Admin\Assessment\QuestionBank\AudioBulkDeleteRequest;
+use VistiqAdmin\Http\Requests\Admin\Assessment\QuestionBank\ReadingReviewRequest;
 use VistiqAdmin\Http\Requests\Admin\Assessment\QuestionBank\StimulusStoreRequest;
 use VistiqCore\Models\ContentRevision;
 use VistiqCore\Models\ExamPart;
@@ -233,6 +234,47 @@ class StimulusController extends AdminPageController
     public function storeReading(StimulusStoreRequest $request): mixed
     {
         return $this->store($request, 'reading');
+    }
+
+    public function reviewReadings(ReadingReviewRequest $request, ContentRevisionService $revisions): mixed
+    {
+        $data = $request->validated();
+        $ids = array_map('intval', $data['ids']);
+        $revisionIds = $data['revision_ids'];
+
+        DB::transaction(function () use ($ids, $revisionIds, $revisions): void {
+            $readings = LearningStimulus::query()
+                ->where('stimulus_type', 'reading')
+                ->whereIn('id', $ids)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            abort_if($readings->count() !== count($ids), 409, 'Một hoặc nhiều bài Reading không còn tồn tại. Hãy tải lại danh sách.');
+
+            foreach ($ids as $id) {
+                $reading = $readings->get($id);
+                $revisionId = (int) ($revisionIds[$id] ?? 0);
+                $revision = $reading->draft_revision_id
+                    ? ContentRevision::query()
+                        ->where('kind', 'stimulus')
+                        ->where('entity_id', $reading->id)
+                        ->whereKey($reading->draft_revision_id)
+                        ->first()
+                    : null;
+
+                abort_if(! $revision || $revision->id !== $revisionId || $revision->status !== 'draft', 409, 'Một hoặc nhiều bài đã thay đổi hoặc không còn là bản nháp. Hãy tải lại danh sách rồi chọn lại.');
+            }
+
+            foreach ($ids as $id) {
+                $revisions->transition('stimulus', $readings->get($id), 'review');
+            }
+        });
+
+        $count = count($ids);
+
+        return back()->with('status', "Đã gửi duyệt {$count} bài Reading.");
     }
 
     public function storeAudio(StimulusStoreRequest $request): mixed

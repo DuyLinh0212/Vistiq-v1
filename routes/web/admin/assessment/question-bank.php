@@ -28,6 +28,7 @@ Route::delete('/questions/{question}/exam-links/{exam}', [QuestionEditorControll
 Route::resource('/questions', QuestionController::class)->except(['show', 'destroy'])->middleware('can:content.view');
 Route::get('/readings', [StimulusController::class, 'reading'])->middleware('can:content.view')->name('readings.index');
 Route::post('/readings', [StimulusController::class, 'storeReading'])->middleware('can:content.edit')->name('readings.store');
+Route::post('/readings/review-bulk', [StimulusController::class, 'reviewReadings'])->middleware(['can:content.edit', 'throttle:30,1'])->name('readings.review-bulk');
 Route::get('/audio', [StimulusController::class, 'audio'])->middleware('can:content.view')->name('audio.index');
 Route::post('/audio', [StimulusController::class, 'storeAudio'])->middleware('can:content.edit')->name('audio.store');
 Route::post('/audio/batch', [StimulusController::class, 'storeAudioBatch'])->middleware('can:content.edit')->name('audio.batch.store');
