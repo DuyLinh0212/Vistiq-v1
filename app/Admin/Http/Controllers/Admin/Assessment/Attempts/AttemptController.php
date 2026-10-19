@@ -14,7 +14,13 @@ class AttemptController extends AdminPageController
 {
     public function index(AttemptFilterRequest $request, AttemptQueryService $query): mixed
     {
-        return $this->page('Lượt làm bài', 'pages.admin.assessment.attempts.workspace.index', ['attempts' => $query->listing($request->validated()), 'filters' => $request->validated()]);
+        $filters = $request->validated();
+
+        return $this->page('Lượt làm bài', 'pages.admin.assessment.attempts.workspace.index', [
+            'attempts' => $query->adminListing($filters),
+            'summary' => $query->adminSummary($filters),
+            'filters' => $filters,
+        ]);
     }
 
     public function detail(ExamAttempt $attempt, AttemptQueryService $query): mixed

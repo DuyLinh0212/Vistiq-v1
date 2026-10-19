@@ -17,7 +17,8 @@
             <p>Quản lý bài nghe, nhóm audio và câu hỏi liên kết.</p>
         </div>
         <div class="qb-heading-actions">
-            <a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'listening-xlsx']) }}">@include('pages.dictionary.icon', ['name' => 'saved']) Tải mẫu .xlsx</a>
+            @can('content.edit')<a class="button button-quiet" href="{{ route('admin.questions.deleted') }}">Câu hỏi đã xóa</a>@endcan
+            <a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'listening-xlsx']) }}">@include('pages.dictionary.icon', ['name' => 'download']) Tải mẫu .xlsx</a>
             @can('content.edit')
                 @include('pages.admin.assessment.question-bank.workspace.question-workbook-import', ['workbookKind'=>'listening'])
                 @include('pages.admin.assessment.question-bank.workspace.send-all-review')
@@ -35,15 +36,18 @@
 
     <div class="listening-workspace {{ $entry ? 'has-detail' : '' }}">
         <section class="qb-directory" aria-label="Danh sách bài Listening">
-            <form method="get" action="{{ route('admin.questions.listening') }}" class="listening-filters">
+            <form method="get" action="{{ route('admin.questions.listening') }}" class="listening-filters" data-ajax-filter-form data-ajax-target="#listening-list-results" data-ajax-on-change data-ajax-debounce="350">
+                <input type="hidden" name="group" value="{{ $entry['id'] ?? '' }}">
+                <input type="hidden" name="question" value="{{ request('question', '') }}">
                 <label class="listening-search">Tìm bài<input type="search" name="q" value="{{ $search }}" placeholder="Mã bài hoặc tiêu đề" autocomplete="off"></label>
                 <label>Kỳ thi<select name="exam"><option value="">Tất cả</option>@foreach($examOptions as $option)<option value="{{ $option['code'] }}" @selected($examFilter === $option['code'])>{{ $option['name'] }}</option>@endforeach</select></label>
                 <label>Part / Section<select name="part"><option value="">Tất cả</option>@foreach($partOptions as $option)<option value="{{ $option['id'] }}" @selected($partFilter === $option['id'])>{{ $option['exam'] }} · {{ $option['name'] }}</option>@endforeach</select></label>
                 <label>Trạng thái<select name="status"><option value="">Tất cả</option>@foreach($statusLabels as $code=>$label)<option value="{{ $code }}" @selected($statusFilter === $code)>{{ $label }}</option>@endforeach</select></label>
                 <label>Có audio<select name="audio"><option value="">Tất cả</option><option value="yes" @selected($audioFilter === 'yes')>Có audio</option><option value="no" @selected($audioFilter === 'no')>Chưa có audio</option></select></label>
-                <div class="listening-filter-actions"><button class="button button-primary" type="submit">@include('pages.dictionary.icon', ['name' => 'search']) Tìm kiếm</button><a class="text-link" href="{{ route('admin.questions.listening') }}">Xóa bộ lọc</a></div>
+                <div class="listening-filter-actions"><button class="button button-primary" type="submit">@include('pages.dictionary.icon', ['name' => 'search']) Tìm kiếm</button><a class="text-link" data-ajax-filter-reset="#listening-list-results" href="{{ route('admin.questions.listening', array_filter(['group' => $entry['id'] ?? null, 'question' => request('question')])) }}">Xóa bộ lọc</a></div>
             </form>
 
+            <div id="listening-list-results" data-ajax-results>
             <div class="qb-list listening-list">
                 <div class="qb-list-heading"><span>{{ $lessons->firstItem() ?? 0 }}–{{ $lessons->lastItem() ?? 0 }} / {{ number_format($lessons->total()) }} bài Listening</span><span>Sắp xếp: <b>Mới cập nhật</b></span></div>
                 <div class="qb-table-scroll"><table class="qb-table listening-table"><thead><tr><th>Mã bài</th><th>Bài nghe</th><th>Kỳ thi</th><th>Phần thi</th><th>Nhóm audio</th><th>Số câu</th><th>Thời lượng</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead><tbody>
@@ -71,7 +75,8 @@
                         <tr><td colspan="10"><div class="qb-empty"><span class="listening-empty-icon">@include('pages.dictionary.icon', ['name' => 'listening'])</span><h3>Chưa có bài Listening phù hợp</h3><p>Thử đổi bộ lọc hoặc import workbook để thêm bài nghe.</p></div></td></tr>
                     @endforelse
                 </tbody></table></div>
-                <footer class="qb-pagination">{{ $lessons->onEachSide(1)->links() }}</footer>
+                <footer class="qb-pagination" data-ajax-pagination>{{ $lessons->onEachSide(1)->links() }}</footer>
+            </div>
             </div>
         </section>
 
@@ -144,7 +149,7 @@
                         <details><summary>Transcript @include('pages.dictionary.icon', ['name'=>'chevron-down'])</summary>@if(filled($transcript))<div class="qb-rich-text">{!! app(\VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry::class)->sanitize($transcript) !!}</div>@else<p>Chưa có transcript cho bài nghe này.</p>@endif</details>
                     </div>
                 </div>
-                @if($selectedQuestion)<footer class="listening-detail-actions">@can('content.edit')<a class="button button-quiet" href="{{ route('admin.questions.edit', $selectedQuestion) }}">@include('pages.dictionary.icon', ['name'=>'edit']) Chỉnh sửa</a>@endcan<a class="button button-primary" href="{{ route('admin.questions.edit', $selectedQuestion) }}">@include('pages.dictionary.icon', ['name'=>'eye']) Xem chi tiết</a></footer>@endif
+                @if($selectedQuestion)<footer class="listening-detail-actions">@can('content.edit')<a class="button button-quiet" href="{{ route('admin.questions.edit', $selectedQuestion) }}">@include('pages.dictionary.icon', ['name'=>'edit']) Chỉnh sửa</a>@include('pages.admin.assessment.question-bank.workspace.question-delete-action', ['question'=>$selectedQuestion])@endcan<a class="button button-primary" href="{{ route('admin.questions.edit', $selectedQuestion) }}">@include('pages.dictionary.icon', ['name'=>'eye']) Xem chi tiết</a></footer>@endif
             </aside>
         @endif
     </div>

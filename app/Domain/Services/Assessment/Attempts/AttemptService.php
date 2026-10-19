@@ -33,6 +33,7 @@ class AttemptService
             abort_unless($exam->status !== 'archived' && ($exam->draft_status === 'approved' || ($exam->status === 'published' && $exam->publishedRevision)), 404);
             $revision = $this->exams->approvedRevision($exam);
             $snapshot = $revision->payload;
+            $snapshot['policies'] = ExamPublishingService::normalizePolicies((string) ($snapshot['mode'] ?? ''), $snapshot['policies'] ?? []);
             $opens = isset($snapshot['opens_at']) ? Carbon::parse($snapshot['opens_at']) : null;
             $closes = isset($snapshot['closes_at']) ? Carbon::parse($snapshot['closes_at']) : null;
             abort_if($opens?->isFuture() || $closes?->lte(now()), 409, 'Đề chưa mở hoặc đã đóng.');
@@ -162,7 +163,7 @@ class AttemptService
                     ]);
                 }
                 $row = ['item_key' => $answer->item_key, 'version' => $answer->version];
-                if (($attempt->snapshot['policies']['answer_review'] ?? '') === 'after_each') {
+                if (($attempt->snapshot['mode'] ?? null) !== 'full' && ($attempt->snapshot['policies']['answer_review'] ?? '') === 'after_each') {
                     $row['review'] = $this->reviewItem($item, ($attempt->snapshot['policies']['explanation_review'] ?? '') === 'after_each');
                     $row['grade'] = $this->scoring->gradeObjective($item, $response);
                 }
@@ -300,7 +301,7 @@ class AttemptService
 
     private function expire(ExamAttempt $attempt, int $timestamp): void
     {
-        if ($attempt->snapshot['policies']['auto_submit'] ?? true) {
+        if (($attempt->snapshot['mode'] ?? null) === 'full' || ($attempt->snapshot['policies']['auto_submit'] ?? true)) {
             $this->finish($attempt, 'TIMEOUT', $timestamp);
         } else {
             if ($attempt->paused_at) {
@@ -334,7 +335,7 @@ class AttemptService
 
         return DB::transaction(function () use ($attempt, $resume): ExamAttempt {
             $attempt = ExamAttempt::lockForUpdate()->findOrFail($attempt->id);
-            abort_unless($attempt->snapshot['policies']['pause_allowed'] ?? false, 403, 'Đề không cho phép tạm dừng.');
+            abort_unless(($attempt->snapshot['mode'] ?? null) !== 'full' && ($attempt->snapshot['policies']['pause_allowed'] ?? false), 403, 'Đề không cho phép tạm dừng.');
             abort_if($attempt->submitted_at || $attempt->status === 'expired', 409);
             if ($resume && $attempt->paused_at) {
                 $seconds = max(0, now()->timestamp - $attempt->paused_at->timestamp);
@@ -389,11 +390,25 @@ class AttemptService
             }
             $warnings = DB::table('attempt_events')->join(DB::source('attempt_event_types'), 'attempt_event_types.id', '=', 'attempt_events.attempt_event_type_id')->where('exam_attempt_id', $attempt->id)->whereIn('code', ['FULLSCREEN_EXIT', 'TAB_HIDDEN', 'WINDOW_BLUR', 'COPY_ATTEMPT', 'PASTE_ATTEMPT', 'CONTEXT_MENU'])->count();
             $threshold = $attempt->snapshot['policies']['auto_submit_threshold'] ?? 0;
-            if ($threshold > 0 && $warnings >= $threshold) {
+            $policies = $attempt->snapshot['policies'] ?? [];
+            $fullscreenViolation = $data['type'] === 'FULLSCREEN_EXIT' && ($policies['require_fullscreen'] ?? false);
+            $focusViolation = in_array($data['type'], ['TAB_HIDDEN', 'WINDOW_BLUR'], true)
+                && ($policies['require_fullscreen'] ?? false)
+                && ($policies['track_focus'] ?? false);
+            if ($fullscreenViolation || $focusViolation) {
+                $this->finish($attempt, 'AUTO_SUBMIT');
+            } elseif ($threshold > 0 && $warnings >= $threshold) {
                 $this->finish($attempt, 'AUTO_SUBMIT');
             }
 
-            return ['warnings' => $warnings, 'submitted' => (bool) $attempt->submitted_at, 'message' => 'Tín hiệu được ghi để Reviewer xem xét.'];
+            return [
+                'warnings' => $warnings,
+                'submitted' => (bool) $attempt->submitted_at,
+                'message' => $fullscreenViolation
+                    ? 'Đã thoát toàn màn hình. Bài thi được nộp tự động.'
+                    : ($focusViolation ? 'Đã rời khỏi bài thi. Bài thi được nộp tự động.'
+                    : 'Tín hiệu được ghi để Reviewer xem xét.'),
+            ];
         });
     }
 
@@ -409,6 +424,9 @@ class AttemptService
     public function publicSnapshot(array $snapshot, ?ExamAttempt $attempt = null): array
     {
         unset($snapshot['scoring']);
+        if (($snapshot['mode'] ?? null) === 'full') {
+            $snapshot['policies'] = ExamPublishingService::normalizePolicies('full', $snapshot['policies'] ?? []);
+        }
         $snapshot['items'] = array_map(fn (array $item): array => $this->registry->publicItem($item), $snapshot['items']);
         foreach ($snapshot['items'] as &$item) {
             foreach (['image_id', 'audio_id'] as $field) {
@@ -457,16 +475,17 @@ class AttemptService
     {
         $related = false;
         $audio = false;
+        $assetId = (int) $asset->getKey();
         foreach ($attempt->snapshot['items'] as $item) {
-            if (($item['metadata']['image_id'] ?? null) === $asset->id) {
+            if ((int) ($item['metadata']['image_id'] ?? 0) === $assetId) {
                 $related = true;
             }
-            if (($item['metadata']['audio_id'] ?? null) === $asset->id) {
+            if ((int) ($item['metadata']['audio_id'] ?? 0) === $assetId) {
                 $related = true;
                 $audio = true;
             }
             foreach ($item['stimuli'] ?? [] as $stimulus) {
-                if (($stimulus['metadata']['asset_id'] ?? null) === $asset->id) {
+                if ((int) ($stimulus['metadata']['asset_id'] ?? 0) === $assetId) {
                     $related = true;
                     $audio = $audio || $stimulus['stimulus_type'] === 'audio';
                 }

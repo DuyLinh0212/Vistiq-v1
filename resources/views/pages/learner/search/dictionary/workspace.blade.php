@@ -10,7 +10,7 @@
             @endforeach
         </nav>
         @if ($results->hasPages())
-            <nav class="dictionary-rail-pagination" aria-label="Trang kết quả">
+            <nav class="dictionary-rail-pagination" aria-label="Trang kết quả" data-ajax-pagination>
                 @if ($results->previousPageUrl())<a href="{{ $results->previousPageUrl() }}" aria-label="Trang trước">@include('pages.dictionary.icon', ['name' => 'arrow-left'])</a>@endif
                 <span>{{ $results->currentPage() }} / {{ $results->lastPage() }}</span>
                 @if ($results->nextPageUrl())<a href="{{ $results->nextPageUrl() }}" aria-label="Trang tiếp theo">@include('pages.dictionary.icon', ['name' => 'arrow-right'])</a>@endif

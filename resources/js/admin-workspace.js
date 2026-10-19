@@ -234,7 +234,7 @@ const questionBulkForm = document.querySelector('#question-bulk');
 const questionBulkEndpoint = questionBulkForm?.getAttribute('action');
 const questionApprovalForm = document.querySelector('#question-approval-bulk');
 const questionReviewRevisionsElement = questionBulkForm?.querySelector('[data-question-review-revisions]');
-const questionReviewRevisions = questionReviewRevisionsElement ? JSON.parse(questionReviewRevisionsElement.textContent) : {};
+let questionReviewRevisions = questionReviewRevisionsElement ? JSON.parse(questionReviewRevisionsElement.textContent) : {};
 questionBulkForm?.querySelector('[data-approve-selected-questions]')?.addEventListener('click', async event => {
     const selectedIds = selectingAllMatchingQuestions
         ? [...questionBulkForm.querySelectorAll('input[name="matching_ids[]"]')].map(input => input.value)
@@ -278,7 +278,9 @@ questionBulkForm?.querySelector('[data-approve-selected-questions]')?.addEventLi
     questionApprovalForm.requestSubmit();
 });
 
-document.querySelectorAll('[data-thpt-review-single]').forEach(form => form.addEventListener('submit', event => {
+document.addEventListener('submit', event => {
+    const form = event.target.closest('form[data-thpt-review-single]');
+    if (!form) return;
     if (form.dataset.submitting === 'true') {
         event.preventDefault();
         return;
@@ -290,7 +292,7 @@ document.querySelectorAll('[data-thpt-review-single]').forEach(form => form.addE
         button.disabled = true;
         button.textContent = form.dataset.pendingLabel || 'Đang gửi duyệt…';
     }
-}));
+});
 
 questionBulkForm?.querySelector('[data-delete-selected-questions]')?.addEventListener('click', () => {
     if (!document.querySelector('input[form="question-bulk"][name="ids[]"]:checked') && !questionBulkForm.querySelector('input[name="matching_ids[]"]')) {
@@ -329,9 +331,9 @@ questionBulkForm?.addEventListener('submit', async event => {
     }
 
     questionBulkForm.dataset.confirmPending = 'true';
-    const confirmed = await requestAdminConfirmation('Xóa các câu đã chọn chưa được dùng trong đề? Câu đã xuất bản hoặc đang được dùng sẽ được giữ lại.', {
+    const confirmed = await requestAdminConfirmation(`Xử lý ${questionIds.length} câu đã chọn theo trạng thái đề. Câu trong đề nháp sẽ được gỡ khỏi đề rồi xóa mềm. Câu trong đề đã phát hành sẽ được ngừng sử dụng nhưng vẫn giữ trong đề. Lịch sử làm bài được giữ nguyên.`, {
         title: 'Xác nhận xóa câu hỏi',
-        confirmLabel: 'Xóa câu hỏi',
+        confirmLabel: `Xóa / ngừng dùng ${questionIds.length} câu`,
     });
     delete questionBulkForm.dataset.confirmPending;
 
@@ -380,7 +382,7 @@ questionBulkForm?.addEventListener('submit', async event => {
             progressCount.textContent = `${percent}%`;
         }
         if (progressLabel) {
-            progressLabel.textContent = `Đã xử lý ${result.processed}/${result.total} câu · xóa ${result.deleted}, bỏ qua ${result.skipped}`;
+            progressLabel.textContent = `Đã xử lý ${result.processed}/${result.total} câu · xóa mềm ${result.deleted}, ngừng dùng ${result.disabled ?? 0}, bỏ qua ${result.skipped}`;
         }
 
         if (result.completed) {
@@ -409,10 +411,12 @@ let questionSearchTimer;
 document.querySelectorAll('[data-question-search]').forEach(form => {
     const search = form.querySelector('[name="q"]');
 
-    search.addEventListener('input', () => {
-        window.clearTimeout(questionSearchTimer);
-        questionSearchTimer = window.setTimeout(() => form.requestSubmit(), 450);
-    });
+    if (!form.matches('[data-ajax-filter-form]')) {
+        search.addEventListener('input', () => {
+            window.clearTimeout(questionSearchTimer);
+            questionSearchTimer = window.setTimeout(() => form.requestSubmit(), 450);
+        });
+    }
 
     form.addEventListener('submit', () => window.clearTimeout(questionSearchTimer));
 });
@@ -451,6 +455,7 @@ document.querySelectorAll('[data-question-filters]').forEach(form => {
         }
 
         window.clearTimeout(questionSearchTimer);
+        if (form.matches('[data-ajax-filter-form]')) form.dataset.ajaxHistoryMode = 'replace';
         form.requestSubmit();
     }));
     updateParts();
@@ -1024,12 +1029,11 @@ if (questionImport) {
     });
 }
 
-const selectAllQuestions = document.querySelector('[data-select-all]');
 const matchingIdsScript = questionBulkForm?.querySelector('[data-question-matching-ids]');
-const matchingQuestionIds = matchingIdsScript ? JSON.parse(matchingIdsScript.textContent) : [];
+let matchingQuestionIds = matchingIdsScript ? JSON.parse(matchingIdsScript.textContent) : [];
 const questionSelectionSummary = questionBulkForm?.querySelector('[data-question-selection-summary]');
 const thptDraftIdsScript = questionBulkForm?.querySelector('[data-question-draft-ids]');
-const thptDraftIds = new Set(thptDraftIdsScript ? JSON.parse(thptDraftIdsScript.textContent).map(String) : []);
+let thptDraftIds = new Set(thptDraftIdsScript ? JSON.parse(thptDraftIdsScript.textContent).map(String) : []);
 const thptReviewForm = document.querySelector('#thpt-review-bulk');
 const thptReviewButton = questionBulkForm?.querySelector('[data-submit-selected-thpt-review]');
 let selectingAllMatchingQuestions = false;
@@ -1043,6 +1047,7 @@ function getSelectedQuestionIds() {
 }
 
 function updateQuestionSelectionSummary() {
+    const selectAllQuestions = document.querySelector('[data-select-all]');
     if (!questionBulkForm || !selectAllQuestions || !questionSelectionSummary) {
         return;
     }
@@ -1086,8 +1091,15 @@ function setMatchingQuestionSelection(isSelected) {
     updateQuestionSelectionSummary();
 }
 
-selectAllQuestions?.addEventListener('change', event => setMatchingQuestionSelection(event.currentTarget.checked));
-document.querySelectorAll('input[form="question-bulk"][name="ids[]"]').forEach(checkbox => checkbox.addEventListener('change', () => {
+document.addEventListener('change', event => {
+    const control = event.target;
+    if (control.matches('[data-select-all]')) {
+        setMatchingQuestionSelection(control.checked);
+        return;
+    }
+
+    const checkbox = control.closest('input[form="question-bulk"][name="ids[]"]');
+    if (!checkbox) return;
     if (selectingAllMatchingQuestions && questionBulkForm) {
         const existingInput = [...questionBulkForm.querySelectorAll('input[name="matching_ids[]"]')].find(input => input.value === checkbox.value);
         if (checkbox.checked && !existingInput) {
@@ -1102,7 +1114,53 @@ document.querySelectorAll('input[form="question-bulk"][name="ids[]"]').forEach(c
     }
 
     updateQuestionSelectionSummary();
-}));
+});
+
+document.addEventListener('vistiq:ajax-results-updated', event => {
+    if (event.detail?.selector !== '#qb-results' || !questionBulkForm) return;
+    const results = event.detail.target;
+    const updateJson = (target, selector, value) => {
+        const element = target?.querySelector(selector);
+        if (element) element.textContent = JSON.stringify(value);
+    };
+    const matchingIdsElement = results.querySelector('[data-ajax-qb-matching-ids]');
+    const revisionsElement = results.querySelector('[data-ajax-qb-review-revisions]');
+    const draftIdsElement = results.querySelector('[data-ajax-qb-draft-ids]');
+
+    matchingQuestionIds = matchingIdsElement ? JSON.parse(matchingIdsElement.textContent) : [];
+    questionReviewRevisions = revisionsElement ? JSON.parse(revisionsElement.textContent) : {};
+    thptDraftIds = new Set(draftIdsElement ? JSON.parse(draftIdsElement.textContent).map(String) : []);
+    updateJson(questionBulkForm, '[data-question-matching-ids]', matchingQuestionIds);
+    updateJson(questionBulkForm, '[data-question-review-revisions]', questionReviewRevisions);
+    updateJson(questionBulkForm, '[data-question-draft-ids]', [...thptDraftIds]);
+
+    questionBulkForm.querySelectorAll('input[form="question-bulk"][name="ids[]"]').forEach(input => input.remove());
+    const pageIds = new Set();
+    results.querySelectorAll('[data-qb-select-entry]').forEach(control => {
+        try {
+            JSON.parse(control.dataset.questionIds).forEach(id => pageIds.add(String(id)));
+        } catch {
+            // Ignore malformed row metadata and leave that row unavailable for bulk actions.
+        }
+    });
+    pageIds.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.name = 'ids[]';
+        input.value = id;
+        input.hidden = true;
+        input.setAttribute('form', 'question-bulk');
+        input.setAttribute('aria-label', `Chọn câu ${id}`);
+        questionBulkForm.append(input);
+    });
+
+    questionBulkForm.querySelectorAll('input[name="matching_ids[]"]').forEach(input => input.remove());
+    selectingAllMatchingQuestions = false;
+    const count = results.querySelector('[data-ajax-qb-result-count]');
+    const countTarget = document.querySelector('[data-qb-visible-count]');
+    if (count && countTarget) countTarget.textContent = count.textContent.trim();
+    updateQuestionSelectionSummary();
+});
 
 thptReviewButton?.addEventListener('click', () => {
     if (!thptReviewForm || thptReviewForm.dataset.submitting === 'true') return;
@@ -1140,17 +1198,17 @@ thptReviewForm?.addEventListener('submit', event => {
     }
 });
 
-const readingReviewForm = document.querySelector('#reading-review-bulk');
-const readingReviewSelectAll = document.querySelector('[data-reading-review-select-all]');
-const readingReviewCheckboxes = [...document.querySelectorAll('[data-reading-review-checkbox]')];
-const readingReviewSummary = readingReviewForm?.querySelector('[data-reading-review-summary]');
-const readingReviewSubmit = readingReviewForm?.querySelector('[data-reading-review-submit]');
-const readingReviewCount = readingReviewForm?.querySelector('[data-reading-review-count]');
-if (readingReviewSelectAll) readingReviewSelectAll.disabled = readingReviewCheckboxes.length === 0;
-
 function updateReadingReviewSelection() {
+    const readingReviewForm = document.querySelector('#reading-review-bulk');
     if (!readingReviewForm) return;
 
+    const readingReviewRoot = document.querySelector('[data-reading-library]');
+    const readingReviewSelectAll = readingReviewRoot?.querySelector('[data-reading-review-select-all]');
+    const readingReviewCheckboxes = [...(readingReviewRoot?.querySelectorAll('[data-reading-review-checkbox]') ?? [])];
+    const readingReviewSummary = readingReviewForm.querySelector('[data-reading-review-summary]');
+    const readingReviewSubmit = readingReviewForm.querySelector('[data-reading-review-submit]');
+    const readingReviewCount = readingReviewForm.querySelector('[data-reading-review-count]');
+    if (readingReviewSelectAll) readingReviewSelectAll.disabled = readingReviewCheckboxes.length === 0;
     const selected = readingReviewCheckboxes.filter(checkbox => checkbox.checked);
     readingReviewForm.querySelectorAll('[data-reading-review-value]').forEach(input => input.remove());
     selected.forEach(checkbox => {
@@ -1183,12 +1241,19 @@ function updateReadingReviewSelection() {
     if (readingReviewSubmit) readingReviewSubmit.disabled = selected.length === 0;
 }
 
-readingReviewSelectAll?.addEventListener('change', event => {
-    readingReviewCheckboxes.forEach(checkbox => { checkbox.checked = event.currentTarget.checked; });
-    updateReadingReviewSelection();
+document.addEventListener('change', event => {
+    const selectAll = event.target.closest('[data-reading-review-select-all]');
+    if (selectAll) {
+        document.querySelector('[data-reading-library]')?.querySelectorAll('[data-reading-review-checkbox]').forEach(checkbox => { checkbox.checked = selectAll.checked; });
+        updateReadingReviewSelection();
+    } else if (event.target.closest('[data-reading-review-checkbox]')) {
+        updateReadingReviewSelection();
+    }
 });
-readingReviewCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateReadingReviewSelection));
-readingReviewForm?.addEventListener('submit', event => {
+document.addEventListener('submit', event => {
+    const readingReviewForm = event.target.closest('#reading-review-bulk');
+    if (!readingReviewForm) return;
+    const readingReviewCheckboxes = [...(document.querySelector('[data-reading-library]')?.querySelectorAll('[data-reading-review-checkbox]') ?? [])];
     if (!readingReviewCheckboxes.some(checkbox => checkbox.checked)) {
         event.preventDefault();
         return;
@@ -1196,6 +1261,10 @@ readingReviewForm?.addEventListener('submit', event => {
 
     readingReviewForm.querySelectorAll('button[type="submit"]').forEach(button => { button.disabled = true; });
 });
+document.addEventListener('vistiq:ajax-results-updated', event => {
+    if (event.detail.targets?.some(target => target.id === 'reading-list-results')) updateReadingReviewSelection();
+});
+updateReadingReviewSelection();
 
 document.addEventListener('click', event => {
     const addButton = event.target.closest('[data-knowledge-add]');

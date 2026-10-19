@@ -1,22 +1,78 @@
 import './confirmation-dialog.js';
 import './ui-feedback.js';
 import './exam-runner.js';
+import './exam-start.js';
 import './personal-library.js';
-import { initializeDictionarySearch } from './dictionary-search.js';
+import { initializeDictionarySearch, syncDictionarySearchFilters } from './dictionary-search.js';
+import { initializeAjaxFilters } from './ajax-filters.js';
 
 initializeDictionarySearch();
+initializeAjaxFilters();
+
+const mobileNavigationButton = document.querySelector('.user-topbar .mobile-menu');
+const mobileNavigation = document.getElementById('user-main-navigation');
+
+if (mobileNavigationButton && mobileNavigation) {
+    const closeMobileNavigation = () => {
+        mobileNavigation.classList.remove('is-open');
+        mobileNavigationButton.setAttribute('aria-expanded', 'false');
+        mobileNavigationButton.setAttribute('aria-label', 'Mở điều hướng');
+    };
+
+    mobileNavigationButton.addEventListener('click', () => {
+        const isOpen = mobileNavigationButton.getAttribute('aria-expanded') === 'true';
+
+        mobileNavigation.classList.toggle('is-open', !isOpen);
+        mobileNavigationButton.setAttribute('aria-expanded', String(!isOpen));
+        mobileNavigationButton.setAttribute('aria-label', isOpen ? 'Mở điều hướng' : 'Đóng điều hướng');
+    });
+
+    mobileNavigation.addEventListener('click', event => {
+        if (event.target instanceof Element && event.target.closest('a')) closeMobileNavigation();
+    });
+
+    document.addEventListener('click', event => {
+        if (event.target instanceof Node && !mobileNavigationButton.closest('.user-topbar')?.contains(event.target)) {
+            closeMobileNavigation();
+        }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && mobileNavigationButton.getAttribute('aria-expanded') === 'true') {
+            closeMobileNavigation();
+            mobileNavigationButton.focus();
+        }
+    });
+}
+
+document.addEventListener('vistiq:ajax-results-updated', event => {
+    event.detail.targets?.forEach(target => initializeDictionarySearch(target));
+    if (event.detail.targets?.some(target => target.id === 'dictionary-search-results')) {
+        syncDictionarySearchFilters(event.detail.url);
+    }
+});
 
 const examCatalog = document.querySelector('[data-exam-catalog]');
 
 if (examCatalog) {
     const filterForm = examCatalog.querySelector('[data-exam-filter-form]');
     const examTypeFilter = filterForm.querySelector('[data-exam-type-filter]');
+    const syncExamTabs = () => examCatalog.querySelectorAll('[data-exam-tab]').forEach(tab => {
+        const active = tab.dataset.examTab === examTypeFilter.value;
+        tab.classList.toggle('is-active', active);
+        tab.setAttribute('aria-pressed', String(active));
+    });
 
     examCatalog.querySelectorAll('[data-exam-tab]').forEach(tab => {
         tab.addEventListener('click', () => {
             examTypeFilter.value = tab.dataset.examTab;
+            syncExamTabs();
             filterForm.requestSubmit();
         });
+    });
+
+    document.addEventListener('vistiq:ajax-results-updated', event => {
+        if (event.detail.targets?.some(target => target.id === 'exam-catalog-results')) syncExamTabs();
     });
 
     filterForm.querySelectorAll('[data-submit-on-change]').forEach(select => {
@@ -44,8 +100,8 @@ document.addEventListener('click', (event) => {
 
         if (saveButton.classList.contains('save-button')) {
             saveButton.innerHTML = saveButton.classList.contains('is-saved')
-                ? '<svg class="dictionary-icon app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"></path></svg> <span>Đã lưu vào kho kiến thức</span>'
-                : '<svg class="dictionary-icon app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"></path></svg> <span>Lưu vào kho kiến thức</span>';
+                ? '<svg class="dictionary-icon app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg> <span>Đã lưu vào kho kiến thức</span>'
+                : '<svg class="dictionary-icon app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg> <span>Lưu vào kho kiến thức</span>';
         }
     }
 

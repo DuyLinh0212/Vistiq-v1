@@ -1,5 +1,7 @@
 export function initializeDictionarySearch(root = document, request = fetch) {
     root.querySelectorAll('[data-dictionary-search]').forEach((form) => {
+        if (form.dataset.dictionaryInitialized === 'true') return;
+        form.dataset.dictionaryInitialized = 'true';
         const input = form.querySelector('[data-dictionary-input]');
         const list = form.querySelector('[data-dictionary-suggestions]');
         const status = form.querySelector('[data-dictionary-status]');
@@ -101,6 +103,7 @@ export function initializeDictionarySearch(root = document, request = fetch) {
                 input.value = '';
                 close();
                 input.focus();
+                if (form.matches('[data-ajax-filter-form]')) form.requestSubmit();
             });
         }
         filter.addEventListener('change', suggest);
@@ -130,6 +133,7 @@ export function initializeDictionarySearch(root = document, request = fetch) {
         });
         form.addEventListener('submit', () => {
             close();
+            if (form.matches('[data-ajax-filter-form]')) return;
             form.querySelector('button[type="submit"]').textContent = 'Đang tra cứu…';
             form.setAttribute('aria-busy', 'true');
         });
@@ -141,6 +145,8 @@ export function initializeDictionarySearch(root = document, request = fetch) {
 
     if ('speechSynthesis' in window && 'SpeechSynthesisUtterance' in window) {
         root.querySelectorAll('[data-pronounce]').forEach((button) => {
+            if (button.dataset.pronounceInitialized === 'true') return;
+            button.dataset.pronounceInitialized = 'true';
             button.hidden = false;
             button.addEventListener('click', () => {
                 const status = button.parentElement.querySelector('[data-pronunciation-status]');
@@ -155,4 +161,28 @@ export function initializeDictionarySearch(root = document, request = fetch) {
             });
         });
     }
+}
+
+export function syncDictionarySearchFilters(url, root = document) {
+    const params = url instanceof URL ? url.searchParams : new URL(url, window.location.href).searchParams;
+    const selectedType = params.get('type') || 'all';
+    const selectedTab = params.get('tab') || '';
+
+    root.querySelectorAll('[data-dictionary-search]').forEach(form => {
+        const filter = form.querySelector('select[name="type"]');
+        if (filter) filter.value = selectedType;
+
+        form.querySelectorAll('.dictionary-types button[name="type"]').forEach(button => {
+            const active = selectedTab !== 'examples' && button.value === selectedType;
+            button.classList.toggle('is-active', active);
+            if (active) button.setAttribute('aria-current', 'true');
+            else button.removeAttribute('aria-current');
+        });
+        form.querySelectorAll('.dictionary-types button[name="tab"]').forEach(button => {
+            const active = button.value === selectedTab;
+            button.classList.toggle('is-active', active);
+            if (active) button.setAttribute('aria-current', 'true');
+            else button.removeAttribute('aria-current');
+        });
+    });
 }

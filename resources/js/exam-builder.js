@@ -38,20 +38,26 @@ const partLabel = part => {
 const list = document.querySelector('[data-exam-list]');
 if (list) {
     const filters = list.querySelector('[data-exam-filters]');
+    const syncFilterButtons = () => filters.querySelectorAll('[data-exam-filter]').forEach(button => {
+        const input = filters.elements.namedItem(button.dataset.examFilter);
+        const active = input?.value === button.dataset.filterValue;
+        button.classList.toggle('is-active', active && button.dataset.examFilter === 'type');
+        button.setAttribute('aria-pressed', String(active));
+    });
+    syncFilterButtons();
     filters.addEventListener('change', event => { if (event.target.matches('[data-filter-auto]')) filters.requestSubmit(); });
     filters.addEventListener('click', event => {
         const button = event.target.closest('[data-exam-filter]');
         if (!button) return;
         const input = filters.elements.namedItem(button.dataset.examFilter);
         input.value = button.getAttribute('aria-pressed') === 'true' ? '' : button.dataset.filterValue;
+        syncFilterButtons();
         filters.requestSubmit();
     });
-    list.querySelector('[data-exam-page-size]')?.addEventListener('change', event => {
-        filters.elements.namedItem('per_page').value = event.target.value;
-        filters.requestSubmit();
-    });
-    const panel = list.querySelector('[data-exam-detail-panel]');
+    const detailPanel = () => list.querySelector('[data-exam-detail-panel]');
     const openDetail = id => {
+        const panel = detailPanel();
+        if (!panel) return;
         panel.hidden = false;
         list.classList.remove('is-detail-closed');
         list.querySelectorAll('[data-exam-row]').forEach(row => row.classList.toggle('is-active', row.dataset.examRow === id));
@@ -63,18 +69,40 @@ if (list) {
         if (button) openDetail(button.dataset.examDetail);
         const row = event.target.closest('[data-exam-row]');
         if (row && !event.target.closest('a,button,input')) openDetail(row.dataset.examRow);
-        if (event.target.closest('[data-exam-close-detail]')) { panel.hidden = true; list.classList.add('is-detail-closed'); }
+        if (event.target.closest('[data-exam-close-detail]')) { const panel = detailPanel(); if (panel) panel.hidden = true; list.classList.add('is-detail-closed'); }
     });
-    const selected = [...list.querySelectorAll('[data-exam-select]')];
-    const all = list.querySelector('[data-exam-select-all]');
     const syncSelection = () => {
+        const selected = [...list.querySelectorAll('[data-exam-select]')];
+        const all = list.querySelector('[data-exam-select-all]');
         const count = selected.filter(input => input.checked).length;
-        all.checked = count > 0 && count === selected.length;
-        all.indeterminate = count > 0 && count < selected.length;
-        list.querySelector('[data-exam-selection-count]').textContent = count ? `· Đã chọn ${count}` : '';
+        if (all) {
+            all.checked = count > 0 && count === selected.length;
+            all.indeterminate = count > 0 && count < selected.length;
+        }
+        const summary = list.querySelector('[data-exam-selection-count]');
+        if (summary) summary.textContent = count ? `· Đã chọn ${count}` : '';
     };
-    all?.addEventListener('change', () => { selected.forEach(input => { input.checked = all.checked; }); syncSelection(); });
-    selected.forEach(input => input.addEventListener('change', syncSelection));
+    list.addEventListener('change', event => {
+        const all = event.target.closest('[data-exam-select-all]');
+        if (all) {
+            list.querySelectorAll('[data-exam-select]').forEach(input => { input.checked = all.checked; });
+            syncSelection();
+            return;
+        }
+        if (event.target.closest('[data-exam-select]')) syncSelection();
+        const pageSize = event.target.closest('[data-exam-page-size]');
+        if (pageSize) {
+            filters.elements.namedItem('per_page').value = pageSize.value;
+            filters.dataset.ajaxHistoryMode = 'replace';
+            filters.requestSubmit();
+        }
+    });
+    document.addEventListener('vistiq:ajax-results-updated', event => {
+        if (!event.detail?.selector?.includes('#admin-exam-results')) return;
+        syncFilterButtons();
+        syncSelection();
+        event.detail.targets?.forEach(refreshIcons);
+    });
 }
 
 const builder = document.querySelector('[data-exam-builder]');
@@ -125,6 +153,15 @@ if (builder) {
         if (Object.hasOwn(changes, 'duration_minutes')) duration.value = next.duration_minutes;
         fields('[data-policy-toggle]').forEach(input => { input.checked = Boolean(next[input.dataset.policyToggle]); });
         fields('[data-policy-select]').forEach(select => { select.value = next[select.dataset.policySelect] ?? select.value; });
+    };
+    const enforceFullSimulationPolicies = () => {
+        const required = mode.value === 'full';
+        if (required) {
+            writePolicies({ pause_allowed: false, auto_submit: true, answer_review: 'after_submit', explanation_review: 'after_submit' });
+        }
+        fields('[data-policy-toggle="pause_allowed"], [data-policy-select="answer_review"], [data-policy-select="explanation_review"]').forEach(control => { control.disabled = required; });
+        const note = field('[data-full-simulation-policy-note]');
+        if (note) note.hidden = !required;
     };
     const questionSection = q => sections.find(section => Number(section.exam_part_id) === Number(q.part));
     const allRows = () => sections.flatMap((section, index) => section.question_ids.map((id, order) => ({ question: questionById.get(Number(id)), id: Number(id), index, order }))).filter(row => row.question);
@@ -569,7 +606,7 @@ if (builder) {
         const parts = currentPresetSections();
         field('[data-final-structure]').innerHTML = parts.map(({ section, rule, part }, index) => `<div class="ex-final-part"><span class="ex-part-number" style="--part-color:${colors[index % colors.length]}">${encode(partName(part))}</span><span>${encode(part?.name || '')}</span><b>${selectedUnits(section)} / ${ruleCount(rule)} câu</b>${isThptEnglishTemplate() ? '' : `<small>~ ${section.duration_minutes || '—'} phút</small>`}</div>`).join('') || '<p class="ex-muted">Chưa cấu hình phần thi.</p>';
         const policies = readPolicies();
-        const applied = [policies.lock_previous && 'Khóa câu trước', policies.review_later && 'Được đánh dấu xem lại', policies.randomize_options && 'Xáo trộn đáp án', policies.strict_audio && 'Bắt buộc audio liên kết', policies.track_focus && 'Theo dõi rời màn hình'].filter(Boolean);
+        const applied = [policies.lock_previous && 'Khóa câu trước', policies.review_later && 'Được đánh dấu xem lại', policies.randomize_options && 'Xáo trộn đáp án', policies.strict_audio && 'Audio phát một lần', policies.track_focus && 'Theo dõi rời màn hình'].filter(Boolean);
         field('[data-final-policies]').innerHTML = applied.map(text => `<span>${icon('circle-check')}${encode(text)}</span>`).join('') || '<span>Chưa bật quy tắc bổ sung</span>';
         const audio = questions.filter(q => q.audio).length, passages = new Set(questions.map(q => q.passage?.id).filter(Boolean)).size;
         field('[data-final-resources]').innerHTML = `<div><b>${audio}</b><span>câu có audio</span></div><div><b>${passages}</b><span>passage liên kết</span></div><div><b>${questions.filter(q => q.group).length}</b><span>câu thuộc nhóm</span></div>`;
@@ -596,6 +633,7 @@ if (builder) {
         refreshIcons(field('[data-final-checks]'));
     };
     const render = (dirty = true) => {
+        enforceFullSimulationPolicies();
         renderSectionCards();
         renderTemplateDetails();
         field('[data-thpt-guidance]').hidden = !isThptEnglishTemplate();

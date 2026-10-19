@@ -227,13 +227,15 @@
         </section>
     </div>
 @else
-    <form method="get" action="{{ $indexRoute }}" class="assessment-actions">
-        <label>Tìm tài nguyên<input name="q" value="{{ $search }}"></label>
+    <form method="get" action="{{ $indexRoute }}" class="assessment-actions" data-ajax-filter-form data-ajax-target="#stimulus-search-results" data-ajax-debounce="350">
+        <input type="hidden" name="stimulus" value="{{ $selectedStimulus?->id ?? '' }}">
+        <label>Tìm tài nguyên<input type="search" name="q" value="{{ $search }}" autocomplete="off"></label>
         <button class="button button-quiet" type="submit">Tìm</button>
-        <a href="{{ $indexRoute }}">Reset filter</a>
+        <a data-ajax-filter-reset="#stimulus-search-results" href="{{ route($audioOnly ? 'admin.audio.index' : 'admin.readings.index', array_filter(['stimulus' => $selectedStimulus?->id])) }}">Reset filter</a>
     </form>
 
     <div class="assessment-grid">
+        <div id="stimulus-search-results" data-ajax-results>
         <section class="panel">
             <h2>Kho Passage</h2>
             @forelse($stimuli as $stimulus)
@@ -241,8 +243,9 @@
             @empty
                 <p>Chưa có tài nguyên.</p>
             @endforelse
-            {{ $stimuli->onEachSide(0)->links() }}
+            <div data-ajax-pagination>{{ $stimuli->onEachSide(0)->links() }}</div>
         </section>
+        </div>
 
         <section class="panel">
             @if($selectedStimulus)

@@ -4,11 +4,13 @@ import.meta.glob('./resource-library.js', { eager: true });
 import './question-bank.js';
 import './question-workbook-import.js';
 if (document.querySelector('[data-qe-root]')) import('./question-editor.js');
+if (document.querySelector('[data-exam-list], [data-exam-builder]')) import('./exam-builder.js');
 import './reading-library.js';
 import './exam-runner.js';
 import './content-approval-review.js';
+import { initializeAjaxFilters } from './ajax-filters.js';
 
-document.querySelector('[data-overview-period]')?.addEventListener('change', event => event.target.form.requestSubmit());
+initializeAjaxFilters();
 
 const adminLoginForm = document.querySelector('[data-admin-login-form]');
 if (adminLoginForm) {
@@ -62,8 +64,8 @@ document.addEventListener('click', (event) => {
 
         if (saveButton.classList.contains('save-button')) {
             saveButton.innerHTML = saveButton.classList.contains('is-saved')
-                ? '<svg class="dictionary-icon app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"></path></svg> <span>Đã lưu vào kho kiến thức</span>'
-                : '<svg class="dictionary-icon app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"></path></svg> <span>Lưu vào kho kiến thức</span>';
+                ? '<svg class="dictionary-icon app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg> <span>Đã lưu vào kho kiến thức</span>'
+                : '<svg class="dictionary-icon app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg> <span>Lưu vào kho kiến thức</span>';
         }
     }
 

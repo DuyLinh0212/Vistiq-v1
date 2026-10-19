@@ -6,6 +6,10 @@
 .admin-toast .import-errors summary { cursor:pointer; font-weight:700; }
 .admin-toast .import-errors ul { max-height:180px; margin:8px 0 0; padding-left:18px; overflow:auto; font-weight:500; }
 @media(max-width:600px) { .admin-toast { right:12px; left:12px; width:auto; max-width:none; } }
+[data-ajax-filter-form][aria-busy="true"] { cursor:progress; }
+[data-ajax-filter-form] + .ajax-filter-status { min-height:1.2em; margin:4px 0 0; color:var(--muted,#71809b); font-size:.78rem; }
+[data-ajax-results][aria-busy="true"] { opacity:.62; transition:opacity 140ms ease; }
+@media(prefers-reduced-motion:reduce) { [data-ajax-results][aria-busy="true"] { transition:none; } }
 .table-responsive { max-width:100%; overflow-x:auto; }
 .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .form-field { display:flex; flex-direction:column; gap:6px; min-width:0; color:var(--ink); font-weight:600; }

@@ -95,7 +95,7 @@
                         @if ($durationMinutes)
                             <span>@include('pages.dictionary.icon', ['name' => 'clock']) {{ $durationLabel }}</span>
                         @endif
-                        <span>@include('pages.dictionary.icon', ['name' => 'saved']) {{ $isUpcoming ? 'Mở '.$exam->opens_at?->format('d/m/Y H:i') : ($exam->opens_at && $exam->closes_at ? $exam->opens_at->format('d/m').' – '.$exam->closes_at->format('d/m/Y') : 'Làm bài bất cứ lúc nào') }}</span>
+                        <span>@include('pages.dictionary.icon', ['name' => 'calendar-check']) {{ $isUpcoming ? 'Mở '.$exam->opens_at?->format('d/m/Y H:i') : ($exam->opens_at && $exam->closes_at ? $exam->opens_at->format('d/m').' – '.$exam->closes_at->format('d/m/Y') : 'Làm bài bất cứ lúc nào') }}</span>
                     </div>
                 </div>
                 <form class="exam-catalog-action" method="post" action="{{ route('exams.start', $exam) }}">

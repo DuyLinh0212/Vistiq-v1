@@ -53,13 +53,14 @@
 
             <section class="resource-editor-card resource-question-card">
                 <div class="resource-editor-section-heading"><div><h2>Gắn câu hỏi {{ $isAudio ? 'vào audio' : 'với hình ảnh' }}</h2><p>Chọn các câu hỏi rồi gắn hoặc gỡ liên kết tài nguyên.</p></div><span class="resource-count-pill">{{ number_format($asset->linkedQuestions->count()) }} câu đang liên kết</span></div>
-                <form class="resource-question-filters" method="get" action="{{ route('admin.resources.edit', $asset) }}">
+                <form class="resource-question-filters" method="get" action="{{ route('admin.resources.edit', $asset) }}" data-ajax-filter-form data-ajax-target="#resource-question-results" data-ajax-on-change data-ajax-debounce="350">
                     <label class="is-search">Tìm câu hỏi<input type="search" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Tìm theo ID hoặc nội dung"></label>
                     <label>Kỳ thi<select name="exam_type"><option value="">Tất cả</option>@foreach($examTypes as $type)<option value="{{ $type->id }}" @selected((string) ($filters['exam_type'] ?? '') === (string) $type->id)>{{ $type->name }}</option>@endforeach</select></label>
                     <label>Part / Kỹ năng<select name="part"><option value="">Tất cả</option>@foreach($parts as $part)<option value="{{ $part->id }}" @selected((string) ($filters['part'] ?? '') === (string) $part->id)>{{ $part->name }}</option>@endforeach</select></label>
                     <label>Nhóm câu hỏi<select name="group"><option value="">Tất cả</option>@foreach($groups as $group)<option value="{{ $group->id }}" @selected((string) ($filters['group'] ?? '') === (string) $group->id)>{{ $group->title }}</option>@endforeach</select></label>
-                    <button class="resource-secondary" type="submit"><i data-resource-icon="search"></i>Lọc</button>
+                    <button class="resource-secondary" type="submit"><i data-resource-icon="search"></i>Lọc</button><a class="resource-secondary" data-ajax-filter-reset="#resource-question-results" href="{{ route('admin.resources.edit', $asset) }}">Xóa bộ lọc</a>
                 </form>
+                <div id="resource-question-results" data-ajax-results>
                 @can('content.edit')
                     <form method="post" action="{{ route('admin.resources.questions.sync', $asset) }}" data-resource-question-form>
                         @csrf @method('put')
@@ -82,7 +83,8 @@
                 @else
                     <div class="resource-table-scroll resource-question-table-scroll"><table class="resource-table resource-question-table"><thead><tr><th>ID câu hỏi</th><th>Kỳ thi</th><th>Part / Kỹ năng</th><th>Nội dung</th><th>Nhóm câu hỏi</th><th>Trạng thái</th></tr></thead><tbody>@forelse($questions as $question)<tr><td><a href="{{ route('admin.questions.edit', $question) }}">Q{{ str_pad((string) $question->id, 5, '0', STR_PAD_LEFT) }}</a></td><td>{{ $question->examPart?->examType?->name ?? '—' }}</td><td>{{ $question->examPart?->name ?? '—' }}</td><td class="resource-question-prompt">{{ strip_tags((string) ($question->draftRevision?->payload['prompt'] ?? $question->prompt)) }}</td><td>{{ $groups->firstWhere('id', $question->question_group_id)?->title ?? '—' }}</td><td>{{ $question->contentStatus() ?? 'draft' }}</td></tr>@empty<tr><td colspan="6"><div class="resource-editor-empty">Không tìm thấy câu hỏi phù hợp với bộ lọc.</div></td></tr>@endforelse</tbody></table></div>
                 @endcan
-                <footer class="resource-question-pagination"><span>{{ $questions->firstItem() ?? 0 }}–{{ $questions->lastItem() ?? 0 }} / {{ $questions->total() }} câu</span>{{ $questions->links() }}</footer>
+                <footer class="resource-question-pagination" data-ajax-pagination><span>{{ $questions->firstItem() ?? 0 }}–{{ $questions->lastItem() ?? 0 }} / {{ $questions->total() }} câu</span>{{ $questions->links() }}</footer>
+                </div>
             </section>
         </main>
 

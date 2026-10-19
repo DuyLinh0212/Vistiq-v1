@@ -20,7 +20,7 @@
             <label class="database-backup-option"><input type="hidden" name="include_data" value="0"><input type="checkbox" name="include_data" value="1" checked> <span>Dữ liệu bảng</span></label>
             <p class="form-help">Bao gồm toàn bộ bản ghi hiện có trong cơ sở dữ liệu.</p>
 
-            <button class="button button-primary" type="submit">@include('pages.dictionary.icon', ['name' => 'saved']) Tải file .sql</button>
+            <button class="button button-primary" type="submit">@include('pages.dictionary.icon', ['name' => 'download']) Tải file .sql</button>
         </form>
     </section>
 

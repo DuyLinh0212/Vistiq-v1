@@ -1,4 +1,4 @@
-<form class="dictionary-search-form" method="get" action="{{ route('lookup.index') }}" data-dictionary-search data-suggestions-url="{{ route('api.dictionary.suggestions') }}">
+<form class="dictionary-search-form" method="get" action="{{ route('lookup.index') }}" data-dictionary-search data-suggestions-url="{{ route('api.dictionary.suggestions') }}" data-ajax-filter-form data-ajax-target="#dictionary-search-results" data-ajax-debounce="350">
     <label class="dictionary-sr-only" for="dictionary-query">Từ, cụm từ hoặc nghĩa tiếng Việt</label>
     <div class="dictionary-search-controls">
         <div class="dictionary-input-wrap">

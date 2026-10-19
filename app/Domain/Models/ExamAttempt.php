@@ -27,6 +27,6 @@ class ExamAttempt extends Model
 
     public function exam(): BelongsTo
     {
-        return $this->belongsTo(ExamTemplate::class, 'exam_template_id');
+        return $this->belongsTo(ExamTemplate::class, 'exam_template_id')->withTrashed();
     }
 }

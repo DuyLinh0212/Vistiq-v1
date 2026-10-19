@@ -172,7 +172,19 @@ class AttemptRunnerController extends Controller
         $service->authorize($attempt, $request->user()->id);
         $result = $service->result($attempt);
 
-        return $request->expectsJson() ? response()->json($result) : view('pages.learner.assessment.exam-taking-and-submission.runtime.result', compact('result'));
+        if ($request->expectsJson()) {
+            return response()->json($result);
+        }
+
+        $page = [
+            'title' => $result['title'] ?? 'Kết quả bài làm',
+            'section' => 'exams',
+            'description' => 'Xem điểm số và phân tích bài làm.',
+            'view' => 'pages.learner.assessment.exam-taking-and-submission.runtime.result',
+            'shell' => 'user',
+        ];
+
+        return view('shared.demo-page', compact('page', 'result'));
     }
 
     public function audio(AttemptRequest $request, ExamAttempt $attempt, AttemptService $service): mixed
@@ -187,6 +199,20 @@ class AttemptRunnerController extends Controller
     {
         $service->authorize($attempt, $request->user()->id);
         $service->assetAllowed($attempt, $asset);
+
+        if ($asset->disk === 'cloudinary') {
+            $url = $media->url($asset);
+            $urlParts = parse_url($url) ?: [];
+            abort_unless(
+                filter_var($url, FILTER_VALIDATE_URL)
+                    && strtolower($urlParts['scheme'] ?? '') === 'https'
+                    && strtolower($urlParts['host'] ?? '') === 'res.cloudinary.com',
+                404,
+                'Không tìm thấy URL ảnh Cloudinary.'
+            );
+
+            return redirect()->away($url);
+        }
 
         return $media->diskFor($asset)->response($asset->path, null, ['Content-Type' => $asset->mime_type, 'Cache-Control' => 'private, no-store']);
     }

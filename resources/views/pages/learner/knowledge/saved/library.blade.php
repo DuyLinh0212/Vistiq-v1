@@ -7,22 +7,23 @@
 <div class="personal-library" data-knowledge-library>
     <div class="personal-library-main">
         <header class="library-heading"><h1>Kho kiến thức</h1><p>Nơi lưu trữ các mục yêu thích về từ vựng, ngữ pháp, collocation và phrasal verb.</p></header>
-        <section class="library-metrics" aria-label="Thống kê mục đã lưu">
+        <section id="personal-library-metrics" class="library-metrics" aria-label="Thống kê mục đã lưu" data-ajax-results>
             @foreach([['Tổng mục đã lưu',$total,'saved','blue'],['Từ vựng',$counts['vocabulary'] ?? 0,'book','green'],['Ngữ pháp',$counts['grammar'] ?? 0,'grammar','violet'],['Collocation / Phrasal Verb',($counts['collocation'] ?? 0)+($counts['phrasal_verb'] ?? 0),'link','orange']] as [$label,$value,$icon,$color])
             <article class="library-metric"><span class="library-metric-icon is-{{ $color }}">@include('pages.dictionary.icon',['name'=>$icon])</span><div><span>{{ $label }}</span><strong>{{ number_format($value) }}</strong></div></article>
             @endforeach
         </section>
         <section class="library-filters">
-            <form method="get" action="{{ route('knowledge.index') }}" class="library-search">
+            <form method="get" action="{{ route('knowledge.index') }}" class="library-search" data-ajax-filter-form data-ajax-target="#personal-library-metrics, #personal-library-tabs, #personal-library-reset, #personal-library-items, #personal-library-aside" data-ajax-on-change data-ajax-debounce="350">
                 <label class="library-search-input">@include('pages.dictionary.icon',['name'=>'search'])<span class="visually-hidden">Tìm trong các mục đã lưu</span><input type="search" name="q" maxlength="100" value="{{ $filters['q'] ?? '' }}" placeholder="Tìm kiếm trong các mục đã lưu…"></label>
                 <input type="hidden" name="type" value="{{ $activeType }}">
                 @if($filters['collection'] ?? null)<input type="hidden" name="collection" value="{{ $filters['collection'] }}">@endif
                 <label class="library-sort">Sắp xếp theo<select name="sort"><option value="newest" @selected(($filters['sort'] ?? '') === 'newest')>Mới lưu nhất</option><option value="oldest" @selected(($filters['sort'] ?? '') === 'oldest')>Cũ nhất</option><option value="alphabetical" @selected(($filters['sort'] ?? '') === 'alphabetical')>Tên A–Z</option></select></label>
                 <button class="button button-quiet" type="submit">Tìm kiếm</button>
             </form>
-            <nav class="library-tabs" aria-label="Loại kiến thức đã lưu">@foreach($labels as $code=>$label)<a href="{{ route('knowledge.index', [...request()->except('page','item'), 'type'=>$code]) }}" @if($activeType===$code) aria-current="page" @endif>{{ $label }} ({{ number_format($code==='all' ? $total : ($counts[$code] ?? 0)) }})</a>@endforeach</nav>
-            @if(($filters['q'] ?? '') || ($filters['collection'] ?? null))<a class="text-link" href="{{ route('knowledge.index') }}">Xóa bộ lọc</a>@endif
+            <nav id="personal-library-tabs" class="library-tabs" aria-label="Loại kiến thức đã lưu">@foreach($labels as $code=>$label)<a data-ajax-filter-reset="#personal-library-metrics, #personal-library-tabs, #personal-library-reset, #personal-library-items, #personal-library-aside" href="{{ route('knowledge.index', [...request()->except('page','item'), 'type'=>$code]) }}" @if($activeType===$code) aria-current="page" @endif>{{ $label }} ({{ number_format($code==='all' ? $total : ($counts[$code] ?? 0)) }})</a>@endforeach</nav>
+            <div id="personal-library-reset" data-ajax-results>@if(($filters['q'] ?? '') || ($filters['collection'] ?? null))<a class="text-link" data-ajax-filter-reset="#personal-library-metrics, #personal-library-tabs, #personal-library-reset, #personal-library-items, #personal-library-aside" href="{{ route('knowledge.index') }}">Xóa bộ lọc</a>@endif</div>
         </section>
+        <div id="personal-library-items" data-ajax-results>
         <section class="library-cards" aria-label="Các mục đã lưu">
             @forelse($items as $item)
             <article class="library-card {{ $selectedSlug===$item->slug ? 'is-selected' : '' }}">
@@ -42,9 +43,10 @@
             <div class="library-empty"><span class="library-metric-icon is-blue">@include('pages.dictionary.icon',['name'=>'saved'])</span><h2>{{ $total ? 'Chưa có mục phù hợp' : 'Kho kiến thức của bạn đang trống' }}</h2><p>{{ $total ? 'Thử từ khóa khác hoặc xóa bộ lọc.' : 'Tra cứu từ vựng, ngữ pháp hoặc cụm từ, rồi chọn “Lưu vào kho kiến thức”.' }}</p><a class="button button-primary" href="{{ route('lookup.index') }}">Tra cứu kiến thức</a></div>
             @endforelse
         </section>
-        <div class="library-pagination">{{ $items->links() }}</div>
+        <div class="library-pagination" data-ajax-pagination>{{ $items->links() }}</div>
+        </div>
     </div>
-    <aside class="library-sidebar">
+    <aside id="personal-library-aside" class="library-sidebar" data-ajax-results>
         @if($selected)
         @php($detail = $selected['payload'])
         <section class="library-detail" id="knowledge-detail" tabindex="-1" aria-label="Chi tiết mục đã lưu">
@@ -70,7 +72,7 @@
         </section>
         @endif
         <section class="library-collections"><header><h2>Bộ sưu tập của tôi</h2><a class="text-link" href="{{ route('knowledge.index') }}">Tất cả →</a></header>
-            <nav aria-label="Bộ sưu tập">@forelse($collections as $collection)<a href="{{ route('knowledge.index',['collection'=>$collection->id]) }}" @if(($filters['collection'] ?? null)==$collection->id) aria-current="page" @endif>@include('pages.dictionary.icon',['name'=>'collection'])<span>{{ $collection->name }}</span><small>{{ $collection->total }} mục</small></a>@empty<p>Chưa có bộ sưu tập.</p>@endforelse</nav>
+            <nav aria-label="Bộ sưu tập">@forelse($collections as $collection)<a data-ajax-filter-reset="#personal-library-metrics, #personal-library-tabs, #personal-library-reset, #personal-library-items, #personal-library-aside" href="{{ route('knowledge.index',['collection'=>$collection->id]) }}" @if(($filters['collection'] ?? null)==$collection->id) aria-current="page" @endif>@include('pages.dictionary.icon',['name'=>'collection'])<span>{{ $collection->name }}</span><small>{{ $collection->total }} mục</small></a>@empty<p>Chưa có bộ sưu tập.</p>@endforelse</nav>
             <details @if($errors->has('name')) open @endif><summary>Tạo bộ sưu tập</summary><form method="post" action="{{ route('knowledge.collections.store') }}" data-pending-label="Đang tạo…">@csrf<label for="collection-name">Tên bộ sưu tập * (tối đa 80 ký tự)<input id="collection-name" name="name" value="{{ old('name') }}" maxlength="80" required placeholder="Ví dụ: Từ vựng công việc"></label>@error('name')<small role="alert">{{ $message }}</small>@enderror<button class="button button-quiet" type="submit">Tạo bộ sưu tập</button></form></details>
         </section>
     </aside>

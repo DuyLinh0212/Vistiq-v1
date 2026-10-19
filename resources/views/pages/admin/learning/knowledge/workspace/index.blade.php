@@ -18,12 +18,12 @@
 
 <section class="knowledge-library">
 
-    <nav class="knowledge-tabs" aria-label="Nhóm kiến thức">
-        <a href="{{ route('admin.knowledge.index', array_filter(['q' => $search, 'status' => $selectedStatus])) }}" @class(['is-active' => $selectedType === ''])>
+    <nav id="admin-knowledge-tabs" class="knowledge-tabs" aria-label="Nhóm kiến thức">
+        <a data-ajax-filter-reset="#admin-knowledge-tabs, #admin-knowledge-results, #admin-knowledge-export" href="{{ route('admin.knowledge.index', array_filter(['q' => $search, 'status' => $selectedStatus])) }}" @class(['is-active' => $selectedType === ''])>
             Tất cả <span>{{ $typeCounts->sum() }}</span>
         </a>
         @foreach($types as $type)
-            <a href="{{ route('admin.knowledge.index', array_filter(['type' => $type->code, 'q' => $search, 'status' => $selectedStatus])) }}" @class(['is-active' => $selectedType === $type->code])>
+            <a data-ajax-filter-reset="#admin-knowledge-tabs, #admin-knowledge-results, #admin-knowledge-export" href="{{ route('admin.knowledge.index', array_filter(['type' => $type->code, 'q' => $search, 'status' => $selectedStatus])) }}" @class(['is-active' => $selectedType === $type->code])>
                 {{ $typeLabels[$type->code] ?? $type->label }}
                 <span>{{ $typeCounts[$type->id] ?? 0 }}</span>
             </a>
@@ -31,7 +31,7 @@
     </nav>
 
     <div class="knowledge-toolbar">
-        <form method="get" action="{{ route('admin.knowledge.index') }}" class="knowledge-search">
+        <form method="get" action="{{ route('admin.knowledge.index') }}" class="knowledge-search" data-ajax-filter-form data-ajax-target="#admin-knowledge-tabs, #admin-knowledge-results, #admin-knowledge-export" data-ajax-on-change data-ajax-debounce="350">
             @if($selectedType !== '')
                 <input type="hidden" name="type" value="{{ $selectedType }}">
             @endif
@@ -41,7 +41,7 @@
                 <input type="search" name="q" value="{{ $search }}" placeholder="Tìm từ, cụm từ hoặc chủ điểm">
             </label>
 
-            <select name="status" onchange="this.form.submit()" style="height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 9px; background: #fff; font: inherit;">
+            <select name="status" style="height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 9px; background: #fff; font: inherit;">
                 <option value="">Tất cả trạng thái</option>
                 @foreach($statusLabels as $sCode => $sLabel)
                     <option value="{{ $sCode }}" @selected($selectedStatus === $sCode)>{{ $sLabel }}</option>
@@ -51,14 +51,12 @@
             <button class="button button-quiet" type="submit">Tìm kiếm</button>
 
             @if($search !== '' || $selectedStatus !== '')
-                <a href="{{ route('admin.knowledge.index', array_filter(['type' => $selectedType])) }}">Xóa bộ lọc</a>
+                <a data-ajax-filter-reset="#admin-knowledge-tabs, #admin-knowledge-results, #admin-knowledge-export" href="{{ route('admin.knowledge.index', array_filter(['type' => $selectedType])) }}">Xóa bộ lọc</a>
             @endif
         </form>
 
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            @can('content.view')
-                <a class="button button-quiet" href="{{ route('admin.knowledge.export', array_filter(['type' => $selectedType, 'status' => $selectedStatus, 'q' => $search])) }}">Xuất CSV</a>
-            @endcan
+            <span id="admin-knowledge-export" data-ajax-results>@can('content.view')<a class="button button-quiet" href="{{ route('admin.knowledge.export', array_filter(['type' => $selectedType, 'status' => $selectedStatus, 'q' => $search])) }}">Xuất CSV</a>@endcan</span>
 
             @can('content.edit')
                 <a class="button button-quiet" href="{{ route('admin.knowledge.import', array_filter(['type' => $selectedType])) }}">Nhập CSV</a>
@@ -67,7 +65,7 @@
         </div>
     </div>
 
-    <section class="panel knowledge-table-panel">
+    <section id="admin-knowledge-results" class="panel knowledge-table-panel" data-ajax-results>
         <div class="knowledge-table-scroll">
             <table class="knowledge-table">
                 <thead>
@@ -133,6 +131,6 @@
                 </tbody>
             </table>
         </div>
-        {{ $items->links() }}
+        <div data-ajax-pagination>{{ $items->links() }}</div>
     </section>
 </section>

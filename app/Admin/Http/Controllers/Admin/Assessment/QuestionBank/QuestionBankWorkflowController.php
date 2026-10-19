@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Cache;
 use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqAdmin\Http\Requests\Admin\Assessment\QuestionBank\QuestionApprovalRequest;
 use VistiqAdmin\Http\Requests\Admin\Shared\AdminActionRequest;
@@ -17,6 +16,7 @@ use VistiqCore\Models\LearningStimulus;
 use VistiqCore\Models\QuestionBankItem;
 use VistiqCore\Services\Assessment\ContentApproval\ContentRevisionService;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionBankCatalog;
+use VistiqCore\Services\Assessment\QuestionBank\QuestionDeletionService;
 use VistiqCore\Services\System\AuditService;
 
 class QuestionBankWorkflowController extends AdminPageController
@@ -43,7 +43,7 @@ class QuestionBankWorkflowController extends AdminPageController
         return back()->with('status', 'Đã duyệt '.count($data['ids']).' câu hỏi.');
     }
 
-    public function bulk(AdminActionRequest $request, ContentRevisionService $revisions): mixed
+    public function bulk(AdminActionRequest $request, ContentRevisionService $revisions, QuestionDeletionService $deletions): mixed
     {
         $data = $request->validated();
         if (($data['action'] ?? null) === 'review_all') {
@@ -55,6 +55,7 @@ class QuestionBankWorkflowController extends AdminPageController
         if ($data['action'] === 'delete_unused') {
             Gate::authorize('content.edit');
             $deleted = 0;
+            $disabled = 0;
             $skipped = 0;
 
             $operationKey = $data['operation_key'] ?? null;
@@ -71,7 +72,7 @@ class QuestionBankWorkflowController extends AdminPageController
                 }
 
                 if ($deleteOffset === 0 && $state === null) {
-                    $state = ['status' => 'processing', 'processed' => 0, 'total' => $selectionTotal, 'deleted' => 0, 'skipped' => 0];
+                    $state = ['status' => 'processing', 'processed' => 0, 'total' => $selectionTotal, 'deleted' => 0, 'disabled' => 0, 'skipped' => 0];
                     Cache::add($cacheKey, $state, now()->addMinutes(20));
                     $state = Cache::get($cacheKey, $state);
                 }
@@ -88,17 +89,13 @@ class QuestionBankWorkflowController extends AdminPageController
                 abort_unless(! $isFinalBatch || $deleteOffset + count($ids) === $selectionTotal, 422, 'Lô cuối chưa khớp tổng số câu hỏi.');
             }
 
-            $questionIdsUsedInDraftExams = $revisions->questionsUsedInDraftExams(array_map('intval', $ids));
-
             foreach ($ids as $id) {
-                try {
-                    $revisions->delete('question', $revisions->root('question', (int) $id), $questionIdsUsedInDraftExams);
+                $result = $deletions->delete((int) $id, skipUnauthorizedPublished: true);
+                if ($result === 'deleted') {
                     $deleted++;
-                } catch (HttpExceptionInterface $exception) {
-                    if ($exception->getStatusCode() !== 409) {
-                        throw $exception;
-                    }
-
+                } elseif ($result === 'disabled') {
+                    $disabled++;
+                } else {
                     $skipped++;
                 }
             }
@@ -106,6 +103,7 @@ class QuestionBankWorkflowController extends AdminPageController
             if ($operationKey !== null) {
                 $state['processed'] += count($ids);
                 $state['deleted'] += $deleted;
+                $state['disabled'] += $disabled;
                 $state['skipped'] += $skipped;
                 $state['status'] = $isFinalBatch ? 'completed' : 'processing';
                 $state['completed'] = $isFinalBatch;
@@ -113,13 +111,13 @@ class QuestionBankWorkflowController extends AdminPageController
                 Cache::put($cacheKey, $state, now()->addMinutes(20));
 
                 if ($isFinalBatch) {
-                    $request->session()->flash('status', "Đã xóa {$state['deleted']} câu hỏi; bỏ qua {$state['skipped']} câu đã xuất bản hoặc đang được dùng trong đề.");
+                    $request->session()->flash('status', "Đã xóa mềm {$state['deleted']} câu hỏi; ngừng sử dụng {$state['disabled']} câu trong đề đã phát hành; bỏ qua {$state['skipped']} câu chưa đủ quyền thao tác.");
                 }
 
                 return response()->json($state);
             }
 
-            return back()->with('status', "Đã xóa {$deleted} câu hỏi; bỏ qua {$skipped} câu đã xuất bản hoặc đang được dùng trong đề.");
+            return back()->with('status', "Đã xóa mềm {$deleted} câu hỏi; ngừng sử dụng {$disabled} câu trong đề đã phát hành; bỏ qua {$skipped} câu chưa đủ quyền thao tác.");
         }
 
         DB::transaction(function () use ($data, $ids, $revisions): void {
@@ -221,7 +219,7 @@ class QuestionBankWorkflowController extends AdminPageController
             'parts' => ExamPart::with('examType')->orderBy('exam_type_id')->orderBy('sort_order')->get(),
             'stimuli' => LearningStimulus::orderBy('title')->get(),
             'groups' => DB::table('question_groups')->orderByDesc('id')->paginate(20),
-            'questionCounts' => DB::table('question_bank_items')->selectRaw('question_group_id, COUNT(*) AS total')->groupBy('question_group_id')->pluck('total', 'question_group_id'),
+            'questionCounts' => DB::table('question_bank_items')->whereNull('deleted_at')->selectRaw('question_group_id, COUNT(*) AS total')->groupBy('question_group_id')->pluck('total', 'question_group_id'),
         ]);
     }
 

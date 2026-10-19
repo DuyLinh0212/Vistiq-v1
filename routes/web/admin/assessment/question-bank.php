@@ -18,6 +18,9 @@ Route::post('/questions/bulk', [QuestionBankWorkflowController::class, 'bulk'])-
 Route::get('/questions/bank-preview/{kind}/{id}', [QuestionController::class, 'bankPreview'])->middleware('can:content.view')->whereNumber('id')->name('questions.bank-preview');
 Route::get('/questions/listening', [StimulusController::class, 'listening'])->middleware('can:content.view')->name('questions.listening');
 Route::get('/questions/thpt', [QuestionController::class, 'thpt'])->middleware('can:content.view')->name('questions.thpt');
+Route::get('/questions/deleted', [QuestionController::class, 'deleted'])->middleware('can:content.view')->name('questions.deleted');
+Route::delete('/questions/{question}', [QuestionController::class, 'destroy'])->middleware('can:content.edit')->whereNumber('question')->name('questions.destroy');
+Route::post('/questions/deleted/{question}/restore', [QuestionController::class, 'restore'])->middleware('can:content.edit')->whereNumber('question')->name('questions.restore');
 Route::get('/readings/{stimulus}/question-editor', [StimulusController::class, 'questionEditor'])->middleware('can:content.view')->name('readings.question-editor');
 Route::get('/questions/editor-catalog', [QuestionEditorController::class, 'catalog'])->middleware('can:content.view')->name('questions.editor-catalog');
 Route::post('/questions/preview', [QuestionController::class, 'preview'])->middleware('can:content.edit')->name('questions.preview');

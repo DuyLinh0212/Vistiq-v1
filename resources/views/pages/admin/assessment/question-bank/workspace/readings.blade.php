@@ -28,9 +28,10 @@
             <p>Quản lý bài đọc, nhóm câu hỏi và nội dung liên kết.</p>
         </div>
         <div class="qb-heading-actions">
+            @can('content.edit')<a class="button button-quiet" href="{{ route('admin.questions.deleted') }}">Câu hỏi đã xóa</a>@endcan
             @can('content.edit')
                 @include('pages.admin.assessment.question-bank.workspace.question-workbook-import', ['workbookKind'=>'reading'])
-                <a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'reading-xlsx']) }}">@include('pages.dictionary.icon', ['name'=>'saved']) Tải mẫu .xlsx</a>
+                <a class="button button-quiet" href="{{ route('admin.questions.import-template', ['template'=>'reading-xlsx']) }}">@include('pages.dictionary.icon', ['name'=>'download']) Tải mẫu .xlsx</a>
                 @include('pages.admin.assessment.question-bank.workspace.send-all-review')
                 <a class="button button-primary" href="{{ route('admin.readings.index', ['create'=>1]) }}">@include('pages.dictionary.icon', ['name'=>'plus']) Tạo bài đọc</a>
             @endcan
@@ -46,14 +47,16 @@
 
     <div class="listening-workspace reading-workspace {{ $entry || $creating ? 'has-detail' : '' }}">
         <section class="qb-directory" aria-label="Danh sách bài Reading">
-            <form method="get" action="{{ route('admin.readings.index') }}" class="listening-filters">
+            <form method="get" action="{{ route('admin.readings.index') }}" class="listening-filters" data-ajax-filter-form data-ajax-target="#reading-list-results" data-ajax-on-change data-ajax-debounce="350">
+                <input type="hidden" name="stimulus" value="{{ $entry['id'] ?? '' }}">
                 <label class="listening-search">Tìm bài<input type="search" name="q" value="{{ $search }}" placeholder="Mã bài, tiêu đề hoặc nội dung" autocomplete="off"></label>
                 <label>Kỳ thi<select name="exam"><option value="">Tất cả</option>@foreach($examOptions as $option)<option value="{{ $option->code }}" @selected($examFilter === $option->code)>{{ $option->name }}</option>@endforeach</select></label>
                 <label>Part / Section<select name="part"><option value="">Tất cả</option>@foreach($parts as $part)<option value="{{ $part->id }}" @selected($partId === $part->id)>{{ $part->examType?->name }} · {{ $part->name }}</option>@endforeach</select></label>
                 <label>Trạng thái<select name="status"><option value="">Tất cả</option>@foreach($statusLabels as $code=>$label)<option value="{{ $code }}" @selected($statusFilter === $code)>{{ $label }}</option>@endforeach</select></label>
-                <div class="listening-filter-actions"><button class="button button-primary" type="submit">@include('pages.dictionary.icon', ['name'=>'search']) Tìm kiếm</button><a class="text-link" href="{{ route('admin.readings.index') }}">Xóa bộ lọc</a></div>
+                <div class="listening-filter-actions"><button class="button button-primary" type="submit">@include('pages.dictionary.icon', ['name'=>'search']) Tìm kiếm</button><a class="text-link" data-ajax-filter-reset="#reading-list-results" href="{{ route('admin.readings.index', array_filter(['stimulus' => $entry['id'] ?? null])) }}">Xóa bộ lọc</a></div>
             </form>
 
+            <div id="reading-list-results" data-ajax-results>
             <div class="qb-list listening-list">
                 <div class="qb-list-heading"><span>{{ $readings->firstItem() ?? 0 }}–{{ $readings->lastItem() ?? 0 }} / {{ number_format($readings->total()) }} bài Reading</span><span>Sắp xếp: <b>Mới cập nhật</b></span></div>
                 @can('content.edit')
@@ -104,7 +107,8 @@
                         </tbody>
                     </table>
                 </div>
-                <footer class="qb-pagination">{{ $readings->onEachSide(1)->links() }}</footer>
+                <footer class="qb-pagination" data-ajax-pagination>{{ $readings->onEachSide(1)->links() }}</footer>
+            </div>
             </div>
         </section>
 
@@ -208,7 +212,7 @@
                 @if($entry && ! $editing && $canEdit)
                     <footer class="listening-detail-actions">
                         <a class="button button-quiet" href="{{ route('admin.readings.index', array_merge($questionReturnParams, ['stimulus'=>$entry['id'], 'edit'=>1])) }}">@include('pages.dictionary.icon', ['name'=>'edit']) Sửa bài đọc</a>
-                        @if($selectedQuestion)<a class="button button-primary" href="{{ route('admin.readings.index', array_merge($questionReturnParams, ['stimulus'=>$entry['id'], 'edit'=>1, 'question'=>$selectedQuestion->id])) }}">@include('pages.dictionary.icon', ['name'=>'edit']) Sửa câu hỏi</a>@endif
+                        @if($selectedQuestion)<a class="button button-primary" href="{{ route('admin.readings.index', array_merge($questionReturnParams, ['stimulus'=>$entry['id'], 'edit'=>1, 'question'=>$selectedQuestion->id])) }}">@include('pages.dictionary.icon', ['name'=>'edit']) Sửa câu hỏi</a>@include('pages.admin.assessment.question-bank.workspace.question-delete-action', ['question'=>$selectedQuestion])@endif
                     </footer>
                 @endif
             </aside>

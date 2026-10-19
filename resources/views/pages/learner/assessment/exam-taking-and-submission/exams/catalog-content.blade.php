@@ -1,12 +1,15 @@
 <main class="assessment-page exam-catalog-page" data-exam-catalog>
-    <nav class="assessment-actions" aria-label="Lịch sử làm bài">
-        <a href="{{ route('attempts.history') }}">Lượt làm của tôi</a>
-    </nav>
-
     <section class="exam-catalog-hero">
         <div class="exam-catalog-copy">
             <h1>{{ $examTypes->isNotEmpty() ? 'Luyện đề '.$examTypes->pluck('name')->join(' / ') : 'Kho đề thi' }}</h1>
             <p>Chọn bài thi phù hợp, luyện tập theo thời gian thực và theo dõi tiến độ của bạn.</p>
+            <nav class="assessment-actions" aria-label="Lịch sử làm bài">
+                <a class="button button-quiet" href="{{ route('attempts.history') }}">
+                    @include('pages.dictionary.icon', ['name' => 'clock'])
+                    <span>Lượt làm của tôi</span>
+                    @include('pages.dictionary.icon', ['name' => 'arrow-right'])
+                </a>
+            </nav>
         </div>
         <div class="exam-catalog-art" aria-hidden="true">
             <span class="exam-art-orbit orbit-one"></span>
@@ -18,7 +21,7 @@
         </div>
     </section>
 
-    <form class="exam-catalog-controls" method="get" action="{{ route('exams.index') }}" aria-label="Tìm và lọc đề thi" data-exam-filter-form>
+    <form class="exam-catalog-controls" method="get" action="{{ route('exams.index') }}" aria-label="Tìm và lọc đề thi" data-exam-filter-form data-ajax-filter-form data-ajax-target="#exam-catalog-results" data-ajax-debounce="350">
         <input type="hidden" name="exam_type" value="{{ request('exam_type') }}" data-exam-type-filter>
         <div class="exam-catalog-toolbar">
             <div class="exam-tabs" role="group" aria-label="Loại bài thi">
@@ -41,6 +44,7 @@
         </div>
     </form>
 
+    <div id="exam-catalog-results" data-ajax-results>
     <div class="exam-catalog-heading">
         <div><h2>Đề thi dành cho bạn</h2><p><strong data-exam-count>{{ $exams->total() }}</strong> đề thi đã duyệt</p></div>
         <span class="exam-catalog-updated">Cập nhật liên tục</span>
@@ -98,16 +102,17 @@
                         @if ($durationMinutes)
                             <span>@include('pages.dictionary.icon', ['name' => 'clock']) {{ $durationLabel }}</span>
                         @endif
-                        <span>@include('pages.dictionary.icon', ['name' => 'saved']) {{ $isUpcoming ? 'Mở '.$exam->opens_at?->format('d/m/Y H:i') : ($exam->opens_at && $exam->closes_at ? $exam->opens_at->format('d/m').' – '.$exam->closes_at->format('d/m/Y') : 'Làm bài bất cứ lúc nào') }}</span>
+                        <span>@include('pages.dictionary.icon', ['name' => 'calendar-check']) {{ $isUpcoming ? 'Mở '.$exam->opens_at?->format('d/m/Y H:i') : ($exam->opens_at && $exam->closes_at ? $exam->opens_at->format('d/m').' – '.$exam->closes_at->format('d/m/Y') : 'Làm bài bất cứ lúc nào') }}</span>
                     </div>
                 </div>
-                <form class="exam-catalog-action" method="post" action="{{ route('exams.start', $exam) }}">
+                <form class="exam-catalog-action" method="post" action="{{ route('exams.start', $exam) }}" data-exam-start data-requires-fullscreen="{{ ($approvedPayload['policies']['require_fullscreen'] ?? false) ? 'true' : 'false' }}" data-allow-mobile="{{ ($approvedPayload['policies']['allow_mobile'] ?? true) ? 'true' : 'false' }}">
                     @csrf
                     <button class="button button-primary" type="submit" @disabled($isUpcoming || $isClosed)>{{ $isUpcoming ? 'Chưa mở' : ($isClosed ? 'Đã đóng' : 'Làm bài') }} @include('pages.dictionary.icon', ['name' => 'arrow-right'])</button>
                     @if ($approvedPayload['policies']['leaderboard'] ?? false)
                         <a class="button button-quiet" href="{{ route('exams.leaderboard', $exam) }}">Bảng xếp hạng</a>
                     @endif
                 </form>
+                <p class="exam-start-feedback" data-start-feedback role="status" aria-live="polite" hidden></p>
             </article>
         @empty
             <div class="exam-catalog-empty">
@@ -123,7 +128,8 @@
         @endforelse
     </section>
 
-    <div class="exam-catalog-pagination">{{ $exams->links() }}</div>
+    <div class="exam-catalog-pagination" data-ajax-pagination>{{ $exams->links() }}</div>
+    </div>
 </main>
 
 <style>

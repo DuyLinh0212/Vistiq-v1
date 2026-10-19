@@ -45,15 +45,28 @@ if (bank) {
         bulkForm.hidden = !bulkForm.querySelector('input[name="ids[]"]:checked, input[name="matching_ids[]"]');
     }
     bank.addEventListener('change', event => {
+        const sort = event.target.closest('[data-qb-sort]');
+        const pageSize = event.target.closest('[data-qb-per-page]');
+        if (sort) return void navigateWith('sort', sort.value);
+        if (pageSize) return void navigateWith('per_page', pageSize.value);
         const control = event.target.closest('[data-qb-select-entry]');
         if (control) { const selected = control.checked; JSON.parse(control.dataset.questionIds).forEach(id => { const input = bulkForm.querySelector(`input[name="ids[]"][value="${id}"]`); if (input) { input.checked = selected; input.dispatchEvent(new Event('change', { bubbles: true })); } }); }
         syncSelection();
     });
     syncSelection();
     const navigateWith = (name, value) => { const form = bank.querySelector('[data-question-filters]'); form.querySelector(`[name="${name}"]`).value = value; form.querySelector('[name="q"]').value = bank.querySelector('[data-question-search] [name="q"]').value; form.requestSubmit(); };
-    bank.querySelector('[data-qb-sort]').addEventListener('change', event => navigateWith('sort', event.target.value));
-    bank.querySelector('[data-qb-per-page]').addEventListener('change', event => navigateWith('per_page', event.target.value));
     bank.querySelector('[name="missing"]').addEventListener('change', () => bank.querySelector('[data-question-filters]').requestSubmit());
+
+    document.addEventListener('vistiq:ajax-results-updated', event => {
+        if (event.detail?.selector !== '#qb-results') return;
+        request?.abort();
+        pauseAudio();
+        panel.hidden = true;
+        bank.classList.add('qb-preview-closed');
+        bank.querySelectorAll('[data-qb-row]').forEach(row => row.classList.remove('is-active'));
+        bank.querySelectorAll('[data-qb-preview]').forEach(button => button.setAttribute('aria-pressed', 'false'));
+        syncSelection();
+    });
 }
 
 const thptQuickForm = document.querySelector('.qb-quick-form');

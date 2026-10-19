@@ -2582,3 +2582,14 @@ body.admin-mode { background: #f5f8fe; }
 }
 
 @media(max-width:900px) { .admin-nav-overview > .admin-nav-link-label { display:none; } }
+
+@media (max-width: 680px) {
+    .admin-topbar { gap: 8px; }
+    .admin-topbar form { display: flex; flex: 1 1 auto; min-width: 0; max-width: 260px; margin-left: auto; }
+    .admin-topbar form input { width: 100%; min-width: 0; min-height: 34px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 10px; }
+    .admin-page > .page-heading > .button { display: inline-flex; align-self: flex-start; width: auto; max-width: 100%; white-space: normal; }
+}
+
+@media (max-width: 440px) {
+    .admin-page > .page-heading > .button { width: 100%; align-self: stretch; }
+}

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['learning_item_id', 'status', 'published_at', 'created_by', 'exam_part_id', 'question_type_id', 'question_difficulty_id', 'learning_stimulus_id', 'prompt', 'explanation'])]
 class QuestionBankItem extends Model
 {
+    use \Illuminate\Database\Eloquent\SoftDeletes;
     use \VistiqCore\Models\Concerns\StoresClassifications;
 
     public function contentStatus(): string

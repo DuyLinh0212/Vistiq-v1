@@ -27,11 +27,26 @@ class ExamPublishingService
         'leaderboard' => true, 'anonymous' => true, 'strict_audio' => false,
     ];
 
+    public const FULL_SIMULATION_POLICIES = [
+        'pause_allowed' => false,
+        'auto_submit' => true,
+        'answer_review' => 'after_submit',
+        'explanation_review' => 'after_submit',
+    ];
+
     public function __construct(private ContentRevisionService $revisions, private QuestionRegistry $registry, private MediaService $media, private AuditService $audit) {}
+
+    public static function normalizePolicies(string $mode, array $policies = []): array
+    {
+        $normalized = array_replace(self::POLICIES, $policies);
+
+        return $mode === 'full' ? array_replace($normalized, self::FULL_SIMULATION_POLICIES) : $normalized;
+    }
 
     public function save(ExamTemplate $exam, array $data, ?int $expected): ExamTemplate
     {
         Gate::authorize('edit', $exam);
+        $data['policies'] = self::normalizePolicies((string) ($data['mode'] ?? $exam->mode ?? ''), $data['policies'] ?? []);
         $totalMinutes = (int) ($data['policies']['duration_minutes'] ?? self::POLICIES['duration_minutes']);
         $sectionMinutes = collect($data['sections'] ?? [])->sum(
             fn ($section) => is_array($section) ? max(0, (int) ($section['duration_minutes'] ?? 0)) : 0,
@@ -65,7 +80,7 @@ class ExamPublishingService
         $sections = [];
         $items = [];
         $ids = [];
-        $policies = array_replace(self::POLICIES, $draft['policies'] ?? []);
+        $policies = self::normalizePolicies((string) $exam->mode, $draft['policies'] ?? []);
         foreach ($draft['sections'] ?? [] as $index => $section) {
             $part = ExamPart::with('skill')->findOrFail($section['exam_part_id']);
             if ($part->exam_type_id !== $exam->exam_type_id) {

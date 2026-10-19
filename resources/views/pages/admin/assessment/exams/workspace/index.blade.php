@@ -1,7 +1,7 @@
 <div class="ex-workspace ex-list-layout" data-exam-list>
     <section class="ex-panel ex-list-main">
-        <header class="ex-panel-heading"><h1>Danh sách đề thi</h1>@can('content.edit')<div class="ex-heading-actions"><a class="ex-button" href="{{ route('admin.exams.create', ['template' => 'thpt-english-2025']) }}"><i data-ex-icon="file-text"></i>Đề Tiếng Anh THPT</a><a class="ex-button is-primary" href="{{ route('admin.exams.create') }}"><i data-ex-icon="plus"></i>Tạo đề thi</a></div>@endcan</header>
-        <form method="get" class="ex-filters" data-exam-filters>
+        <header class="ex-panel-heading"><h1>Danh sách đề thi</h1>@can('content.edit')<div class="ex-heading-actions"><a class="ex-button" href="{{ route('admin.exams.deleted') }}">Đề đã xóa</a><a class="ex-button" href="{{ route('admin.exams.create', ['template' => 'thpt-english-2025']) }}"><i data-ex-icon="file-text"></i>Đề Tiếng Anh THPT</a><a class="ex-button is-primary" href="{{ route('admin.exams.create') }}"><i data-ex-icon="plus"></i>Tạo đề thi</a></div>@endcan</header>
+        <form method="get" class="ex-filters" data-exam-filters data-ajax-filter-form data-ajax-target="#admin-exam-results, #admin-exam-meta, #admin-exam-detail-results" data-ajax-debounce="350">
             <div class="ex-filter-top"><nav class="ex-tabs" aria-label="Loại đề thi">
                 <button type="button" data-exam-filter="type" data-filter-value="" class="{{ !request('type') ? 'is-active' : '' }}">Tất cả ({{ number_format($typeCounts->sum()) }})</button>
                 @foreach($types as $type)<button type="button" data-exam-filter="type" data-filter-value="{{ $type->id }}" class="{{ (int) request('type') === $type->id ? 'is-active' : '' }}">{{ $type->name }} ({{ number_format($typeCounts->get($type->id, 0)) }})</button>@endforeach
@@ -16,12 +16,13 @@
                 <label>Loại đề<select name="type" data-filter-auto><option value="">Tất cả</option>@foreach($types as $type)<option value="{{ $type->id }}" @selected((int) request('type') === $type->id)>{{ $type->name }}</option>@endforeach</select></label>
                 <label>Thời gian<select name="days" data-filter-auto><option value="">Tất cả</option>@foreach([7,30,90] as $days)<option value="{{ $days }}" @selected((int) request('days') === $days)>{{ $days }} ngày gần đây</option>@endforeach</select></label>
                 <label>Người tạo<select name="creator" data-filter-auto><option value="">Tất cả</option>@foreach($creators as $id=>$name)<option value="{{ $id }}" @selected((int) request('creator') === $id)>{{ $name }}</option>@endforeach</select></label>
-                <a class="ex-button" href="{{ route('admin.exams.index') }}"><i data-ex-icon="rotate-ccw"></i>Xóa bộ lọc</a>
+                <a class="ex-button" data-ajax-filter-reset="#admin-exam-results, #admin-exam-meta, #admin-exam-detail-results" href="{{ route('admin.exams.index') }}"><i data-ex-icon="rotate-ccw"></i>Xóa bộ lọc</a>
             </div>
             <input type="hidden" name="resource" value="{{ request('resource') }}"><input type="hidden" name="mode" value="{{ request('mode') }}">
-            <div class="ex-list-meta"><span>Hiển thị <b>{{ $exams->firstItem() ?? 0 }} - {{ $exams->lastItem() ?? 0 }}</b> trong <b>{{ number_format($exams->total()) }}</b> đề thi <span data-exam-selection-count></span></span><label>Sắp xếp theo<select name="sort" data-filter-auto>@foreach(['updated'=>'Cập nhật mới nhất','created'=>'Tạo mới nhất','title'=>'Tên đề A–Z'] as $key=>$label)<option value="{{ $key }}" @selected(request('sort', 'updated') === $key)>{{ $label }}</option>@endforeach</select></label></div>
+            <div class="ex-list-meta" id="admin-exam-meta"><span>Hiển thị <b>{{ $exams->firstItem() ?? 0 }} - {{ $exams->lastItem() ?? 0 }}</b> trong <b>{{ number_format($exams->total()) }}</b> đề thi <span data-exam-selection-count></span></span><label>Sắp xếp theo<select name="sort" data-filter-auto>@foreach(['updated'=>'Cập nhật mới nhất','created'=>'Tạo mới nhất','title'=>'Tên đề A–Z'] as $key=>$label)<option value="{{ $key }}" @selected(request('sort', 'updated') === $key)>{{ $label }}</option>@endforeach</select></label></div>
             <input type="hidden" name="per_page" value="{{ $exams->perPage() }}">
         </form>
+        <div id="admin-exam-results" data-ajax-results>
         <div class="ex-table-scroll"><table class="ex-table ex-exam-table"><thead><tr><th><input type="checkbox" data-exam-select-all aria-label="Chọn tất cả đề trên trang"></th><th>Mã đề</th><th>Tên đề thi</th><th>Loại</th><th>Cấu trúc</th><th>Số câu</th><th>Thời gian</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead><tbody>
             @forelse($exams as $exam)
                 @php($summary = $summaries[$exam->id])
@@ -37,9 +38,10 @@
                 </tr>
             @empty<tr><td colspan="10"><div class="ex-empty"><i data-ex-icon="files"></i><strong>Chưa có đề thi phù hợp</strong><span>Thử đổi bộ lọc hoặc tạo đề thi mới.</span></div></td></tr>@endforelse
         </tbody></table></div>
-        <footer class="ex-pagination"><label>Hiển thị<select data-exam-page-size aria-label="Số đề trên trang">@foreach([8,15,30] as $size)<option @selected($exams->perPage() === $size)>{{ $size }}</option>@endforeach</select>trên mỗi trang</label>{{ $exams->onEachSide(1)->links('pages.admin.assessment.exams.workspace.pagination') }}</footer>
+        <footer class="ex-pagination"><label>Hiển thị<select data-exam-page-size aria-label="Số đề trên trang">@foreach([8,15,30] as $size)<option @selected($exams->perPage() === $size)>{{ $size }}</option>@endforeach</select>trên mỗi trang</label><div data-ajax-pagination>{{ $exams->onEachSide(1)->links('pages.admin.assessment.exams.workspace.pagination') }}</div></footer>
+        </div>
     </section>
-    <aside class="ex-panel ex-detail-panel" data-exam-detail-panel>
+    <aside class="ex-panel ex-detail-panel" id="admin-exam-detail-results" data-ajax-results data-exam-detail-panel>
         <header class="ex-panel-heading"><h2>Chi tiết đề thi</h2><button type="button" class="ex-icon-button" data-exam-close-detail aria-label="Đóng chi tiết đề thi"><i data-ex-icon="x"></i></button></header>
         @foreach($exams as $exam)
             @php($summary = $summaries[$exam->id])
@@ -55,6 +57,7 @@
                 <div class="ex-detail-actions"><a class="ex-button" href="{{ route('admin.exams.preview', $exam) }}" target="_blank" rel="noopener"><i data-ex-icon="eye"></i>Xem đề thi</a>@can('content.edit')<a class="ex-button" href="{{ route('admin.exams.edit', $exam) }}"><i data-ex-icon="square-pen"></i>Chỉnh sửa</a>@endcan</div>
                 @can('content.edit')@if($exam->status !== 'archived' && $exam->draft_status === 'draft')<form method="post" action="{{ route('admin.exams.transition', [$exam, 'review']) }}">@csrf<button class="ex-button is-primary ex-full-width"><i data-ex-icon="send"></i>Gửi duyệt</button></form>@endif @endcan
                 @if($summary['status'] === 'approved')@can('content.publish')<form method="post" action="{{ route('admin.exams.transition', [$exam, 'archive']) }}" data-confirm="Lưu trữ đề thi này? Các câu hỏi và tài nguyên liên kết được giữ lại.">@csrf<button class="ex-button is-danger ex-full-width"><i data-ex-icon="archive"></i>Lưu trữ đề thi</button></form>@endcan @endif
+                @can('content.edit')<form method="post" action="{{ route('admin.exams.destroy', $exam) }}" data-confirm="Xóa mềm đề ‘{{ $exam->title }}’? Đề sẽ ẩn khỏi kho học viên; các lượt làm và kết quả đã có vẫn được giữ để xem lại." data-confirm-title="Xóa đề thi" data-confirm-label="Xóa đề thi" data-confirm-tone="danger" data-pending-label="Đang xóa…">@csrf @method('DELETE')<button class="ex-button is-danger ex-full-width" type="submit"><i data-ex-icon="trash-2"></i>Xóa đề thi</button></form>@endcan
             </div>
         @endforeach
         @if($exams->isEmpty())<div class="ex-empty"><span>Chọn một đề thi để xem chi tiết.</span></div>@endif

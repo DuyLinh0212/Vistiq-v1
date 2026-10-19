@@ -418,11 +418,11 @@ if (library) {
 
 const resourceEditor = document.querySelector('[data-resource-editor]');
 if (resourceEditor) {
-    const form = resourceEditor.querySelector('[data-resource-question-form]');
-    const rows = [...resourceEditor.querySelectorAll('[data-resource-question-select]')];
-    const selectAll = resourceEditor.querySelector('[data-resource-select-all-questions]');
-    const selectionLabel = resourceEditor.querySelector('[data-resource-question-selection]');
     const syncSelection = () => {
+        const form = resourceEditor.querySelector('[data-resource-question-form]');
+        const rows = [...resourceEditor.querySelectorAll('[data-resource-question-select]')];
+        const selectAll = resourceEditor.querySelector('[data-resource-select-all-questions]');
+        const selectionLabel = resourceEditor.querySelector('[data-resource-question-selection]');
         const count = rows.filter(input => input.checked).length;
         if (selectionLabel) selectionLabel.textContent = count ? `${count} câu đã chọn` : 'Chọn tối đa 100 câu';
         if (selectAll) {
@@ -430,17 +430,28 @@ if (resourceEditor) {
             selectAll.indeterminate = count > 0 && count < rows.length;
         }
     };
-    rows.forEach(input => input.addEventListener('change', syncSelection));
-    selectAll?.addEventListener('change', () => {
-        rows.forEach(input => { input.checked = selectAll.checked; });
-        syncSelection();
+    document.addEventListener('change', event => {
+        const selectAll = event.target.closest('[data-resource-select-all-questions]');
+        if (resourceEditor.contains(event.target) && selectAll) {
+            resourceEditor.querySelectorAll('[data-resource-question-select]').forEach(input => { input.checked = selectAll.checked; });
+            syncSelection();
+        } else if (resourceEditor.contains(event.target) && event.target.closest('[data-resource-question-select]')) {
+            syncSelection();
+        }
     });
-    form?.addEventListener('submit', event => {
+    document.addEventListener('submit', event => {
+        const form = event.target.closest('[data-resource-question-form]');
+        if (!form || !resourceEditor.contains(form)) return;
+        const rows = [...form.querySelectorAll('[data-resource-question-select]')];
+        const selectionLabel = resourceEditor.querySelector('[data-resource-question-selection]');
         const count = rows.filter(input => input.checked).length;
         if (!count || count > 100) {
             event.preventDefault();
             selectionLabel.textContent = count > 100 ? 'Chỉ có thể cập nhật tối đa 100 câu mỗi lần.' : 'Chọn ít nhất một câu hỏi.';
         }
+    });
+    document.addEventListener('vistiq:ajax-results-updated', event => {
+        if (event.detail.targets?.some(target => target.id === 'resource-question-results')) syncSelection();
     });
     syncSelection();
 }

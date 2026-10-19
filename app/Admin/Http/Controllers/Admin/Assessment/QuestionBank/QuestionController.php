@@ -8,6 +8,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Gate;
 use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -31,10 +32,12 @@ use VistiqCore\Services\Assessment\QuestionBank\MediaService;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionAudioService;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionBankCatalog;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionEditorService;
+use VistiqCore\Services\Assessment\QuestionBank\QuestionDeletionService;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionWorkbookImportService;
 use VistiqCore\Services\Assessment\QuestionBank\ThptEnglishWorkbookImportService;
 use VistiqCore\Services\System\SettingsService;
+use VistiqCore\Services\System\AuditService;
 
 class QuestionController extends StaticPageController
 {
@@ -68,6 +71,7 @@ class QuestionController extends StaticPageController
     private const SCREENS = [
         'admin-questions' => ['title' => 'Ngân hàng câu hỏi', 'frame' => 'A02', 'view' => 'pages.admin.assessment.question-bank.questions.index', 'section' => 'admin', 'description' => 'Quản lý câu hỏi TOEIC, IELTS, THPT và các dạng bài luyện tập.'],
         'admin-question-edit' => ['title' => 'Tạo / chỉnh sửa câu hỏi', 'frame' => 'A03', 'view' => 'pages.admin.assessment.question-bank.questions.edit', 'section' => 'admin', 'description' => 'Tạo câu hỏi, đáp án, giải thích và liên kết media.'],
+        'admin-question-deleted' => ['title' => 'Câu hỏi đã xóa', 'frame' => 'A02', 'view' => 'pages.admin.assessment.question-bank.questions.deleted', 'section' => 'admin', 'description' => 'Khôi phục câu hỏi đã xóa mềm khỏi ngân hàng.'],
     ];
 
     public function show(string $screen): View|RedirectResponse
@@ -249,6 +253,43 @@ class QuestionController extends StaticPageController
         $request->merge(['exam' => 'thpt']);
 
         return $this->index($request);
+    }
+
+    public function deleted(): View
+    {
+        Gate::authorize('content.view');
+        $questions = QuestionBankItem::onlyTrashed()
+            ->with(['examPart.examType', 'questionType'])
+            ->orderByDesc('deleted_at')
+            ->paginate(25);
+
+        return $this->renderScreen('admin-question-deleted', self::SCREENS['admin-question-deleted'])->with(compact('questions'));
+    }
+
+    public function destroy(QuestionBankItem $question, QuestionDeletionService $deletions): RedirectResponse
+    {
+        $result = $deletions->delete((int) $question->id);
+        $message = $result === 'disabled'
+            ? 'Câu hỏi thuộc đề đã phát hành đã ngừng sử dụng và vẫn được giữ trong đề.'
+            : 'Đã xóa mềm câu hỏi Q-'.$question->id.'. Lịch sử làm bài và dữ liệu xem lại được giữ nguyên.';
+
+        return back()->with('status', $message);
+    }
+
+    public function restore(int $question, AuditService $audit): RedirectResponse
+    {
+        Gate::authorize('content.edit');
+        $restored = DB::transaction(function () use ($question, $audit): QuestionBankItem {
+            $item = QuestionBankItem::withTrashed()->lockForUpdate()->findOrFail($question);
+            abort_unless($item->trashed(), 404);
+            $before = ['deleted_at' => $item->deleted_at?->toIso8601String()];
+            $item->restore();
+            $audit->record('question.restore', 'question', $item->id, $before, ['soft_deleted' => false]);
+
+            return $item;
+        });
+
+        return redirect()->route('admin.questions.edit', $restored)->with('status', 'Đã khôi phục câu hỏi Q-'.$restored->id.' trong ngân hàng. Câu chưa được tự động thêm lại vào đề nào.');
     }
 
     public function bankPreview(Request $request, string $kind, int $id): mixed
@@ -928,7 +969,7 @@ class QuestionController extends StaticPageController
                                 }
                                 $attributes = $question['attributes'];
                                 $attributes['question_group_id'] = (int) $groupId;
-                                $attributes['group_order'] = (int) DB::table('question_bank_items')->where('question_group_id', $groupId)->count();
+                                $attributes['group_order'] = (int) DB::table('question_bank_items')->whereNull('deleted_at')->where('question_group_id', $groupId)->count();
                                 if ($imageAsset) {
                                     $attributes['metadata'] = array_replace($attributes['metadata'] ?? [], ['image_id' => $imageAsset->id]);
                                 }

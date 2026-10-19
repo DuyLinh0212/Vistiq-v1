@@ -115,3 +115,21 @@
 @media (prefers-reduced-motion: reduce) {
     .exam-progress-track i { transition: none; }
 }
+
+/* Exam previews use document scrolling instead of the fixed admin viewport. */
+html.admin-document.exam-preview-document {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+body.admin-mode.exam-preview-mode {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+}
+.exam-preview-mode .exam-question-sidebar { max-height: none; overflow: visible; }
+.exam-preview-mode .exam-session-items > .assessment-item { min-height: 0; }
+.exam-preview-mode .assessment-stimulus-panel,
+.exam-preview-mode .assessment-response-panel { min-height: 0; overflow: visible; }
+.exam-preview-mode .exam-session-items > .assessment-item:not(:has(.assessment-passage, .assessment-image, .assessment-audio)) .assessment-response-panel { min-height: 0; }

@@ -76,10 +76,10 @@
                     <label><input type="checkbox" data-policy-toggle="lock_previous"><span>Khóa câu trước sau khi chuyển</span><i data-ex-icon="info"></i></label>
                     <label><input type="checkbox" data-policy-toggle="review_later"><span>Cho phép đánh dấu câu để xem lại</span><i data-ex-icon="info"></i></label>
                     <label><input type="checkbox" data-policy-toggle="randomize_options"><span>Xáo trộn thứ tự đáp án</span><i data-ex-icon="info"></i></label>
-                    <label><input type="checkbox" data-policy-toggle="strict_audio"><span>Yêu cầu audio liên kết khi làm bài</span><i data-ex-icon="info"></i></label>
+                    <label><input type="checkbox" data-policy-toggle="strict_audio"><span>Giới hạn mỗi audio phát một lần</span><i data-ex-icon="info"></i></label>
                     <label><input type="checkbox" data-policy-toggle="track_focus"><span>Theo dõi rời khỏi bài thi</span><i data-ex-icon="info"></i></label>
                     <label><input type="checkbox" data-policy-toggle="require_fullscreen"><span>Yêu cầu toàn màn hình</span><i data-ex-icon="info"></i></label>
-                </div><p class="ex-rule-note"><i data-ex-icon="circle-check"></i> Bốc tự động chỉ lấy câu đã duyệt, tránh trùng câu và giữ nguyên nhóm passage/audio.</p></div><div class="ex-config-block"><h3>4. Cài đặt làm bài</h3><div class="ex-policy-toggles">
+                </div><p class="ex-rule-note"><i data-ex-icon="circle-check"></i> Bốc tự động chỉ lấy câu đã duyệt, tránh trùng câu và giữ nguyên nhóm passage/audio.</p></div><div class="ex-config-block"><h3>4. Cài đặt làm bài</h3><p class="ex-rule-note" data-full-simulation-policy-note hidden>Full Simulation tự tắt tạm dừng, tự nộp khi hết giờ và chỉ mở đáp án sau khi nộp.</p><div class="ex-policy-toggles">
                     <label><input type="checkbox" data-policy-toggle="pause_allowed"><span>Cho phép tạm dừng</span><i data-ex-icon="info"></i></label>
                     <label><input type="checkbox" data-policy-toggle="allow_mobile"><span>Cho phép làm trên điện thoại</span><i data-ex-icon="info"></i></label>
                     <label><input type="checkbox" data-policy-toggle="disable_copy"><span>Chặn sao chép nội dung</span><i data-ex-icon="info"></i></label>

@@ -26,13 +26,15 @@ export const singleFlight = operation => {
     };
 };
 
-const root = typeof document === 'undefined' ? null : document.querySelector('[data-exam-runner]');
-if (root) {
+export const initializeExamRunner = (rootOverride = undefined) => {
+    const root = rootOverride ?? (typeof document === 'undefined' ? null : document.querySelector('[data-exam-runner]'));
+    if (!root || root.dataset.examRunnerInitialized === 'true') return;
+    root.dataset.examRunnerInitialized = 'true';
     const config = JSON.parse(root.querySelector('[data-exam-config]').textContent);
     const policies = config.snapshot.policies;
     let state = config.state ?? { active_section: 0, answers: [], paused: false, deadline: new Date(Date.now() + policies.duration_minutes * 60000).toISOString(), server_time: new Date().toISOString() };
     let offset = Date.parse(state.server_time) - Date.now();
-    let selected = state.current_item_index ?? 0, submitting = false, saving = false, pausedAt = null, navigating = false;
+    let selected = state.current_item_index ?? 0, submitting = false, saving = false, pausedAt = null, navigating = false, fullscreenViolationPending = false;
     const storageKey = `vistiq-attempt-${config.state?.id ?? 'preview'}`;
     const savedAnswers = new Map(state.answers.map(answer => [answer.item_key, answer]));
     let pending = {}, conflicting = false, eventQueue = [], activeRecorder = null, recordingPending = false, questionVisitedAt = Date.now();
@@ -44,8 +46,8 @@ if (root) {
     const warning = root.querySelector('[data-warning]');
     const persist = () => { if (!config.preview) { try { localStorage.setItem(storageKey, JSON.stringify(pending)); } catch { status.textContent = 'Trình duyệt không cho lưu cục bộ. Giữ kết nối mạng.'; } } };
     const showWarning = message => { if (conflicting && warning.querySelector('button')) { return; } warning.hidden = false; warning.textContent = message; };
-    const request = async (endpoint, body = undefined) => {
-        const response = await fetch(endpoint, { method: body === undefined ? 'GET' : 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': config.csrf }, body: body === undefined ? undefined : JSON.stringify(body) });
+    const request = async (endpoint, body = undefined, options = {}) => {
+        const response = await fetch(endpoint, { method: body === undefined ? 'GET' : 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': config.csrf }, body: body === undefined ? undefined : JSON.stringify(body), keepalive: options.keepalive ?? false });
         const data = await response.json();
         if (!response.ok) { const error = new Error(data.message ?? 'Không thể xử lý yêu cầu'); error.status = response.status; throw error; }
         return data;
@@ -196,7 +198,7 @@ if (root) {
         root.querySelector('[data-next-section]').disabled = state.paused || state.status === 'expired' || state.active_section >= config.snapshot.sections.length - 1;
         if (state.status === 'expired') { showWarning('Đã hết giờ. Đáp án được khóa; bấm Nộp bài để nhận kết quả.'); }
         if (root.querySelector('[data-pause]')) { root.querySelector('[data-pause]').disabled = state.status === 'expired'; }
-        if (policies.require_fullscreen && !document.fullscreenElement) { showWarning('Đề yêu cầu toàn màn hình. Bấm Toàn màn hình để làm bài.'); }
+        if (policies.require_fullscreen && !document.fullscreenElement) { showWarning(config.preview ? 'Đề yêu cầu toàn màn hình khi làm bài chính thức.' : 'Đã thoát toàn màn hình. Bài thi đang được nộp tự động.'); }
         if (policies.watermark) { root.querySelector('.assessment-item').dataset.watermark = config.watermark; }
         root.classList.toggle('assessment-no-selection', !!policies.disable_selection);
         root.querySelector('[data-pause]')?.replaceChildren(document.createTextNode(state.paused ? 'Tiếp tục' : 'Tạm dừng'));
@@ -261,15 +263,24 @@ if (root) {
         sendingEvents = true;
         try {
             while (eventQueue.length) {
-                const data = await request(config.endpoints.events, eventQueue[0]); eventQueue.shift(); persistEvents();
+                const data = await request(config.endpoints.events, eventQueue[0], { keepalive: true }); eventQueue.shift(); persistEvents();
                 if (data.warnings >= policies.warning_threshold) { showWarning(`Đã ghi nhận ${data.warnings} tín hiệu. Reviewer sẽ xem xét trong ngữ cảnh bài thi.`); }
                 if (data.submitted) { location.assign(config.endpoints.result); break; }
             }
         } catch {} finally { sendingEvents = false; }
     };
     const event = type => {
-        if (config.preview || submitting || !policies.event_logging) { return; }
-        eventQueue.push({ type, event_key: crypto.randomUUID(), item_key: current()?.key }); persistEvents(); flushEvents();
+        const requiredFullscreenViolation = type === 'FULLSCREEN_EXIT' && policies.require_fullscreen;
+        const requiredFocusViolation = ['TAB_HIDDEN', 'WINDOW_BLUR'].includes(type) && policies.require_fullscreen && policies.track_focus;
+        if (config.preview || submitting || (!policies.event_logging && !requiredFullscreenViolation && !requiredFocusViolation)) { return; }
+        eventQueue.push({ type, event_key: crypto.randomUUID(), item_key: current()?.key }); persistEvents(); return flushEvents();
+    };
+    const submitForPolicyExit = async type => {
+        if (config.preview || !policies.require_fullscreen || fullscreenViolationPending) return;
+        fullscreenViolationPending = true;
+        capture();
+        await flush();
+        event(type);
     };
     root.addEventListener('input', capture);
     root.addEventListener('change', eventObject => {
@@ -319,7 +330,7 @@ if (root) {
                 if (config.preview) { showWarning('Preview đã kết thúc. Không tạo lượt thi hoặc kết quả.'); submitting = false; }
                 else { const data = await request(config.endpoints.submit, {}); localStorage.removeItem(storageKey); location.assign(data.url); }
             }
-            if (target.matches('[data-fullscreen]')) { await root.requestFullscreen(); }
+            if (target.matches('[data-fullscreen]')) { await document.documentElement.requestFullscreen(); }
             if (target.matches('[data-pause]')) {
                 capture();
                 if (!state.paused && !(await flush())) { return; }
@@ -372,13 +383,37 @@ if (root) {
             }
         } catch (error) { submitting = false; showWarning(error.message); }
     });
+    root.addEventListener('click', eventObject => {
+        const link = eventObject.target.closest('a[href]');
+        if (link && !config.preview && policies.require_fullscreen) {
+            eventObject.preventDefault();
+            void submitForPolicyExit('FULLSCREEN_EXIT');
+        }
+    });
     for (const [browserEvent, policy, signal] of [['copy', 'disable_copy', 'COPY_ATTEMPT'], ['paste', 'disable_paste', 'PASTE_ATTEMPT'], ['contextmenu', 'disable_context_menu', 'CONTEXT_MENU']]) {
         root.addEventListener(browserEvent, eventObject => { if (policies[policy]) { eventObject.preventDefault(); event(signal); } });
     }
-    document.addEventListener('visibilitychange', () => { if (document.hidden && policies.track_focus) { event('TAB_HIDDEN'); } });
-    window.addEventListener('blur', () => { if (policies.track_focus) { root.classList.toggle('assessment-blurred', !!policies.blur_on_focus_loss); event('WINDOW_BLUR'); } });
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && policies.track_focus) {
+            if (policies.require_fullscreen) { void submitForPolicyExit('TAB_HIDDEN'); }
+            else { event('TAB_HIDDEN'); }
+        }
+    });
+    window.addEventListener('blur', () => {
+        if (policies.track_focus) {
+            root.classList.toggle('assessment-blurred', !!policies.blur_on_focus_loss);
+            if (policies.require_fullscreen) { void submitForPolicyExit('WINDOW_BLUR'); }
+            else { event('WINDOW_BLUR'); }
+        }
+    });
     window.addEventListener('focus', () => root.classList.remove('assessment-blurred'));
-    document.addEventListener('fullscreenchange', () => { capture(); render(); if (!document.fullscreenElement && policies.require_fullscreen) { event('FULLSCREEN_EXIT'); } });
+    document.addEventListener('fullscreenchange', () => {
+        capture(); render();
+        if (!document.fullscreenElement && policies.require_fullscreen) { void submitForPolicyExit('FULLSCREEN_EXIT'); }
+    });
+    window.addEventListener('popstate', () => {
+        if (policies.require_fullscreen) { void submitForPolicyExit('FULLSCREEN_EXIT'); }
+    });
     window.addEventListener('online', async () => { await refresh(); await flushRecordings(); await flush(); await flushEvents(); });
     window.addEventListener('offline', () => { status.textContent = 'Offline · tiếp tục lưu cục bộ'; event('NETWORK_DISCONNECT'); });
     window.addEventListener('beforeunload', eventObject => { if ((Object.keys(pending).length || recordings.size || activeRecorder?.state === 'recording') && !submitting) { eventObject.preventDefault(); eventObject.returnValue = ''; } });
@@ -393,4 +428,9 @@ if (root) {
         channel.postMessage({ tabId, ping: true }); window.addEventListener('pagehide', () => channel.close());
     }
     render(); root.querySelector('[data-items]').hidden = !policies.allow_mobile && mobileViewport.matches; restoreRecordings(); flush(); event('RELOAD');
-}
+    if (!config.preview && policies.require_fullscreen && !document.fullscreenElement && !eventQueue.some(entry => entry.type === 'FULLSCREEN_EXIT')) {
+        void submitForPolicyExit('FULLSCREEN_EXIT');
+    }
+};
+
+initializeExamRunner();

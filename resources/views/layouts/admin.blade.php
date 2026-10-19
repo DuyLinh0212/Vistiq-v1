@@ -4,35 +4,34 @@
             'label' => 'Nội dung',
             'icon' => 'book-open',
             'items' => [
-                ['route' => 'admin.content-approval.index', 'permission' => 'content.review', 'label' => 'Duyệt nội dung', 'icon' => 'check', 'active' => ['admin.content-approval.*']],
-                ['route' => 'admin.questions.index', 'permission' => 'content.view', 'label' => 'Ngân hàng Câu Hỏi', 'icon' => 'grammar', 'active' => ['admin.questions.index'], 'children' => [
+                ['route' => 'admin.content-approval.index', 'permission' => 'content.review', 'label' => 'Duyệt nội dung', 'icon' => 'clipboard-check', 'active' => ['admin.content-approval.*']],
+                ['route' => 'admin.questions.index', 'permission' => 'content.view', 'label' => 'Ngân hàng Câu Hỏi', 'icon' => 'book-open-text', 'active' => ['admin.questions.index'], 'children' => [
                     ['route' => 'admin.questions.listening', 'permission' => 'content.view', 'label' => 'Câu hỏi Listening', 'active' => ['admin.questions.listening']],
                     ['route' => 'admin.readings.index', 'permission' => 'content.view', 'label' => 'Câu hỏi Reading', 'active' => ['admin.readings.*']],
                     ['route' => 'admin.questions.thpt', 'permission' => 'content.view', 'label' => 'Câu hỏi Tiếng Anh THPT', 'active' => ['admin.questions.thpt']],
                 ]],
                 ['route' => 'admin.resources.index', 'permission' => 'content.view', 'label' => 'Tài nguyên', 'icon' => 'resources', 'active' => ['admin.resources.*', 'admin.audio.*', 'admin.media.*']],
-                ['route' => 'admin.knowledge.index', 'permission' => 'content.view', 'label' => 'Kho kiến thức', 'icon' => 'grammar', 'active' => ['admin.knowledge.*']],
+                ['route' => 'admin.knowledge.index', 'permission' => 'content.view', 'label' => 'Kho kiến thức', 'icon' => 'library', 'active' => ['admin.knowledge.*']],
             ],
         ],
         [
             'label' => 'Thi & đánh giá',
             'icon' => 'exam',
             'items' => [
-                ['route' => 'admin.exams.index', 'permission' => 'content.view', 'label' => 'Đề thi', 'icon' => 'clock', 'active' => ['admin.exams.*']],
+                ['route' => 'admin.exams.index', 'permission' => 'content.view', 'label' => 'Đề thi', 'icon' => 'file-check', 'active' => ['admin.exams.*']],
                 ['route' => 'admin.attempts.index', 'permission' => 'results.view', 'label' => 'Lượt thi & báo cáo', 'icon' => 'activity', 'active' => ['admin.attempts.*']],
-                ['route' => 'admin.grading.index', 'permission' => 'results.grade', 'label' => 'Chấm Writing / Speaking', 'icon' => 'check', 'active' => ['admin.grading.*']],
-                ['route' => 'admin.leaderboard.index', 'permission' => 'results.view', 'label' => 'Leaderboard', 'icon' => 'saved', 'active' => ['admin.leaderboard.*']],
-                ['route' => 'admin.analytics', 'permission' => 'results.view', 'label' => 'Analytics', 'icon' => 'dashboard', 'active' => ['admin.analytics']],
+                ['route' => 'admin.leaderboard.index', 'permission' => 'results.view', 'label' => 'Leaderboard', 'icon' => 'trophy', 'active' => ['admin.leaderboard.*']],
+                ['route' => 'admin.analytics', 'permission' => 'results.view', 'label' => 'Analytics', 'icon' => 'chart-column', 'active' => ['admin.analytics']],
             ],
         ],
         [
             'label' => 'Quản trị',
-            'icon' => 'settings',
+            'icon' => 'settings-2',
             'items' => [
-                ['route' => 'admin.users.index', 'permission' => 'users.manage', 'label' => 'Người dùng', 'icon' => 'activity', 'active' => ['admin.users.*']],
-                ['route' => 'admin.roles.index', 'permission' => 'roles.manage', 'label' => 'Phân quyền', 'icon' => 'check', 'active' => ['admin.roles.*']],
-                ['route' => 'admin.settings.index', 'permission' => 'settings.manage', 'label' => 'Settings', 'icon' => 'collection', 'active' => ['admin.settings.*']],
-                ['route' => 'admin.audit.index', 'permission' => 'audit.view', 'label' => 'Audit log', 'icon' => 'activity', 'active' => ['admin.audit.*']],
+                ['route' => 'admin.users.index', 'permission' => 'users.manage', 'label' => 'Người dùng', 'icon' => 'users', 'active' => ['admin.users.*']],
+                ['route' => 'admin.roles.index', 'permission' => 'roles.manage', 'label' => 'Phân quyền', 'icon' => 'shield-check', 'active' => ['admin.roles.*']],
+                ['route' => 'admin.settings.index', 'permission' => 'settings.manage', 'label' => 'Settings', 'icon' => 'settings', 'active' => ['admin.settings.*']],
+                ['route' => 'admin.audit.index', 'permission' => 'audit.view', 'label' => 'Audit log', 'icon' => 'history', 'active' => ['admin.audit.*']],
             ],
         ],
     ];
@@ -84,7 +83,7 @@
                                 </details>
                             @else
                                 <a class="{{ $itemIsActive ? 'is-active' : '' }}" href="{{ route($navItem['route']) }}" aria-label="{{ $navItem['label'] }}" title="{{ $navItem['label'] }}" @if($itemIsActive) aria-current="page" @endif>
-                                    <span class="admin-nav-link-icon">@if($navItem['icon'] === 'resources')<i data-resource-icon="folder-open"></i>@else @include('pages.dictionary.icon', ['name' => $navItem['icon']]) @endif</span>
+                                    <span class="admin-nav-link-icon">@include('pages.dictionary.icon', ['name' => $navItem['icon']])</span>
                                     <span class="admin-nav-link-label">{{ $navItem['label'] }}</span>
                                 </a>
                             @endif
@@ -96,7 +95,7 @@
         <div class="sidebar-bottom"><p>{{ auth()->user()?->name }}</p><form method="post" action="{{ route('admin.logout') }}">@csrf<button class="button button-quiet">Đăng xuất</button></form></div>
     </aside>
     <div class="admin-main">
-        <header class="admin-topbar"><div class="breadcrumbs"><a href="{{ route('admin.dashboard') }}">Admin Studio</a></div><form method="get" action="{{ route('admin.search') }}"><input name="q" placeholder="Tìm câu hỏi, đề, kiến thức" aria-label="Tìm toàn hệ thống"></form></header>
-        <main class="page-wrap admin-page">@include('shared.feedback') @include($page['view'])</main>
+        <header class="admin-topbar"><div class="breadcrumbs"><a href="{{ route('admin.dashboard') }}">Admin Studio</a></div><form method="get" action="{{ route('admin.search') }}" data-ajax-filter-form data-ajax-target="#admin-search-results" data-ajax-debounce="350" data-ajax-history-first-push><input type="search" name="q" value="{{ request()->routeIs('admin.search') ? request('q') : '' }}" placeholder="Tìm câu hỏi, đề, kiến thức" aria-label="Tìm toàn hệ thống" autocomplete="off"></form></header>
+        <main class="page-wrap admin-page">@include('shared.feedback') @unless(request()->routeIs('admin.search'))<div id="admin-search-results" data-ajax-results hidden></div>@endunless @include($page['view'])</main>
     </div>
 </div>

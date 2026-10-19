@@ -21,10 +21,10 @@ class OverviewService
         $canAudit = Gate::allows('audit.view');
         $metrics = [];
         foreach ([
-            ['users', 'Tổng người dùng', 'profile', 'blue', DB::table('users'), 'created_at', $canUsers],
-            ['exams', 'Tổng đề thi', 'grammar', 'green', DB::table('exam_templates'), 'created_at', $canContent],
-            ['questions', 'Tổng câu hỏi', 'book', 'violet', DB::table('question_bank_items'), 'created_at', $canContent],
-            ['attempts', 'Lượt làm bài', 'exam', 'orange', $attempts, 'a.started_at', $canResults],
+            ['users', 'Tổng người dùng', 'users', 'blue', DB::table('users'), 'created_at', $canUsers],
+            ['exams', 'Tổng đề thi', 'file-check', 'green', DB::table('exam_templates'), 'created_at', $canContent],
+            ['questions', 'Tổng câu hỏi', 'book-open-text', 'violet', DB::table('question_bank_items'), 'created_at', $canContent],
+            ['attempts', 'Lượt làm bài', 'activity', 'orange', $attempts, 'a.started_at', $canResults],
         ] as [$key, $label, $icon, $color, $query, $column, $allowed]) {
             if (! $allowed) {
                 continue;

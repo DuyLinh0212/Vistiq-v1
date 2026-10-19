@@ -97,7 +97,41 @@ class ProfileController extends Controller
         $attempts = $query->listing($filters, $request->user()->id, $timeZone);
         $exams = DB::table('exam_templates')->join('exam_attempts', 'exam_attempts.exam_template_id', '=', 'exam_templates.id')->where('exam_attempts.user_id', $request->user()->id)->select('exam_templates.id', 'exam_templates.title')->distinct()->get();
 
-        return $this->page('Lịch sử làm đề', 'pages.learner.profile.history', compact('attempts', 'filters', 'exams', 'timeZone'));
+        $historySummaryQuery = DB::table('exam_attempts')
+            ->leftJoin(DB::source('attempt_results as result'), 'result.exam_attempt_id', '=', 'exam_attempts.id')
+            ->where('exam_attempts.user_id', $request->user()->id);
+
+        if (isset($filters['exam'])) {
+            $historySummaryQuery->where('exam_attempts.exam_template_id', $filters['exam']);
+        }
+
+        if (isset($filters['status'])) {
+            $historySummaryQuery->where('exam_attempts.status', $filters['status']);
+        }
+
+        if (isset($filters['from'])) {
+            $historySummaryQuery->where(
+                'exam_attempts.started_at',
+                '>=',
+                Carbon::parse($filters['from'], $timeZone)->startOfDay()->setTimezone(config('app.timezone'))->toDateTimeString(),
+            );
+        }
+
+        if (isset($filters['to'])) {
+            $historySummaryQuery->where(
+                'exam_attempts.started_at',
+                '<',
+                Carbon::parse($filters['to'], $timeZone)->addDay()->startOfDay()->setTimezone(config('app.timezone'))->toDateTimeString(),
+            );
+        }
+
+        $historySummary = $historySummaryQuery
+            ->selectRaw('COUNT(DISTINCT exam_attempts.id) as total_attempts')
+            ->selectRaw("COUNT(DISTINCT CASE WHEN exam_attempts.status = 'completed' THEN exam_attempts.id END) as completed_attempts")
+            ->selectRaw("AVG(CASE WHEN result.grading_status = 'completed' THEN result.scaled_score END) as average_score")
+            ->first();
+
+        return $this->page('Lịch sử làm đề', 'pages.learner.profile.history', compact('attempts', 'filters', 'exams', 'timeZone', 'historySummary'));
     }
 
     public function saved(Request $request, KnowledgeReaderService $knowledge): View

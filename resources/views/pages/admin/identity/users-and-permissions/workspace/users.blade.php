@@ -5,7 +5,7 @@
         @can('roles.manage')<a class="button button-quiet" href="{{ route('admin.roles.index') }}">Quản lý vai trò</a>@endcan
     </header>
     <section class="panel" aria-label="Bộ lọc người dùng">
-        <form method="get" action="{{ route('admin.users.index') }}" class="admin-form-grid identity-filter">
+        <form method="get" action="{{ route('admin.users.index') }}" class="admin-form-grid identity-filter" data-ajax-filter-form data-ajax-target="#admin-users-results" data-ajax-on-change data-ajax-debounce="350">
             <label for="filter-q">Tên hoặc email<input id="filter-q" name="q" type="search" value="{{ $filters['q'] }}" placeholder="Tìm người dùng…" maxlength="255"></label>
             <label for="filter-status">Trạng thái<select id="filter-status" name="status">
                 <option value="all" @selected($filters['status'] === 'all')>Tất cả trạng thái</option>
@@ -17,10 +17,10 @@
             </select></label>
             <label for="filter-created-from">Tạo từ ngày<input id="filter-created-from" name="created_from" type="date" value="{{ $filters['created_from'] }}" @if($filters['created_to'])max="{{ $filters['created_to'] }}"@endif></label>
             <label for="filter-created-to">Đến ngày<input id="filter-created-to" name="created_to" type="date" value="{{ $filters['created_to'] }}" @if($filters['created_from'])min="{{ $filters['created_from'] }}"@endif></label>
-            <div class="identity-actions identity-filter-actions"><a class="button button-quiet" href="{{ route('admin.users.index') }}">Đặt lại</a><button type="submit" class="button button-primary">Lọc tài khoản</button></div>
+            <div class="identity-actions identity-filter-actions"><a class="button button-quiet" data-ajax-filter-reset="#admin-users-results" href="{{ route('admin.users.index') }}">Đặt lại</a><button type="submit" class="button button-primary">Lọc tài khoản</button></div>
         </form>
     </section>
-    <section class="panel identity-table-panel" aria-labelledby="users-list-title">
+    <section id="admin-users-results" class="panel identity-table-panel" aria-labelledby="users-list-title" data-ajax-results>
         <div class="section-head identity-table-heading"><h2 id="users-list-title">Danh sách tài khoản</h2><span class="identity-meta">{{ number_format($users->total()) }} người dùng @if($users->total()) · {{ $users->firstItem() }}–{{ $users->lastItem() }}@endif</span></div>
         <div class="identity-table-scroll" role="region" aria-label="Danh sách người dùng, cuộn ngang để xem thêm cột" tabindex="0">
             <table class="admin-table">
@@ -41,6 +41,6 @@
                 </tbody>
             </table>
         </div>
-        @if($users->hasPages())<div class="identity-pagination">{{ $users->onEachSide(1)->links('pages.admin.identity.users-and-permissions.workspace.pagination') }}</div>@endif
+        @if($users->hasPages())<div class="identity-pagination" data-ajax-pagination>{{ $users->onEachSide(1)->links('pages.admin.identity.users-and-permissions.workspace.pagination') }}</div>@endif
     </section>
 </div>

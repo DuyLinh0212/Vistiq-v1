@@ -1,6 +1,6 @@
 <header class="user-topbar">
     <a class="brand" href="{{ route('home') }}" aria-label="Vistiq - Trang chủ"><img class="brand-mark" src="{{ asset('images/vistiq-logo.png') }}" alt=""></a>
-    <nav class="user-nav" aria-label="Điều hướng chính">
+    <nav class="user-nav" id="user-main-navigation" aria-label="Điều hướng chính">
         <a class="{{ $page['section'] === 'home' ? 'is-active' : '' }}" href="{{ route('home') }}">@include('pages.dictionary.icon', ['name' => 'home']) <span>Trang chủ</span></a>
         <a class="{{ $page['section'] === 'lookup' && ($type ?? 'all') !== 'grammar' ? 'is-active' : '' }}" href="{{ route('lookup.index') }}">@include('pages.dictionary.icon', ['name' => 'search']) <span>Tra cứu</span></a>
         <a class="{{ $page['section'] === 'exams' ? 'is-active' : '' }}" href="{{ route('demo.page', 'exams') }}">@include('pages.dictionary.icon', ['name' => 'exam']) <span>Luyện đề</span></a>
@@ -20,7 +20,7 @@
             </form>
         @endguest
     </div>
-    <button class="mobile-menu" aria-label="Mở điều hướng">@include('pages.dictionary.icon', ['name' => 'menu'])</button>
+    <button class="mobile-menu" type="button" aria-label="Mở điều hướng" aria-expanded="false" aria-controls="user-main-navigation">@include('pages.dictionary.icon', ['name' => 'menu'])</button>
 </header>
 <main class="page-wrap">
     @include('shared.feedback')

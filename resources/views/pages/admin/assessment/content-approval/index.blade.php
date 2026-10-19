@@ -8,12 +8,12 @@
     </section>
 @endif
 <section class="panel">
-    <nav class="assessment-actions" aria-label="Loại nội dung">
+    <nav id="content-approval-kinds" class="assessment-actions" aria-label="Loại nội dung">
         @foreach([''=>'Tất cả','question'=>'Câu hỏi','stimulus'=>'Bài Reading','exam'=>'Đề thi'] as $kind=>$label)
-            <a class="button button-quiet" href="{{ route('admin.content-approval.index', array_merge(request()->except('page'), ['kind'=>$kind])) }}" @if(($filters['kind']??'')===$kind) aria-current="page" @endif>{{ $label }}</a>
+            <a class="button button-quiet" data-ajax-filter-reset="#content-approval-kinds, #content-approval-results" href="{{ route('admin.content-approval.index', array_merge(request()->except('page'), ['kind'=>$kind])) }}" @if(($filters['kind']??'')===$kind) aria-current="page" @endif>{{ $label }}</a>
         @endforeach
     </nav>
-    <form method="get" class="admin-form-grid review-queue-filters">
+    <form method="get" class="admin-form-grid review-queue-filters" data-ajax-filter-form data-ajax-target="#content-approval-kinds, #content-approval-results" data-ajax-on-change data-ajax-debounce="350">
         <input type="hidden" name="kind" value="{{ $filters['kind']??'' }}">
         <label>Tìm nội dung<input name="q" maxlength="255" value="{{ $filters['q']??'' }}"></label>
         <label>ID người gửi<input name="author" type="number" min="1" value="{{ $filters['author']??'' }}"></label>
@@ -22,9 +22,9 @@
         <label>Part<select name="part"><option value="">Tất cả</option>@foreach($parts as $part)<option value="{{ $part->id }}" @selected((string)($filters['part']??'')===(string)$part->id)>{{ $part->exam_type_name }} · {{ $part->name }}</option>@endforeach</select></label>
         <label>Từ ngày<input name="from" type="date" value="{{ $filters['from']??'' }}"></label>
         <label>Đến ngày<input name="to" type="date" value="{{ $filters['to']??'' }}"></label>
-        <button class="button button-primary">Lọc hàng đợi</button>
+        <button class="button button-primary" type="submit">Lọc hàng đợi</button>
     </form>
-    <div data-review-queue-results>
+    <div id="content-approval-results" data-review-queue-results data-ajax-results>
         @php($initialProgress = $bulkBatch ?? session('review_bulk_progress'))
         <form method="post" action="{{ route('admin.content-approval.approve-all') }}" data-review-bulk-approve data-review-total="{{ $entries->total() }}" @if($bulkBatch) data-review-resume-url="{{ $bulkBatch['next_url'] }}" @endif @if($initialProgress) data-review-progress-state="{{ json_encode($initialProgress) }}" @endif>
             @csrf
@@ -58,7 +58,7 @@
                 <progress data-review-progress-bar aria-labelledby="review-progress-label" aria-describedby="review-progress-status" max="{{ max(1, $initialProgress['total'] ?? $entries->total()) }}" value="{{ $initialProgress['processed'] ?? 0 }}"></progress>
                 <p id="review-progress-status" data-review-progress-status role="status" aria-live="polite">{{ $entries->total() ? 'Chưa bắt đầu duyệt.' : 'Không có nội dung chờ duyệt.' }}</p>
             </div>
-            {{ $entries->links() }}
+            <div data-ajax-pagination>{{ $entries->links() }}</div>
         </form>
     </div>
 </section>

@@ -24,20 +24,20 @@ class AttemptWorkflowTest extends TestCase
         $this->freezeTime();
     }
 
-    private function exam(array $policies = []): ExamTemplate
+    private function exam(array $policies = [], string $mode = 'mini'): ExamTemplate
     {
         $exam = ExamTemplateFactory::new()->create(['status' => 'published']);
-        $payload = ['schema_version' => 1, 'exam_id' => $exam->id, 'title' => $exam->title, 'exam_type' => 'toeic', 'mode' => 'mini', 'variant' => null, 'opens_at' => null, 'closes_at' => null, 'items' => [['key' => 'q1', 'type' => 'multiple_choice', 'section' => 0, 'skill' => 'reading', 'part' => 'part-5', 'prompt' => 'Answer this', 'options' => ['A' => 'one', 'B' => 'two', 'C' => 'three', 'D' => 'four'], 'correct_options' => ['B'], 'accepted_answers' => [], 'explanation' => 'Hidden answer', 'metadata' => ['model_answer' => 'Hidden model'], 'stimuli' => []]], 'sections' => [['index' => 0, 'title' => 'Part 5', 'item_keys' => ['q1'], 'duration_minutes' => 0, 'timing_group' => 'reading']], 'policies' => array_replace(ExamPublishingService::POLICIES, $policies), 'scoring' => null];
+        $payload = ['schema_version' => 1, 'exam_id' => $exam->id, 'title' => $exam->title, 'exam_type' => 'toeic', 'mode' => $mode, 'variant' => null, 'opens_at' => null, 'closes_at' => null, 'items' => [['key' => 'q1', 'type' => 'multiple_choice', 'section' => 0, 'skill' => 'reading', 'part' => 'part-5', 'prompt' => 'Answer this', 'options' => ['A' => 'one', 'B' => 'two', 'C' => 'three', 'D' => 'four'], 'correct_options' => ['B'], 'accepted_answers' => [], 'explanation' => 'Hidden answer', 'metadata' => ['model_answer' => 'Hidden model'], 'stimuli' => []]], 'sections' => [['index' => 0, 'title' => 'Part 5', 'item_keys' => ['q1'], 'duration_minutes' => 0, 'timing_group' => 'reading']], 'policies' => array_replace(ExamPublishingService::POLICIES, $policies), 'scoring' => null];
         $revision = ExamRevision::create(['exam_template_id' => $exam->id, 'number' => 1, 'payload' => $payload]);
         $exam->update(['published_revision_id' => $revision->id]);
 
         return $exam;
     }
 
-    private function start(array $policies = []): ExamAttempt
+    private function start(array $policies = [], string $mode = 'mini'): ExamAttempt
     {
         $this->actingAs(User::factory()->create());
-        $exam = $this->exam($policies);
+        $exam = $this->exam($policies, $mode);
         $response = $this->postJson('/exams/'.$exam->id.'/start')->assertOk();
 
         return ExamAttempt::findOrFail($response->json('id'));
@@ -91,6 +91,49 @@ class AttemptWorkflowTest extends TestCase
         $attempt = $this->start(['answer_review' => 'never', 'explanation_review' => 'never']);
         $this->postJson('/attempts/'.$attempt->id.'/submit')->assertOk()->assertJsonPath('result.review', []);
         $this->getJson('/attempts/'.$attempt->id.'/result')->assertOk()->assertDontSee('correct_options')->assertDontSee('Hidden model');
+    }
+
+    public function test_full_simulation_overrides_unsafe_policies_and_submits_on_fullscreen_exit(): void
+    {
+        $attempt = $this->start([
+            'pause_allowed' => true,
+            'auto_submit' => false,
+            'answer_review' => 'after_each',
+            'explanation_review' => 'after_each',
+            'require_fullscreen' => true,
+        ], 'full');
+
+        $policies = $attempt->snapshot['policies'];
+        $this->assertFalse($policies['pause_allowed']);
+        $this->assertTrue($policies['auto_submit']);
+        $this->assertSame('after_submit', $policies['answer_review']);
+        $this->assertSame('after_submit', $policies['explanation_review']);
+        $this->postJson('/attempts/'.$attempt->id.'/pause')->assertForbidden();
+
+        $answer = $this->postJson('/attempts/'.$attempt->id.'/answers', [
+            'answers' => [['item_key' => 'q1', 'version' => 0, 'response' => ['options' => ['B']]]],
+        ])->assertOk()->json('answers.0');
+        $this->assertArrayNotHasKey('review', $answer);
+        $this->assertArrayNotHasKey('grade', $answer);
+
+        $this->postJson('/attempts/'.$attempt->id.'/events', ['type' => 'FULLSCREEN_EXIT', 'event_key' => 'fullscreen-exit-test'])
+            ->assertOk()
+            ->assertJsonPath('submitted', true)
+            ->assertJsonPath('message', 'Đã thoát toàn màn hình. Bài thi được nộp tự động.');
+        $this->assertNotNull($attempt->fresh()->submitted_at);
+    }
+
+    public function test_full_simulation_deadline_submits_even_for_a_legacy_snapshot_with_auto_submit_disabled(): void
+    {
+        $attempt = $this->start(['duration_minutes' => 1], 'full');
+        $snapshot = $attempt->snapshot;
+        $snapshot['policies']['auto_submit'] = false;
+        $attempt->update(['snapshot' => $snapshot]);
+
+        $this->travel(61)->seconds();
+        $this->getJson('/attempts/'.$attempt->id.'/state')->assertOk();
+
+        $this->assertNotNull($attempt->fresh()->submitted_at);
     }
 
     public function test_admin_authoring_and_admin_demo_are_not_exposed_in_learner_app(): void

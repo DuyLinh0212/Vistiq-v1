@@ -198,6 +198,11 @@ if (dialog) {
 
     initializeBulkSelection(document);
 
+    document.addEventListener('vistiq:ajax-results-updated', event => {
+        const refreshedQueue = event.detail.targets?.find(target => target.matches('[data-review-queue-results]'));
+        if (refreshedQueue) initializeBulkSelection(refreshedQueue);
+    });
+
     const showConfirmation = async (form, button, inDialog) => {
         const wasOpen = inDialog && dialog.open;
         const trigger = activeButton;

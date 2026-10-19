@@ -25,6 +25,21 @@ class PublishValidationTest extends TestCase
         $this->assertStringContainsString('bảng quy đổi', $errors);
     }
 
+    public function test_full_simulation_forces_non_pausable_auto_submit_and_delayed_answer_review(): void
+    {
+        $policies = ExamPublishingService::normalizePolicies('full', [
+            'pause_allowed' => true,
+            'auto_submit' => false,
+            'answer_review' => 'after_each',
+            'explanation_review' => 'after_each',
+        ]);
+
+        $this->assertFalse($policies['pause_allowed']);
+        $this->assertTrue($policies['auto_submit']);
+        $this->assertSame('after_submit', $policies['answer_review']);
+        $this->assertSame('after_submit', $policies['explanation_review']);
+    }
+
     public function test_full_ielts_requires_variant_and_all_four_skills(): void
     {
         $this->seed(AdminCatalogSeeder::class);

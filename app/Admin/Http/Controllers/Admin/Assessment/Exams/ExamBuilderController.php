@@ -6,6 +6,7 @@ use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqCore\Services\Shared\CompactDatabase as DB;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use VistiqAdmin\Http\Requests\Admin\Assessment\Exams\ExamGenerationRequest;
 use VistiqAdmin\Http\Requests\Admin\Assessment\Exams\ExamUpsertRequest;
 use VistiqCore\Models\ExamPart;
@@ -17,6 +18,7 @@ use VistiqCore\Models\MediaAsset;
 use VistiqCore\Services\Assessment\Attempts\AttemptService;
 use VistiqCore\Services\Assessment\Exams\ExamGenerationService;
 use VistiqCore\Services\Assessment\Exams\ExamPublishingService;
+use VistiqCore\Services\System\AuditService;
 
 class ExamBuilderController extends AdminPageController
 {
@@ -185,6 +187,39 @@ class ExamBuilderController extends AdminPageController
         $exam = $service->save($exam, $request->validated(), $request->validated('revision_counter'));
 
         return $request->expectsJson() ? response()->json(['revision_counter' => $exam->revision_counter]) : back()->with('status', 'Đã lưu đề.');
+    }
+
+    public function destroy(ExamTemplate $exam, AuditService $audit): mixed
+    {
+        Gate::authorize('content.edit');
+        $before = ['title' => $exam->title, 'status' => $exam->status, 'attempts' => $exam->attempts()->count()];
+        $exam->delete();
+        $audit->record('exam.delete', 'exam', $exam->id, $before, ['soft_deleted' => true]);
+
+        return redirect()->route('admin.exams.index')->with('status', 'Đã xóa mềm đề “'.$exam->title.'”. Đề đã ẩn khỏi kho học viên; lịch sử làm bài được giữ nguyên.');
+    }
+
+    public function deleted(): mixed
+    {
+        return $this->page('Đề thi đã xóa', 'pages.admin.assessment.exams.workspace.deleted', [
+            'exams' => ExamTemplate::onlyTrashed()->with('examType')->orderByDesc('deleted_at')->paginate(20),
+        ]);
+    }
+
+    public function restore(int $exam, AuditService $audit): mixed
+    {
+        Gate::authorize('content.edit');
+        $restored = DB::transaction(function () use ($exam, $audit): ExamTemplate {
+            $item = ExamTemplate::withTrashed()->lockForUpdate()->findOrFail($exam);
+            abort_unless($item->trashed(), 404);
+            $before = ['deleted_at' => $item->deleted_at?->toIso8601String(), 'status' => $item->status];
+            $item->restore();
+            $audit->record('exam.restore', 'exam', $item->id, $before, ['soft_deleted' => false]);
+
+            return $item;
+        });
+
+        return redirect()->route('admin.exams.index')->with('status', 'Đã khôi phục đề “'.$restored->title.'”. Đề sẽ hiển thị lại cho học viên nếu đang ở trạng thái được duyệt.');
     }
 
     public function validation(ExamTemplate $exam, ExamPublishingService $service): mixed

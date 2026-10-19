@@ -65,6 +65,7 @@
         <header class="qb-heading qb-heading-thpt">
             <div><h1>Ngân hàng câu hỏi · Tiếng Anh THPT Quốc gia</h1><p>Quản lý câu hỏi, nhóm văn bản và trạng thái duyệt.</p></div>
             <div class="qb-heading-actions">
+                @can('content.edit')<a class="button button-quiet" href="{{ route('admin.questions.deleted') }}">Câu hỏi đã xóa</a>@endcan
                 <a class="button button-quiet" href="{{ route('admin.groups.index') }}">@include('pages.dictionary.icon', ['name' => 'collection']) Tạo nhóm đề</a>
                 <a class="button button-quiet" href="#qb-thpt-import">@include('pages.dictionary.icon', ['name' => 'collection']) Import câu hỏi</a>
                 @include('pages.admin.assessment.question-bank.workspace.send-all-review')
@@ -78,10 +79,10 @@
         <section class="qb-stats qb-thpt-stats" aria-label="Thống kê ngân hàng câu hỏi THPT">
             @foreach([
                 ['label' => 'Tổng câu hỏi', 'value' => $thptStats['total'] ?? 0, 'icon' => 'book-open', 'tone' => 'blue'],
-                ['label' => 'Điền từ ngắn', 'value' => $thptStats['short_cloze'] ?? 0, 'icon' => 'collection', 'tone' => 'green'],
-                ['label' => 'Sắp xếp câu', 'value' => $thptStats['arrangement'] ?? 0, 'icon' => 'activity', 'tone' => 'violet'],
-                ['label' => 'Điền cụm / câu', 'value' => $thptStats['extended_completion'] ?? 0, 'icon' => 'grammar', 'tone' => 'orange'],
-                ['label' => 'Đọc hiểu', 'value' => $thptStats['reading'] ?? 0, 'icon' => 'book', 'tone' => 'pink'],
+                ['label' => 'Điền từ ngắn', 'value' => $thptStats['short_cloze'] ?? 0, 'icon' => 'text-cursor-input', 'tone' => 'green'],
+                ['label' => 'Sắp xếp câu', 'value' => $thptStats['arrangement'] ?? 0, 'icon' => 'list-ordered', 'tone' => 'violet'],
+                ['label' => 'Điền cụm / câu', 'value' => $thptStats['extended_completion'] ?? 0, 'icon' => 'text-cursor-input', 'tone' => 'orange'],
+                ['label' => 'Đọc hiểu', 'value' => $thptStats['reading'] ?? 0, 'icon' => 'book-open-text', 'tone' => 'pink'],
             ] as $stat)
                 <article class="qb-stat"><span class="qb-stat-icon is-{{ $stat['tone'] }}">@include('pages.dictionary.icon', ['name' => $stat['icon']])</span><div><span>{{ $stat['label'] }}</span><strong>{{ number_format($stat['value']) }}</strong></div></article>
             @endforeach
@@ -90,6 +91,7 @@
         <header class="qb-heading">
             <h1>Ngân hàng câu hỏi</h1>
             <div class="qb-heading-actions">
+                @can('content.edit')<a class="button button-quiet" href="{{ route('admin.questions.deleted') }}">Câu hỏi đã xóa</a>@endcan
                 <a class="button button-quiet" href="{{ route('admin.questions.export') }}">@include('pages.dictionary.icon', ['name' => 'external-link']) Export CSV</a>
                 @can('content.edit')<a class="button button-primary" href="{{ route('admin.questions.create') }}">@include('pages.dictionary.icon', ['name' => 'plus']) Tạo câu hỏi</a>@endcan
             </div>
@@ -99,64 +101,48 @@
     <div class="qb-workspace">
         <section class="qb-directory" aria-label="Danh sách câu hỏi">
             <div class="qb-filters">
-                @if (request()->routeIs('admin.questions.thpt'))
-                    <nav class="qb-family-tabs" aria-label="Dạng nội dung Tiếng Anh THPT">
-                        <a class="{{ $filters['family'] === '' ? 'is-active' : '' }}" href="{{ route($bankRouteName, request()->except('family', 'part', 'page')) }}" @if($filters['family'] === '')aria-current="page" @endif>Tất cả <small>{{ number_format($thptStats['total'] ?? 0) }}</small></a>
-                        @foreach($thptFamilies as $familyCode => $familyName)
-                            <a class="{{ $filters['family'] === $familyCode ? 'is-active' : '' }}" href="{{ route($bankRouteName, array_merge(request()->except('family', 'part', 'page'), ['family' => $familyCode])) }}" @if($filters['family'] === $familyCode)aria-current="page" @endif>{{ $familyName }} <small>{{ number_format($thptFamilyCounts[$familyCode] ?? 0) }}</small></a>
-                        @endforeach
-                    </nav>
-                @else
-                    <nav class="qb-exam-tabs" aria-label="Kỳ thi">
-                        <a class="{{ $filters['exam'] === '' ? 'is-active' : '' }}" href="{{ route($bankRouteName, request()->except('exam', 'part', 'type', 'page')) }}" @if($filters['exam'] === '')aria-current="page" @endif>Tất cả</a>
-                        @foreach ($examTypes as $examType)
-                            <a class="{{ $filters['exam'] === $examType->code ? 'is-active' : '' }}" href="{{ route($bankRouteName, array_merge(request()->except('part', 'type', 'page'), ['exam' => $examType->code])) }}" @if($filters['exam'] === $examType->code)aria-current="page" @endif>{{ $examType->name }}</a>
-                        @endforeach
-                    </nav>
-                @endif
-                @unless($isThptEnglish)<nav class="qb-part-tabs" aria-label="Part và kỹ năng">
-                    <a class="{{ $filters['part'] === '' ? 'is-active' : '' }}" href="{{ route($bankRouteName, request()->except('part', 'type', 'page')) }}" @if($filters['part'] === '')aria-current="page" @endif>{{ $isThptEnglish ? 'Tất cả nhóm' : 'Tất cả' }}</a>
-                    @foreach ($parts as $partOption)
-                        <a class="{{ $filters['part'] === $partOption->code ? 'is-active' : '' }}" href="{{ route($bankRouteName, array_merge(request()->except('type', 'page', 'family'), ['exam' => $partOption->examType->code, 'part' => $partOption->code])) }}" @if($filters['part'] === $partOption->code)aria-current="page" @endif title="{{ $partOption->name }}">{{ $filters['exam'] === '' ? $partOption->examType->name.' · ' : '' }}{{ $partLabel($partOption) }}</a>
-                    @endforeach
-                </nav>@endunless
-                <form class="qb-search" method="get" action="{{ route($bankRouteName) }}" data-question-search>
-                    <div class="search-bar"><span>@include('pages.dictionary.icon', ['name' => 'search'])</span><input name="q" value="{{ $filters['search'] }}" placeholder="Tìm mã bài, tiêu đề hoặc câu hỏi…" aria-label="Tìm bài hoặc câu hỏi"></div>
-                    @foreach (['exam', 'part', 'type', 'difficulty', 'status', 'audio', 'reading', 'sort', 'family'] as $filterName)<input type="hidden" name="{{ $filterName }}" value="{{ $filters[$filterName] }}">@endforeach
-                    <input type="hidden" name="per_page" value="{{ $filters['perPage'] }}">
-                    @if($filters['missing'])<input type="hidden" name="missing" value="1">@endif
-                    <button class="button button-quiet" type="submit">Tìm kiếm</button>
-                </form>
-                <form id="qb-filter-form" class="qb-filter-form" method="get" action="{{ route($bankRouteName) }}" data-question-filters @if($isThptEnglish)data-thpt-filters @endif>
-                    <input type="hidden" name="q" value="{{ $filters['search'] }}">
-                    <input type="hidden" name="exam" value="{{ $filters['exam'] }}">
-                    <input type="hidden" name="family" value="{{ $filters['family'] }}">
-                    <select name="part" hidden aria-label="Part"><option value="">Tất cả</option>@foreach($parts as $partOption)<option value="{{ $partOption->code }}" @selected($filters['part'] === $partOption->code)>{{ $partOption->name }}</option>@endforeach</select>
+                <form id="qb-filter-form" class="qb-filter-form" method="get" action="{{ route($bankRouteName) }}" data-question-filters data-question-search data-ajax-filter-form data-ajax-target="#qb-results" data-ajax-debounce="350" @if($isThptEnglish)data-thpt-filters @endif>
                     <input type="hidden" name="sort" value="{{ $filters['sort'] }}">
                     <input type="hidden" name="per_page" value="{{ $filters['perPage'] }}">
+                    @unless($isThptEnglish)<input type="hidden" name="family" value="{{ $filters['family'] }}">@endunless
+                    @if($isThptEnglish)<input type="hidden" name="exam" value="{{ $filters['exam'] }}">@endif
                     <div class="qb-filter-grid">
-                        <label>Mức độ<select name="difficulty"><option value="">Tất cả</option>@foreach($difficulties as $difficulty)<option value="{{ $difficulty->code }}" @selected($filters['difficulty'] === $difficulty->code)>{{ $difficultyLabels[$difficulty->code] ?? $difficulty->name }}</option>@endforeach</select></label>
+                        <label class="qb-filter-search">Tìm bài<div class="search-bar"><span>@include('pages.dictionary.icon', ['name' => 'search'])</span><input type="search" name="q" value="{{ $filters['search'] }}" placeholder="Mã bài hoặc tiêu đề" aria-label="Tìm bài hoặc câu hỏi" autocomplete="off"></div></label>
+                        @unless($isThptEnglish)<label>Kỳ thi<select name="exam"><option value="">Tất cả kỳ thi</option>@foreach($examTypes as $examType)<option value="{{ $examType->code }}" @selected($filters['exam'] === $examType->code)>{{ $examType->name }}</option>@endforeach</select></label>@endunless
+                        <label>Part / Section<select name="part"><option value="">{{ $isThptEnglish ? 'Tất cả phần' : 'Tất cả Part' }}</option>@foreach($parts as $partOption)<option value="{{ $partOption->code }}" @selected($filters['part'] === $partOption->code)>{{ $isThptEnglish ? $partLabel($partOption) : $partOption->examType->name.' · '.$partLabel($partOption) }}</option>@endforeach</select></label>
                         <label>Trạng thái<select name="status"><option value="">Tất cả</option>@foreach($statusLabels as $code => $label)<option value="{{ $code }}" @selected($filters['status'] === $code)>{{ $label }}</option>@endforeach</select></label>
-                        @unless($isThptEnglish)<label>Có audio<select name="audio"><option value="">Tất cả</option><option value="yes" @selected($filters['audio'] === 'yes')>Có audio</option><option value="no" @selected($filters['audio'] === 'no')>Không có audio</option></select></label>@endunless
-                        <label>{{ $isThptEnglish ? 'Có văn bản' : 'Có bài đọc' }}<select name="reading"><option value="">Tất cả</option><option value="yes" @selected($filters['reading'] === 'yes')>{{ $isThptEnglish ? 'Có văn bản' : 'Có bài đọc' }}</option><option value="no" @selected($filters['reading'] === 'no')>{{ $isThptEnglish ? 'Không có văn bản' : 'Không có bài đọc' }}</option></select></label>
-                        <label>Dạng câu hỏi<select name="type"><option value="">Tất cả</option>@foreach($filterQuestionTypes as $questionType)<option value="{{ $questionType->code }}" @selected($filters['type'] === $questionType->code)>{{ $questionType->name }}</option>@endforeach</select></label>
+                        @if(!$isThptEnglish)
+                            <label>Có audio<select name="audio"><option value="">Tất cả</option><option value="yes" @selected($filters['audio'] === 'yes')>Có audio</option><option value="no" @selected($filters['audio'] === 'no')>Không có audio</option></select></label>
+                        @else
+                            <label>Dạng nội dung<select name="family"><option value="">Tất cả</option>@foreach($thptFamilies as $familyCode => $familyName)<option value="{{ $familyCode }}" @selected($filters['family'] === $familyCode)>{{ $familyName }}</option>@endforeach</select></label>
+                        @endif
                     </div>
-                    <div class="qb-filter-footer"><label class="qb-missing-filter"><input type="checkbox" name="missing" value="1" @checked($filters['missing'])> Thiếu tài nguyên</label><a class="qb-reset" href="{{ route($bankRouteName) }}">@include('pages.dictionary.icon', ['name' => 'filter']) Xóa bộ lọc</a></div>
-                    <noscript><button class="button button-quiet" type="submit">Áp dụng bộ lọc</button></noscript>
+                    <details class="qb-advanced-filters">
+                        <summary>Bộ lọc khác</summary>
+                        <div class="qb-filter-grid">
+                            <label>Mức độ<select name="difficulty"><option value="">Tất cả</option>@foreach($difficulties as $difficulty)<option value="{{ $difficulty->code }}" @selected($filters['difficulty'] === $difficulty->code)>{{ $difficultyLabels[$difficulty->code] ?? $difficulty->name }}</option>@endforeach</select></label>
+                            <label>{{ $isThptEnglish ? 'Có văn bản' : 'Có bài đọc' }}<select name="reading"><option value="">Tất cả</option><option value="yes" @selected($filters['reading'] === 'yes')>{{ $isThptEnglish ? 'Có văn bản' : 'Có bài đọc' }}</option><option value="no" @selected($filters['reading'] === 'no')>{{ $isThptEnglish ? 'Không có văn bản' : 'Không có bài đọc' }}</option></select></label>
+                            <label>Dạng câu hỏi<select name="type"><option value="">Tất cả</option>@foreach($filterQuestionTypes as $questionType)<option value="{{ $questionType->code }}" @selected($filters['type'] === $questionType->code)>{{ $questionType->name }}</option>@endforeach</select></label>
+                        </div>
+                    </details>
+                    <div class="qb-filter-footer">
+                        <label class="qb-missing-filter"><input type="checkbox" name="missing" value="1" @checked($filters['missing'])> Thiếu tài nguyên</label>
+                        <div class="qb-filter-actions"><button class="button button-primary" type="submit">Tìm kiếm</button><a class="qb-reset" data-ajax-filter-reset="#qb-results" href="{{ route($bankRouteName) }}">@include('pages.dictionary.icon', ['name' => 'filter']) Xóa bộ lọc</a></div>
+                    </div>
                     <script type="application/json" data-question-filter-catalog>{!! json_encode($filterCatalog, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!}</script>
                 </form>
             </div>
             <section class="qb-list">
                 <div class="qb-list-heading">
-                    @if($isThptEnglish)<span>Hiển thị {{ number_format($questions->firstItem() ?? 0) }}–{{ number_format($questions->lastItem() ?? 0) }} trong {{ number_format($questions->total()) }} câu hỏi</span>
-                    @else<span>Hiển thị {{ number_format($entries->firstItem() ?? 0) }}–{{ number_format($entries->lastItem() ?? 0) }} trong {{ number_format($entries->total()) }} mục · {{ count($matchingQuestionIds) }} câu phù hợp</span>@endif
+                    @if($isThptEnglish)<span data-qb-visible-count>Hiển thị {{ number_format($questions->firstItem() ?? 0) }}–{{ number_format($questions->lastItem() ?? 0) }} trong {{ number_format($questions->total()) }} câu hỏi</span>
+                    @else<span data-qb-visible-count>Hiển thị {{ number_format($entries->firstItem() ?? 0) }}–{{ number_format($entries->lastItem() ?? 0) }} trong {{ number_format($entries->total()) }} mục · {{ count($matchingQuestionIds) }} câu phù hợp</span>@endif
                     <label>Sắp xếp: <select data-qb-sort aria-label="Sắp xếp câu hỏi"><option value="newest" @selected($filters['sort'] === 'newest')>Cập nhật mới nhất</option><option value="oldest" @selected($filters['sort'] === 'oldest')>Cập nhật cũ nhất</option><option value="id" @selected($filters['sort'] === 'id')>Mã giảm dần</option></select></label>
                 </div>
                 <form id="question-bulk" class="qb-bulk" method="post" action="{{ route('admin.questions.bulk') }}">@csrf
                     @if($isThptEnglish)<input type="hidden" name="return_to" value="thpt">@endif
                     <script type="application/json" data-question-matching-ids>{!! json_encode($matchingQuestionIds) !!}</script>
                     <span data-question-selection-summary aria-live="polite"></span><input type="hidden" name="action" value="">
-                    @can('content.edit')<button class="button button-danger" type="button" data-delete-selected-questions>Xóa câu đã chọn chưa dùng trong đề</button>@endcan
+                    @can('content.edit')<button class="button button-danger" type="button" data-delete-selected-questions>Xóa / ngừng dùng câu đã chọn</button>@endcan
                     @can('content.review')<button class="button button-primary" type="button" data-approve-selected-questions disabled>Duyệt câu đang chờ đã chọn</button>@endcan
                     @if($isThptEnglish)@can('content.edit')<button class="button button-primary" type="button" data-submit-selected-thpt-review disabled>Gửi duyệt câu nháp đã chọn</button>@endcan @endif
                     <script type="application/json" data-question-review-revisions>{!! json_encode(collect($bankData['records'])->filter(fn (array $record): bool => ($record['status'] ?? null) === 'review')->mapWithKeys(fn (array $record, $id): array => [(string) $id => (int) $record['question']->draft_revision_id])->all()) !!}</script>
@@ -172,6 +158,17 @@
                 @endif
                 @can('content.review')<form id="question-approval-bulk" method="post" action="{{ route('admin.questions.approve') }}" hidden>@csrf</form>@endcan
                 <div class="import-progress bulk-delete-progress" data-delete-progress hidden aria-live="polite"><div class="import-progress-heading"><b data-delete-progress-label>Đang xóa câu hỏi…</b><span data-delete-progress-count>0%</span></div><progress max="100" value="0" data-delete-progress-bar aria-label="Tiến độ xóa câu hỏi"></progress></div>
+                <div id="qb-results" data-ajax-results>
+                    <script type="application/json" data-ajax-qb-matching-ids>{!! json_encode($matchingQuestionIds) !!}</script>
+                    <script type="application/json" data-ajax-qb-review-revisions>{!! json_encode(collect($bankData['records'])->filter(fn (array $record): bool => ($record['status'] ?? null) === 'review')->mapWithKeys(fn (array $record, $id): array => [(string) $id => (int) $record['question']->draft_revision_id])->all()) !!}</script>
+                    <script type="application/json" data-ajax-qb-draft-ids>{!! json_encode(collect($bankData['records'])->filter(fn (array $record): bool => ($record['status'] ?? null) === 'draft')->keys()->map(fn ($id): string => (string) $id)->values()) !!}</script>
+                    <span class="sr-only" data-ajax-qb-result-count>
+                        @if($isThptEnglish)
+                            Hiển thị {{ number_format($questions->firstItem() ?? 0) }}–{{ number_format($questions->lastItem() ?? 0) }} trong {{ number_format($questions->total()) }} câu hỏi
+                        @else
+                            Hiển thị {{ number_format($entries->firstItem() ?? 0) }}–{{ number_format($entries->lastItem() ?? 0) }} trong {{ number_format($entries->total()) }} mục · {{ count($matchingQuestionIds) }} câu phù hợp
+                        @endif
+                    </span>
                 <div class="qb-table-scroll">
                     @if($isThptEnglish)
                     <table class="qb-table qb-thpt-table">
@@ -199,7 +196,7 @@
                                 <td><span class="badge badge-soft">{{ $difficultyLabels[$question->difficulty?->code ?? ''] ?? '—' }}</span></td>
                                 <td><span class="badge {{ in_array($questionStatus, ['published', 'approved'], true) ? 'badge-mint' : ($questionStatus === 'review' ? 'badge-amber' : 'badge-soft') }}">{{ $statusLabels[$questionStatus] ?? 'Bản nháp' }}</span></td>
                                 <td class="qb-updated">{{ ($question->draftRevision?->created_at ?? $question->publishedRevision?->created_at ?? $question->updated_at)?->locale('vi')->diffForHumans() }}</td>
-                                <td><div class="qb-row-actions"><button type="button" data-qb-preview="{{ $previewKey }}" aria-controls="qb-preview" aria-label="Xem câu hỏi Q-{{ $question->id }}">@include('pages.dictionary.icon',['name'=>'eye'])</button>@include('pages.admin.assessment.question-bank.workspace.approve-question', ['questionId' => $question->id, 'reviewRevisionId' => $question->draft_revision_id, 'questionStatus' => $questionStatus, 'questionLabel' => 'Q-'.$question->id])@can('content.edit')@if($questionStatus === 'draft')<form method="post" action="{{ route('admin.questions.bulk') }}" class="question-approval-action" data-thpt-review-single data-pending-label="Đang gửi duyệt…">@csrf<input type="hidden" name="action" value="review"><input type="hidden" name="ids[]" value="{{ $question->id }}"><button class="button button-primary" type="submit" data-thpt-review-single-submit>Gửi duyệt</button></form>@endif<a href="{{ route('admin.questions.edit', ['question' => $question->id, 'from' => 'thpt']) }}" aria-label="Sửa câu hỏi Q-{{ $question->id }}">@include('pages.dictionary.icon',['name'=>'edit'])</a>@endcan</div></td>
+                                <td><div class="qb-row-actions"><button type="button" data-qb-preview="{{ $previewKey }}" aria-controls="qb-preview" aria-label="Xem câu hỏi Q-{{ $question->id }}">@include('pages.dictionary.icon',['name'=>'eye'])</button>@include('pages.admin.assessment.question-bank.workspace.approve-question', ['questionId' => $question->id, 'reviewRevisionId' => $question->draft_revision_id, 'questionStatus' => $questionStatus, 'questionLabel' => 'Q-'.$question->id])@can('content.edit')@if($questionStatus === 'draft')<form method="post" action="{{ route('admin.questions.bulk') }}" class="question-approval-action" data-thpt-review-single data-pending-label="Đang gửi duyệt…">@csrf<input type="hidden" name="action" value="review"><input type="hidden" name="ids[]" value="{{ $question->id }}"><button class="button button-primary" type="submit" data-thpt-review-single-submit>Gửi duyệt</button></form>@endif<a href="{{ route('admin.questions.edit', ['question' => $question->id, 'from' => 'thpt']) }}" aria-label="Sửa câu hỏi Q-{{ $question->id }}">@include('pages.dictionary.icon',['name'=>'edit'])</a>@include('pages.admin.assessment.question-bank.workspace.question-delete-action', ['question'=>$question, 'compact'=>true])@endcan</div></td>
                             </tr>
                         @empty<tr><td colspan="11"><div class="qb-empty"><h3>Chưa có câu hỏi phù hợp</h3><p>Đổi bộ lọc, thêm câu hỏi hoặc import dữ liệu THPT.</p></div></td></tr>@endforelse
                         </tbody>
@@ -227,7 +224,7 @@
                                 <td><span class="badge badge-soft">{{ $difficultyLabels[$entry['difficulty']] ?? ($entry['difficulty'] === 'mixed' ? 'Hỗn hợp' : '—') }}</span></td>
                                 <td><span class="badge {{ in_array($entryStatus,['published','approved']) ? 'badge-mint' : 'badge-soft' }}">{{ $statusLabels[$entryStatus] ?? 'Hỗn hợp' }}</span></td>
                                 <td class="qb-updated">{{ $entry['updated_at']?->locale('vi')->diffForHumans() }}</td>
-                                <td><div class="qb-row-actions"><button type="button" data-qb-preview="{{ $entry['key'] }}" aria-controls="qb-preview" aria-label="Xem {{ $entry['code'] }}">@include('pages.dictionary.icon',['name'=>'eye'])</button>@if($entry['kind'] === 'question')@can('content.edit')<a href="{{ route('admin.questions.edit', $isThptEnglish ? ['question' => $entry['id'], 'from' => 'thpt'] : $entry['id']) }}" aria-label="Sửa {{ $entry['code'] }}">@include('pages.dictionary.icon',['name'=>'edit'])</a>@endcan @elseif($entry['stimulus'])<a href="{{ route($entry['content_kind'] === 'audio' ? 'admin.audio.index' : 'admin.readings.index',['stimulus'=>$entry['id']]) }}" aria-label="Mở {{ $entry['code'] }}">@include('pages.dictionary.icon',['name'=>'edit'])</a>@endif</div></td>
+                                <td><div class="qb-row-actions"><button type="button" data-qb-preview="{{ $entry['key'] }}" aria-controls="qb-preview" aria-label="Xem {{ $entry['code'] }}">@include('pages.dictionary.icon',['name'=>'eye'])</button>@if($entry['kind'] === 'question')@can('content.edit')<a href="{{ route('admin.questions.edit', $isThptEnglish ? ['question' => $entry['id'], 'from' => 'thpt'] : $entry['id']) }}" aria-label="Sửa {{ $entry['code'] }}">@include('pages.dictionary.icon',['name'=>'edit'])</a>@include('pages.admin.assessment.question-bank.workspace.question-delete-action', ['question'=>$entry['questions']->first(), 'compact'=>true])@endcan @elseif($entry['stimulus'])<a href="{{ route($entry['content_kind'] === 'audio' ? 'admin.audio.index' : 'admin.readings.index',['stimulus'=>$entry['id']]) }}" aria-label="Mở {{ $entry['code'] }}">@include('pages.dictionary.icon',['name'=>'edit'])</a>@endif</div></td>
                             </tr>
                         @empty<tr><td colspan="11"><div class="qb-empty"><h3>Chưa có bài hoặc câu hỏi phù hợp</h3><p>Thay đổi bộ lọc hoặc tạo câu hỏi mới.</p></div></td></tr>@endforelse
                         </tbody>
@@ -235,7 +232,7 @@
                     @endif
                 </div>
                 <footer class="qb-pagination">
-                    <nav aria-label="Phân trang bài và câu hỏi" class="qb-page-links">
+                    <nav aria-label="Phân trang bài và câu hỏi" class="qb-page-links" data-ajax-pagination>
                         @if($listPaginator->onFirstPage())<span class="is-disabled" aria-disabled="true">‹</span>@else<a href="{{ $listPaginator->previousPageUrl() }}" aria-label="Trang trước">‹</a>@endif
                         @php
                             $lastShownPage = 0;
@@ -253,6 +250,7 @@
                     </nav>
                     <label>Hiển thị <select data-qb-per-page aria-label="Số mục mỗi trang">@foreach([10, 20, 50] as $pageSize)<option value="{{ $pageSize }}" @selected($filters['perPage'] === $pageSize)>{{ $pageSize }} / trang</option>@endforeach</select></label>
                 </footer>
+                </div>
             </section>
         </section>
         <aside class="qb-preview" id="qb-preview" aria-labelledby="qb-preview-title" tabindex="-1" data-qb-preview-panel @if($isThptEnglish)hidden @endif>

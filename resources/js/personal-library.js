@@ -37,7 +37,9 @@ document.addEventListener('click', async event => {
         if (error.name !== 'AbortError') notify(error.message, true);
     } finally { library.removeAttribute('aria-busy'); }
 });
-window.addEventListener('popstate', () => { if (document.querySelector('[data-knowledge-library]')) location.reload(); });
+window.addEventListener('popstate', () => {
+    if (document.querySelector('[data-knowledge-library]') && !document.querySelector('form[data-ajax-filter-form]')) location.reload();
+});
 
 document.addEventListener('submit', async event => {
     const form = event.target.closest('form[data-library-toggle]');

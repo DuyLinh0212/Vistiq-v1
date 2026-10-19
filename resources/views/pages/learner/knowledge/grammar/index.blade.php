@@ -1,10 +1,10 @@
-<form method="get" action="{{ route('grammar.index') }}" class="filter-panel">
+<form method="get" action="{{ route('grammar.index') }}" class="filter-panel" data-ajax-filter-form data-ajax-target="#grammar-results" data-ajax-on-change data-ajax-debounce="350">
     <div class="search-bar">
         <span>@include('pages.dictionary.icon', ['name' => 'search'])</span>
         <input name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Tìm chủ điểm ngữ pháp..." aria-label="Tìm chủ điểm ngữ pháp">
     </div>
 
-    <select name="level" aria-label="Cấp độ" onchange="this.form.submit()">
+    <select name="level" aria-label="Cấp độ">
         <option value="">Tất cả cấp độ</option>
         @if(isset($levels))
             @foreach($levels as $lvl)
@@ -19,7 +19,7 @@
         @endif
     </select>
 
-    <select name="category" aria-label="Chủ đề" onchange="this.form.submit()">
+    <select name="category" aria-label="Chủ đề">
         <option value="">Tất cả chủ đề</option>
         @if(isset($categories))
             @foreach($categories as $cat)
@@ -29,10 +29,11 @@
     </select>
 
     @if(!empty($filters['q']) || !empty($filters['level']) || !empty($filters['category']))
-        <a href="{{ route('grammar.index') }}" class="button button-quiet" style="font-size: 11px;">Xóa lọc</a>
+        <a href="{{ route('grammar.index') }}" data-ajax-filter-reset="#grammar-results" class="button button-quiet" style="font-size: 11px;">Xóa lọc</a>
     @endif
 </form>
 
+<div id="grammar-results" data-ajax-results>
 <div class="grammar-grid">
     @if(isset($items) && $items->count() > 0)
         @php
@@ -83,7 +84,8 @@
 </div>
 
 @if(isset($items) && method_exists($items, 'links'))
-    <div style="margin-top: 20px;">
+    <div style="margin-top: 20px;" data-ajax-pagination>
         {{ $items->links() }}
     </div>
 @endif
+</div>

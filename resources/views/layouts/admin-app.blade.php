@@ -7,7 +7,7 @@
     $assets[] = 'resources/js/admin.js';
 @endphp
 <!doctype html>
-<html lang="vi" class="{{ $shell === 'admin' ? 'admin-document' : 'auth-document' }}">
+<html lang="vi" class="{{ $shell === 'admin' ? 'admin-document' : 'auth-document' }}{{ ($preview ?? false) ? ' exam-preview-document' : '' }}">
 <head>
     <meta charset="utf-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -18,7 +18,7 @@
     @fonts
     @vite($assets)
 </head>
-<body class="{{ $shell === 'admin' ? 'admin-mode' : 'auth-mode' }}">
+<body class="{{ $shell === 'admin' ? 'admin-mode' : 'auth-mode' }}{{ ($preview ?? false) ? ' exam-preview-mode' : '' }}">
     @yield('content')
     @include('shared.confirmation-dialog')
 </body>

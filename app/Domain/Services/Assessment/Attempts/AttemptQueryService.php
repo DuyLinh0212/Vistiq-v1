@@ -2,9 +2,10 @@
 
 namespace VistiqCore\Services\Assessment\Attempts;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
-use VistiqCore\Services\Shared\CompactDatabase as DB;
 use VistiqCore\Models\ExamAttempt;
+use VistiqCore\Services\Shared\CompactDatabase as DB;
 
 class AttemptQueryService
 {
@@ -21,7 +22,89 @@ class AttemptQueryService
 
     public function listing(array $filters = [], ?int $owner = null, ?string $timezone = null): mixed
     {
-        $query = ExamAttempt::with(['user', 'exam'])->select('exam_attempts.*')->leftJoin(DB::source('attempt_results as result'), 'result.exam_attempt_id', '=', 'exam_attempts.id')->addSelect('result.scaled_score', 'result.grading_status');
+        return $this->filteredQuery($filters, $owner, $timezone)
+            ->orderByDesc('exam_attempts.started_at')->orderByDesc('exam_attempts.id')->paginate(20)->withQueryString();
+    }
+
+    public function adminListing(array $filters = []): mixed
+    {
+        return $this->filteredQuery($filters, null, null, true)
+            ->orderByDesc('exam_attempts.started_at')->orderByDesc('exam_attempts.id')->paginate(20)->withQueryString();
+    }
+
+    public function adminSummary(array $filters = []): array
+    {
+        $query = $this->filteredQuery($filters);
+        $metrics = (clone $query)
+            ->setEagerLoads([])
+            ->reorder()
+            ->select([])
+            ->selectRaw('COUNT(DISTINCT exam_attempts.id) as total, COUNT(DISTINCT CASE WHEN exam_attempts.status = ? THEN exam_attempts.id END) as completed, AVG(result.scaled_score) as average_score', ['completed'])
+            ->first();
+        $pendingReports = (clone $query)
+            ->setEagerLoads([])
+            ->whereExists(function ($report): void {
+                $report->selectRaw('1')
+                    ->from('attempt_reports')
+                    ->whereColumn('attempt_reports.exam_attempt_id', 'exam_attempts.id')
+                    ->where('attempt_reports.status', 'pending');
+            })
+            ->distinct()
+            ->count('exam_attempts.id');
+        $scoreScales = (clone $query)
+            ->setEagerLoads([])
+            ->join(DB::source('exam_templates as template'), 'template.id', '=', 'exam_attempts.exam_template_id')
+            ->whereNotNull('result.scaled_score')
+            ->select('template.score_scale_id')
+            ->distinct()
+            ->pluck('template.score_scale_id');
+        $knownScoreScales = $scoreScales->filter(static fn ($scaleId): bool => $scaleId !== null)->unique()->values();
+        $hasUnknownScoreScale = $scoreScales->contains(static fn ($scaleId): bool => $scaleId === null);
+        $averageScore = null;
+
+        if ($knownScoreScales->count() === 1 && ! $hasUnknownScoreScale) {
+            $averageScore = $metrics?->average_score;
+            $averageContext = 'Trên cùng thang điểm';
+        } elseif ($knownScoreScales->count() > 1) {
+            $averageContext = 'Nhiều thang điểm · không gộp';
+        } elseif ($hasUnknownScoreScale) {
+            $averageContext = 'Có điểm chưa rõ thang';
+        } else {
+            $averageContext = 'Chưa có điểm đã chấm';
+        }
+
+        $total = (int) ($metrics?->total ?? 0);
+        $completed = (int) ($metrics?->completed ?? 0);
+
+        return [
+            'total' => $total,
+            'completed' => $completed,
+            'completion_rate' => $total > 0 ? round($completed / $total * 100, 1) : null,
+            'average_score' => $averageScore !== null ? (float) $averageScore : null,
+            'average_context' => $averageContext,
+            'pending_reports' => (int) $pendingReports,
+        ];
+    }
+
+    private function filteredQuery(array $filters = [], ?int $owner = null, ?string $timezone = null, bool $includeReportCounts = false): Builder
+    {
+        $query = ExamAttempt::with(['user', 'exam'])
+            ->select('exam_attempts.*')
+            ->leftJoin(DB::source('attempt_results as result'), 'result.exam_attempt_id', '=', 'exam_attempts.id')
+            ->addSelect('result.scaled_score', 'result.grading_status');
+
+        if ($includeReportCounts) {
+            $query->addSelect([
+                'report_count' => DB::table('attempt_reports')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('attempt_reports.exam_attempt_id', 'exam_attempts.id'),
+                'pending_report_count' => DB::table('attempt_reports')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('attempt_reports.exam_attempt_id', 'exam_attempts.id')
+                    ->where('attempt_reports.status', 'pending'),
+            ]);
+        }
+
         if ($owner !== null) {
             $query->where('exam_attempts.user_id', $owner);
         }
@@ -52,7 +135,7 @@ class AttemptQueryService
             });
         }
 
-        return $query->orderByDesc('exam_attempts.started_at')->orderByDesc('exam_attempts.id')->paginate(20)->withQueryString();
+        return $query;
     }
 
     public function detail(ExamAttempt $attempt): array
