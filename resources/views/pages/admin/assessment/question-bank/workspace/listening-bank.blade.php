@@ -36,7 +36,7 @@
 
     <div class="listening-workspace {{ $entry ? 'has-detail' : '' }}">
         <section class="qb-directory" aria-label="Danh sách bài Listening">
-            <form method="get" action="{{ route('admin.questions.listening') }}" class="listening-filters" data-ajax-filter-form data-ajax-target="#listening-list-results" data-ajax-on-change data-ajax-debounce="350">
+            <form id="listening-filters" method="get" action="{{ route('admin.questions.listening') }}" class="listening-filters" data-ajax-filter-form data-ajax-target="#listening-list-results" data-ajax-on-change data-ajax-debounce="350">
                 <input type="hidden" name="group" value="{{ $entry['id'] ?? '' }}">
                 <input type="hidden" name="question" value="{{ request('question', '') }}">
                 <label class="listening-search">Tìm bài<input type="search" name="q" value="{{ $search }}" placeholder="Mã bài hoặc tiêu đề" autocomplete="off"></label>
@@ -75,7 +75,7 @@
                         <tr><td colspan="10"><div class="qb-empty"><span class="listening-empty-icon">@include('pages.dictionary.icon', ['name' => 'listening'])</span><h3>Chưa có bài Listening phù hợp</h3><p>Thử đổi bộ lọc hoặc import workbook để thêm bài nghe.</p></div></td></tr>
                     @endforelse
                 </tbody></table></div>
-                <footer class="qb-pagination" data-ajax-pagination>{{ $lessons->onEachSide(1)->links() }}</footer>
+                @include('pages.admin.assessment.question-bank.workspace.pagination', ['paginator' => $lessons, 'formId' => 'listening-filters', 'label' => 'Phân trang bài Listening'])
             </div>
             </div>
         </section>

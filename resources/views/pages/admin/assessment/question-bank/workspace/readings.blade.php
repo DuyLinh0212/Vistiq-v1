@@ -47,7 +47,7 @@
 
     <div class="listening-workspace reading-workspace {{ $entry || $creating ? 'has-detail' : '' }}">
         <section class="qb-directory" aria-label="Danh sách bài Reading">
-            <form method="get" action="{{ route('admin.readings.index') }}" class="listening-filters" data-ajax-filter-form data-ajax-target="#reading-list-results" data-ajax-on-change data-ajax-debounce="350">
+            <form id="reading-filters" method="get" action="{{ route('admin.readings.index') }}" class="listening-filters" data-ajax-filter-form data-ajax-target="#reading-list-results" data-ajax-on-change data-ajax-debounce="350">
                 <input type="hidden" name="stimulus" value="{{ $entry['id'] ?? '' }}">
                 <label class="listening-search">Tìm bài<input type="search" name="q" value="{{ $search }}" placeholder="Mã bài, tiêu đề hoặc nội dung" autocomplete="off"></label>
                 <label>Kỳ thi<select name="exam"><option value="">Tất cả</option>@foreach($examOptions as $option)<option value="{{ $option->code }}" @selected($examFilter === $option->code)>{{ $option->name }}</option>@endforeach</select></label>
@@ -107,7 +107,7 @@
                         </tbody>
                     </table>
                 </div>
-                <footer class="qb-pagination" data-ajax-pagination>{{ $readings->onEachSide(1)->links() }}</footer>
+                @include('pages.admin.assessment.question-bank.workspace.pagination', ['paginator' => $readings, 'formId' => 'reading-filters', 'label' => 'Phân trang bài Reading'])
             </div>
             </div>
         </section>

@@ -70,8 +70,10 @@ class StimulusController extends AdminPageController
             && (! $partId || $entry['parts']->contains('id', $partId))
             && ($audio === '' || ($audio === 'yes') === $entry['has_audio'])
         )->sortByDesc('updated_at')->values();
-        $page = max(1, $request->integer('page', 1));
-        $lessons = new LengthAwarePaginator($rows->forPage($page, 15)->values(), $rows->count(), 15, $page, ['path' => route('admin.questions.listening'), 'query' => $request->query()]);
+        $perPage = in_array($request->input('per_page'), ['10', '20', '50', 10, 20, 50], true) ? (int) $request->input('per_page') : 10;
+        $lastPage = max(1, (int) ceil($rows->count() / $perPage));
+        $page = min(max(1, $request->integer('page', 1)), $lastPage);
+        $lessons = new LengthAwarePaginator($rows->forPage($page, $perPage)->values(), $rows->count(), $perPage, $page, ['path' => route('admin.questions.listening'), 'query' => $request->query()]);
         $entry = $request->integer('group') ? $catalog->entryFor('group', $request->integer('group')) : null;
         abort_if($entry && empty($entry['payload']['metadata']['lesson_code']), 404);
         $entry = $entry ? $withAudio($entry) : null;
@@ -139,8 +141,10 @@ class StimulusController extends AdminPageController
                 && ($status === '' || $entry['status'] === $status)
             )
             ->sortByDesc('updated_at')->values();
-        $page = max(1, $request->integer('page', 1));
-        $readings = new LengthAwarePaginator($rows->forPage($page, 15)->values(), $rows->count(), 15, $page, ['path' => route('admin.readings.index'), 'query' => $request->query()]);
+        $perPage = in_array($request->input('per_page'), ['10', '20', '50', 10, 20, 50], true) ? (int) $request->input('per_page') : 10;
+        $lastPage = max(1, (int) ceil($rows->count() / $perPage));
+        $page = min(max(1, $request->integer('page', 1)), $lastPage);
+        $readings = new LengthAwarePaginator($rows->forPage($page, $perPage)->values(), $rows->count(), $perPage, $page, ['path' => route('admin.readings.index'), 'query' => $request->query()]);
         $entry = $request->integer('stimulus') ? $catalog->entryFor('stimulus', $request->integer('stimulus')) : null;
         abort_if($entry && $entry['stimulus']->stimulus_type !== 'reading', 404);
         $requestedQuestionId = $request->integer('preview_question');
