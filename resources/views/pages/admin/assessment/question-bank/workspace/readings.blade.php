@@ -85,7 +85,7 @@
                                                 @if($readingStatus === 'draft' && $reading['stimulus']?->draft_revision_id)
                                                     <form method="post" action="{{ route('admin.content.transition', ['kind'=>'stimulus', 'id'=>$reading['id'], 'action'=>'review']) }}" class="question-approval-action" data-pending-label="Đang gửi duyệt…">
                                                         @csrf
-                                                        <button class="button button-quiet" type="submit">Gửi duyệt</button>
+                                                        <button class="button button-primary" type="submit">Gửi duyệt</button>
                                                     </form>
                                                 @endif
                                                 <a href="{{ $readingUrl.'&edit=1' }}" aria-label="Sửa {{ $reading['code'] }}">@include('pages.dictionary.icon', ['name'=>'edit'])</a>

@@ -59,7 +59,7 @@ class ReadingQuestionBankTest extends TestCase
         $this->get('/admin/readings')
             ->assertOk()
             ->assertSee($reviewUrl, false)
-            ->assertSee('Gửi duyệt');
+            ->assertSee('class="button button-primary" type="submit">Gửi duyệt</button>', false);
 
         $this->post($reviewUrl)->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseHas('content_revisions', ['id' => $reading->draft_revision_id, 'status' => 'review']);
