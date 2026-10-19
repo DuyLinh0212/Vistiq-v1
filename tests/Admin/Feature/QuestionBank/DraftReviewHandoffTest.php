@@ -97,4 +97,44 @@ class DraftReviewHandoffTest extends TestCase
             ->assertSee('Duyệt câu đang chờ đã chọn')
             ->assertSee('aria-label="Duyệt câu hỏi Q-'.$question->id.'"', false);
     }
+
+    public function test_thpt_bank_can_submit_one_or_multiple_draft_questions_for_review(): void
+    {
+        $this->seed(AdminCatalogSeeder::class);
+        $this->actingAs($this->admin('content-admin'));
+        $part = ExamPart::with('skill')->where('code', 'tieng-anh-part-1')->firstOrFail();
+        $revisions = app(ContentRevisionService::class);
+        $questions = collect(range(1, 3))->map(function () use ($part, $revisions): QuestionBankItem {
+            $question = QuestionBankItemFactory::new()->create(['exam_part_id' => $part->id]);
+            $revisions->save('question', $question, $this->item([
+                'id' => $question->id,
+                'exam_part_id' => $part->id,
+                'exam_type' => 'thpt',
+                'part' => $part->code,
+                'skill' => $part->skill->code,
+            ]), 0);
+
+            return $question->fresh();
+        });
+
+        $this->get('/admin/questions/thpt')
+            ->assertOk()
+            ->assertSee('data-thpt-review-bulk', false)
+            ->assertSee('data-thpt-review-select-all', false)
+            ->assertSee('data-thpt-review-select', false)
+            ->assertSee('data-thpt-review-single', false)
+            ->assertSee('Gửi duyệt câu đã chọn');
+
+        $this->post('/admin/questions/bulk', ['ids' => [$questions[0]->id], 'action' => 'review'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+        $this->post('/admin/questions/bulk', ['ids' => $questions->slice(1)->pluck('id')->all(), 'action' => 'review'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $questions->each(function (QuestionBankItem $question): void {
+            $this->assertSame('review', $question->fresh()->draftRevision->status);
+            $this->assertNull($question->fresh()->published_revision_id);
+        });
+    }
 }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-19T14:03:55.166065+00:00",
+  "generated_at": "2026-10-19T14:17:24.211439+00:00",
   "nodes": {
     "app_admin_http_controllers_admin_assessment_exams_exambuildercontroller": {
       "code_fingerprint": "939c93610b118f0c1ac72f4f180495b1746d7b0a982ed6fd56f866cfcbd08d8e",
@@ -17,7 +17,7 @@
           "q": "Why does the THPT exam builder reject 40 selected questions?"
         }
       ],
-      "score": 1.651306134,
+      "score": 1.650948907,
       "source_file": "app/Admin/Http/Controllers/Admin/Assessment/Exams/ExamBuilderController.php",
       "status": "preferred",
       "uses": 2
@@ -33,7 +33,7 @@
           "q": "Fix THPT English Excel import error for missing category, question type, and difficulty initialization"
         }
       ],
-      "score": 0.8254168,
+      "score": 0.825238237,
       "source_file": "app/Admin/Http/Controllers/Admin/Assessment/QuestionBank/QuestionController.php",
       "status": "tentative",
       "uses": 1
@@ -54,7 +54,7 @@
           "q": "Why does the THPT exam builder reject 40 selected questions?"
         }
       ],
-      "score": 1.651306134,
+      "score": 1.650948907,
       "source_file": "app/Domain/Services/Assessment/Exams/ExamGenerationService.php",
       "status": "preferred",
       "uses": 2
@@ -75,7 +75,7 @@
           "q": "Why does the THPT exam builder reject 40 selected questions?"
         }
       ],
-      "score": 1.651306134,
+      "score": 1.650948907,
       "source_file": "app/Domain/Services/Assessment/Exams/ExamGenerationService.php",
       "status": "preferred",
       "uses": 2
@@ -91,7 +91,7 @@
           "q": "Explain why imported THPT draft questions were selectable but rejected in generated exam templates, and distinguish that from publishing a manual draft exam."
         }
       ],
-      "score": 0.825727718,
+      "score": 0.825549088,
       "source_file": "app/Domain/Services/Assessment/Exams/ExamPublishingService.php",
       "status": "tentative",
       "uses": 1
@@ -107,7 +107,7 @@
           "q": "Fix THPT English Excel import error for missing category, question type, and difficulty initialization"
         }
       ],
-      "score": 0.8254168,
+      "score": 0.825238237,
       "source_file": "database/seeders/Admin/AdminCatalogSeeder.php",
       "status": "tentative",
       "uses": 1
@@ -123,7 +123,7 @@
           "q": "Fix THPT English Excel import error for missing category, question type, and difficulty initialization"
         }
       ],
-      "score": 0.8254168,
+      "score": 0.825238237,
       "source_file": "database/seeders/Admin/AssessmentCatalogSeeder.php",
       "status": "tentative",
       "uses": 1
@@ -139,7 +139,7 @@
           "q": "Why does the THPT exam builder reject 40 selected questions?"
         }
       ],
-      "score": 0.825578416,
+      "score": 0.825399819,
       "source_file": "resources/js/exam-builder.js",
       "status": "tentative",
       "uses": 1

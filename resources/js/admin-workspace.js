@@ -277,6 +277,66 @@ questionBulkForm?.querySelector('[data-approve-selected-questions]')?.addEventLi
     button.textContent = 'Đang duyệt…';
     questionApprovalForm.requestSubmit();
 });
+
+const thptReviewForm = document.querySelector('[data-thpt-review-bulk]');
+if (thptReviewForm) {
+    const reviewCheckboxes = [...document.querySelectorAll('input[form="thpt-review-bulk"][data-thpt-review-select]')];
+    const reviewSelectAll = document.querySelector('[data-thpt-review-select-all]');
+    const reviewSummary = thptReviewForm.querySelector('[data-thpt-review-selection-summary]');
+    const reviewButton = thptReviewForm.querySelector('[data-thpt-review-submit]');
+    if (reviewSelectAll) reviewSelectAll.disabled = reviewCheckboxes.length === 0;
+
+    const updateThptReviewSelection = () => {
+        const selectedCount = reviewCheckboxes.filter(checkbox => checkbox.checked).length;
+        if (reviewSelectAll) {
+            reviewSelectAll.checked = selectedCount > 0 && selectedCount === reviewCheckboxes.length;
+            reviewSelectAll.indeterminate = selectedCount > 0 && selectedCount < reviewCheckboxes.length;
+        }
+        if (reviewSummary) {
+            reviewSummary.textContent = selectedCount
+                ? `Đã chọn ${selectedCount} câu nháp trên trang này để gửi duyệt.`
+                : 'Chọn câu nháp để gửi duyệt.';
+        }
+        if (reviewButton) reviewButton.disabled = selectedCount === 0;
+    };
+
+    reviewSelectAll?.addEventListener('change', () => {
+        reviewCheckboxes.forEach(checkbox => { checkbox.checked = reviewSelectAll.checked; });
+        updateThptReviewSelection();
+    });
+    reviewCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateThptReviewSelection));
+    thptReviewForm.addEventListener('submit', event => {
+        if (thptReviewForm.dataset.submitting === 'true') {
+            event.preventDefault();
+            return;
+        }
+        if (!reviewCheckboxes.some(checkbox => checkbox.checked)) {
+            event.preventDefault();
+            return;
+        }
+        thptReviewForm.dataset.submitting = 'true';
+        thptReviewForm.setAttribute('aria-busy', 'true');
+        reviewCheckboxes.forEach(checkbox => { checkbox.disabled = true; });
+        reviewButton.disabled = true;
+        reviewButton.textContent = thptReviewForm.dataset.pendingLabel || 'Đang gửi duyệt…';
+    });
+    updateThptReviewSelection();
+}
+
+document.querySelectorAll('[data-thpt-review-single]').forEach(form => form.addEventListener('submit', event => {
+    if (form.dataset.submitting === 'true') {
+        event.preventDefault();
+        return;
+    }
+    form.dataset.submitting = 'true';
+    form.setAttribute('aria-busy', 'true');
+    const button = form.querySelector('[data-thpt-review-single-submit]');
+    if (button) {
+        button.disabled = true;
+        button.textContent = form.dataset.pendingLabel || 'Đang gửi duyệt…';
+    }
+}));
+
 questionBulkForm?.querySelector('[data-delete-selected-questions]')?.addEventListener('click', () => {
     if (!document.querySelector('input[form="question-bulk"][name="ids[]"]:checked') && !questionBulkForm.querySelector('input[name="matching_ids[]"]')) {
         alert('Hãy chọn ít nhất một câu hỏi cần xóa.');
