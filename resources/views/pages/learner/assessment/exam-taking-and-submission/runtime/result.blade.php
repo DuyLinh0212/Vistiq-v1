@@ -79,7 +79,7 @@
     @include('pages.learner.assessment.exam-taking-and-submission.results.styles')
     <div class="attempt-results" aria-labelledby="result-title">
         <nav class="ar-breadcrumbs" aria-label="Đường dẫn">
-            <a href="{{ route('attempts.history') }}">Lượt làm của tôi</a>
+            <a href="{{ route('profile.history') }}">Lượt làm của tôi</a>
             <span aria-hidden="true">›</span>
             <span>Kết quả</span>
         </nav>
@@ -97,7 +97,7 @@
                 </div>
             </div>
             <div class="ar-actions">
-                <a class="button button-quiet" href="{{ route('attempts.history') }}">@include('pages.dictionary.icon', ['name' => 'clock']) Lượt làm của tôi</a>
+                <a class="button button-quiet" href="{{ route('profile.history') }}">@include('pages.dictionary.icon', ['name' => 'clock']) Lượt làm của tôi</a>
                 <a class="button button-primary" href="{{ route('exams.index') }}">@include('pages.dictionary.icon', ['name' => 'arrow-left']) Danh sách đề</a>
             </div>
         </header>

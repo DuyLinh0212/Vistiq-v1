@@ -4,7 +4,7 @@
             <h1>{{ $examTypes->isNotEmpty() ? 'Luyện đề '.$examTypes->pluck('name')->join(' / ') : 'Kho đề thi' }}</h1>
             <p>Chọn bài thi phù hợp, luyện tập theo thời gian thực và theo dõi tiến độ của bạn.</p>
             <nav class="assessment-actions" aria-label="Lịch sử làm bài">
-                <a class="button button-quiet" href="{{ route('attempts.history') }}">
+                <a class="button button-quiet" href="{{ route('profile.history') }}">
                     @include('pages.dictionary.icon', ['name' => 'clock'])
                     <span>Lượt làm của tôi</span>
                     @include('pages.dictionary.icon', ['name' => 'arrow-right'])

@@ -27,7 +27,7 @@
     <section class="panel database-backup-panel">
         <span class="eyebrow">DATABASE · RESTORE</span>
         <h2>Phục hồi từ file SQL</h2>
-        <p>Chỉ nhận file sao lưu được xuất từ trang này, tối đa 100 MB.</p>
+        <p>Chỉ nhận file sao lưu được xuất từ trang này. Giới hạn upload theo máy chủ: {{ ini_get('upload_max_filesize') }} mỗi file và {{ ini_get('post_max_size') }} mỗi yêu cầu.</p>
 
         <div class="notice-box">
             Trong lúc phục hồi, Vistiq user sẽ tạm hiển thị trang bảo trì. Bảng hiện có không bị xóa; dữ liệu của các bảng có trong file sẽ được thay thế.

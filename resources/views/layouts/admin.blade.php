@@ -102,12 +102,11 @@
                 </details>
             @endforeach
         </nav>
-        <div class="sidebar-bottom"><p>{{ auth()->user()?->name }}</p><form method="post" action="{{ route('admin.logout') }}">@csrf<button class="button button-quiet">Đăng xuất</button></form></div>
+        <div class="sidebar-bottom"><p>{{ auth()->user()?->name }}</p></div>
     </aside>
     <div class="admin-main">
         <header class="admin-topbar">
             <div class="breadcrumbs"><a href="{{ route('admin.dashboard') }}">Admin Studio</a></div>
-            <form class="admin-global-search" method="get" action="{{ route('admin.search') }}" data-ajax-filter-form data-ajax-target="#admin-search-results" data-ajax-debounce="350" data-ajax-history-first-push><input type="search" name="q" value="{{ request()->routeIs('admin.search') ? request('q') : '' }}" placeholder="Tìm câu hỏi, đề, kiến thức" aria-label="Tìm toàn hệ thống" autocomplete="off"></form>
             <details class="admin-account-menu" data-admin-account-menu>
                 <summary aria-label="Tài khoản của {{ $accountUser?->name }}" title="Tài khoản">
                     <span class="avatar" aria-hidden="true">

@@ -30,17 +30,25 @@ class LeaderboardService
             ->orderByDesc('scaled_score')->orderBy('seconds')->orderBy('submitted_at')->orderBy('id');
     }
 
-    private function present(object $row): object
+    private function present(object $row, ?int $viewerId = null): object
     {
         $snapshot = json_decode($row->snapshot, true);
-        $row->name = ($snapshot['policies']['anonymous'] ?? true) ? 'Học viên ẩn danh' : $row->name;
+        $isCurrentViewer = $viewerId !== null && (int) $row->user_id === $viewerId;
+        $row->name = ($snapshot['policies']['anonymous'] ?? true) && ! $isCurrentViewer
+            ? 'Học viên ẩn danh'
+            : $row->name;
 
         return $row;
     }
 
+    private function paginatedRankings(?ExamTemplate $exam = null, ?int $viewerId = null): mixed
+    {
+        return $this->rankedQuery($exam)->paginate(30)->withQueryString()->through(fn ($row) => $this->present($row, $viewerId));
+    }
+
     public function rankings(?ExamTemplate $exam = null): mixed
     {
-        return $this->rankedQuery($exam)->paginate(30)->withQueryString()->through(fn ($row) => $this->present($row));
+        return $this->paginatedRankings($exam);
     }
 
     public function bestRankForUser(int $owner): ?array
@@ -64,7 +72,7 @@ class LeaderboardService
     /** Public response excludes internal IDs, account fields and snapshots. */
     public function publicRankings(ExamTemplate $exam, int $viewerId): mixed
     {
-        return $this->rankings($exam)->through(fn ($row) => [
+        return $this->paginatedRankings($exam, $viewerId)->through(fn ($row) => [
             'rank' => (int) $row->rank_position, 'name' => $row->name,
             'score' => (float) $row->scaled_score, 'seconds' => (int) $row->seconds,
             'is_current_user' => (int) $row->user_id === $viewerId,

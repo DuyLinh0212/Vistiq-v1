@@ -8,7 +8,7 @@ use RuntimeException;
 
 class DatabaseBackupService
 {
-    public function export(bool $includeSchema, bool $includeData, mixed $stream = null): void
+    public function export(bool $includeSchema, bool $includeData, mixed $stream = null): array
     {
         $write = static function (string $text) use ($stream): void {
             if ($stream === null) {
@@ -24,6 +24,11 @@ class DatabaseBackupService
                 }
                 $offset += $written;
             }
+        };
+        $statementCount = 0;
+        $writeStatement = static function (string $statement) use ($write, &$statementCount): void {
+            $write(rtrim($statement).';'.PHP_EOL);
+            $statementCount++;
         };
         $connection = DB::connection();
         $driver = $connection->getDriverName();
@@ -41,60 +46,127 @@ class DatabaseBackupService
         $write("-- Vistiq Database Backup v2\n");
         $write("-- Driver: {$driver}\n");
 
-        if ($driver === 'sqlite') {
-            $write('PRAGMA foreign_keys = OFF;'.PHP_EOL);
-        } else {
-            $write('SET FOREIGN_KEY_CHECKS=0;'.PHP_EOL);
-        }
+        $writeStatement($driver === 'sqlite' ? 'PRAGMA foreign_keys = OFF' : 'SET FOREIGN_KEY_CHECKS=0');
 
         if ($includeSchema) {
             foreach ($tables as $table) {
                 $createStatement = $this->createStatement($connection, $table, $driver);
 
                 if ($createStatement !== null) {
-                    $write($this->makeCreateTableNonDestructive($createStatement).';'.PHP_EOL);
+                    $writeStatement($this->makeCreateTableNonDestructive($createStatement));
                 }
             }
             if ($driver === 'sqlite') {
                 foreach ($connection->select("SELECT sql FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL ORDER BY name") as $index) {
-                    $write($this->makeCreateIndexNonDestructive($index->sql).';'.PHP_EOL);
+                    $writeStatement($this->makeCreateIndexNonDestructive($index->sql));
                 }
             }
         }
 
         if ($includeData) {
-            foreach ($tables as $table) {
-                $columns = $connection->getSchemaBuilder()->getColumnListing($table);
-
-                if ($columns === []) {
-                    continue;
+            $pdo = null;
+            $bufferedAttribute = null;
+            $previousBuffering = null;
+            try {
+                if ($driver === 'mysql' && defined('PDO::MYSQL_ATTR_USE_BUFFERED_QUERY')) {
+                    $pdo = $connection->getPdo();
+                    $bufferedAttribute = \PDO::MYSQL_ATTR_USE_BUFFERED_QUERY;
+                    $previousBuffering = $pdo->getAttribute($bufferedAttribute);
+                    $pdo->setAttribute($bufferedAttribute, false);
                 }
 
-                $write('DELETE FROM '.$this->quoteIdentifier($table, $driver).';'.PHP_EOL);
-                $quotedColumns = implode(', ', array_map(fn (string $column): string => $this->quoteIdentifier($column, $driver), $columns));
-                $query = $connection->table($table)->select($columns);
+                foreach ($tables as $table) {
+                    $columns = $connection->getSchemaBuilder()->getColumnListing($table);
 
-                foreach ($query->cursor() as $row) {
-                    $values = array_map(fn (string $column): string => $this->quoteValue($row->{$column}, $connection, $driver), $columns);
+                    if ($columns === []) {
+                        continue;
+                    }
 
-                    $write('INSERT INTO '.$this->quoteIdentifier($table, $driver).' ('.$quotedColumns.') VALUES ('.implode(', ', $values).');'.PHP_EOL);
+                    $quotedTable = $this->quoteIdentifier($table, $driver);
+                    $writeStatement('DELETE FROM '.$quotedTable);
+                    $quotedColumns = implode(', ', array_map(fn (string $column): string => $this->quoteIdentifier($column, $driver), $columns));
+                    $insertPrefix = 'INSERT INTO '.$quotedTable.' ('.$quotedColumns.') VALUES ';
+                    $query = $connection->table($table)->select($columns);
+                    $batch = [];
+                    $batchBytes = 0;
+                    $flushBatch = static function () use (&$batch, &$batchBytes, $insertPrefix, $writeStatement): void {
+                        if ($batch === []) {
+                            return;
+                        }
+
+                        $writeStatement($insertPrefix.implode(','.PHP_EOL, $batch));
+                        $batch = [];
+                        $batchBytes = 0;
+                    };
+
+                    foreach ($query->cursor() as $row) {
+                        $values = array_map(fn (string $column): string => $this->quoteValue($row->{$column}, $connection, $driver), $columns);
+                        $tuple = '('.implode(', ', $values).')';
+                        $batch[] = $tuple;
+                        $batchBytes += strlen($tuple) + 2;
+
+                        if (count($batch) >= 250 || $batchBytes >= 262144) {
+                            $flushBatch();
+                        }
+                    }
+
+                    $flushBatch();
+                }
+            } finally {
+                if ($pdo !== null && $bufferedAttribute !== null && $previousBuffering !== null) {
+                    $pdo->setAttribute($bufferedAttribute, $previousBuffering);
                 }
             }
         }
 
-        if ($driver === 'sqlite') {
-            $write('PRAGMA foreign_keys = ON;'.PHP_EOL);
-        } else {
-            $write('SET FOREIGN_KEY_CHECKS=1;'.PHP_EOL);
-        }
+        $writeStatement($driver === 'sqlite' ? 'PRAGMA foreign_keys = ON' : 'SET FOREIGN_KEY_CHECKS=1');
+
+        return ['driver' => $driver, 'statements' => $statementCount, 'tables' => $tables];
     }
 
     public function restore(string $sql): int
     {
         $this->preflight($sql);
+        $stream = fopen('php://temp', 'w+b');
+        if (! $stream || ! $this->writeStringToStream($stream, $sql) || rewind($stream) === false) {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+
+            throw new RuntimeException('Không thể đọc file sao lưu.');
+        }
+
+        try {
+            return $this->restoreStream($stream);
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    public function restoreFile(string $path): int
+    {
+        $this->preflightFile($path);
+        $stream = fopen($path, 'rb');
+        if (! $stream) {
+            throw new RuntimeException('Không thể mở file sao lưu.');
+        }
+
+        try {
+            return $this->restoreStream($stream);
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    /** @param resource $stream */
+    private function restoreStream($stream): int
+    {
         $connection = DB::connection();
         $driver = $connection->getDriverName();
-        $statements = $this->statements($sql);
+        if (rewind($stream) === false) {
+            throw new RuntimeException('Không thể đọc file sao lưu.');
+        }
+        $statements = $this->statementsFromStream($stream);
         $statementCount = 0;
         $dataTransaction = false;
 
@@ -150,10 +222,51 @@ class DatabaseBackupService
             throw new RuntimeException('Loại cơ sở dữ liệu trong file không khớp với ứng dụng.');
         }
 
+        return $this->inspectStatements($driver, $this->statements($sql));
+    }
+
+    public function preflightFile(string $path): array
+    {
+        $stream = fopen($path, 'rb');
+        if (! $stream) {
+            throw new RuntimeException('Không thể mở file sao lưu.');
+        }
+
+        try {
+            $header = fgets($stream, 4096);
+            $driverHeader = fgets($stream, 4096);
+            if (! is_string($header) || ! is_string($driverHeader)
+                || ! preg_match('/\A-- Vistiq Database Backup v(?:1|2)\R-- Driver: (mysql|sqlite)\R/', $header.$driverHeader, $matches)) {
+                throw new RuntimeException('File không phải bản sao lưu SQL do Vistiq xuất.');
+            }
+
+            $connection = DB::connection();
+            $driver = $connection->getDriverName();
+            if (! in_array($driver, ['mysql', 'sqlite'], true)) {
+                throw new RuntimeException('Phục hồi hiện hỗ trợ MySQL và SQLite.');
+            }
+            if ($matches[1] !== $driver) {
+                throw new RuntimeException('Loại cơ sở dữ liệu trong file không khớp với ứng dụng.');
+            }
+            if (rewind($stream) === false) {
+                throw new RuntimeException('Không thể đọc file sao lưu.');
+            }
+
+            return $this->inspectStatements($driver, $this->statementsFromStream($stream));
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    /** @param iterable<string> $statements */
+    private function inspectStatements(string $driver, iterable $statements): array
+    {
+        $connection = DB::connection();
+
         $knownTables = $this->tableNames($connection, $driver);
         $count = 0;
         $tables = [];
-        foreach ($this->statements($sql) as $statement) {
+        foreach ($statements as $statement) {
             $count++;
             if (! $this->isAllowedStatement($statement, $driver, $knownTables)) {
                 throw new RuntimeException('File chứa câu lệnh SQL không được hỗ trợ.');
@@ -241,38 +354,100 @@ class DatabaseBackupService
     /** @return iterable<string> */
     private function statements(string $sql): iterable
     {
+        $stream = fopen('php://temp', 'w+b');
+        if (! $stream || ! $this->writeStringToStream($stream, $sql) || rewind($stream) === false) {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+
+            throw new RuntimeException('Không thể đọc file sao lưu.');
+        }
+
+        try {
+            yield from $this->statementsFromStream($stream);
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    /** @param resource $stream */
+    private function writeStringToStream($stream, string $value): bool
+    {
+        $offset = 0;
+        $length = strlen($value);
+        while ($offset < $length) {
+            $written = fwrite($stream, substr($value, $offset, 65536));
+            if ($written === false || $written === 0) {
+                return false;
+            }
+            $offset += $written;
+        }
+
+        return true;
+    }
+
+    /** @param resource $stream
+     *  @return iterable<string>
+     */
+    private function statementsFromStream($stream): iterable
+    {
         $statement = '';
         $quote = null;
-        $length = strlen($sql);
+        $chunk = '';
+        $offset = 0;
+        $read = static function () use ($stream, &$chunk, &$offset): ?string {
+            if ($offset >= strlen($chunk)) {
+                $chunk = fread($stream, 65536);
+                $offset = 0;
+                if ($chunk === false || $chunk === '') {
+                    return null;
+                }
+            }
 
-        for ($index = 0; $index < $length; $index++) {
-            $character = $sql[$index];
-            $nextCharacter = $sql[$index + 1] ?? '';
+            return $chunk[$offset++];
+        };
+        $current = $read();
+        $nextCharacter = $read();
+        $advance = static function (int $count = 1) use (&$current, &$nextCharacter, $read): void {
+            for ($step = 0; $step < $count; $step++) {
+                $current = $nextCharacter;
+                $nextCharacter = $read();
+            }
+        };
+
+        while ($current !== null) {
+            $character = $current;
 
             if ($quote === null && $character === '-' && $nextCharacter === '-') {
-                while ($index < $length && $sql[$index] !== "\n") {
-                    $index++;
+                while ($current !== null && $current !== "\n") {
+                    $advance();
+                }
+                if ($current === "\n") {
+                    $advance();
                 }
 
                 continue;
             }
 
             if ($quote === null && $character === '#') {
-                while ($index < $length && $sql[$index] !== "\n") {
-                    $index++;
+                while ($current !== null && $current !== "\n") {
+                    $advance();
+                }
+                if ($current === "\n") {
+                    $advance();
                 }
 
                 continue;
             }
 
             if ($quote === null && $character === '/' && $nextCharacter === '*') {
-                $index += 2;
-
-                while ($index < $length && ! ($sql[$index] === '*' && ($sql[$index + 1] ?? '') === '/')) {
-                    $index++;
+                $advance(2);
+                while ($current !== null && ! ($current === '*' && $nextCharacter === '/')) {
+                    $advance();
                 }
-
-                $index++;
+                if ($current !== null) {
+                    $advance(2);
+                }
 
                 continue;
             }
@@ -281,17 +456,22 @@ class DatabaseBackupService
                 $statement .= $character;
 
                 if ($character === '\\' && $quote !== '`') {
-                    $statement .= $sql[++$index] ?? '';
+                    $statement .= $nextCharacter ?? '';
+                    $advance(2);
 
                     continue;
                 }
 
                 if ($character === $quote) {
                     if ($nextCharacter === $quote) {
-                        $statement .= $sql[++$index];
+                        $statement .= $nextCharacter;
+                        $advance(2);
                     } else {
                         $quote = null;
+                        $advance();
                     }
+                } else {
+                    $advance();
                 }
 
                 continue;
@@ -300,6 +480,7 @@ class DatabaseBackupService
             if (in_array($character, ["'", '"', '`'], true)) {
                 $quote = $character;
                 $statement .= $character;
+                $advance();
 
                 continue;
             }
@@ -310,11 +491,13 @@ class DatabaseBackupService
                 }
 
                 $statement = '';
+                $advance();
 
                 continue;
             }
 
             $statement .= $character;
+            $advance();
         }
 
         if ($quote !== null) {

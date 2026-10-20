@@ -4,10 +4,12 @@ namespace VistiqAdmin\Http\Controllers\Admin\System;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use VistiqAdmin\Http\Controllers\Admin\AdminPageController;
 use VistiqAdmin\Http\Requests\Admin\System\BackupRequest;
 use VistiqAdmin\Services\Admin\System\DatabaseOperationsService;
 use VistiqCore\Services\System\AuditService;
+use Throwable;
 
 class DatabaseBackupController extends AdminPageController
 {
@@ -25,10 +27,19 @@ class DatabaseBackupController extends AdminPageController
     public function download(BackupRequest $request, DatabaseOperationsService $operations, AuditService $audit): mixed
     {
         $request->validate(['include_schema' => 'required|boolean', 'include_data' => 'required|boolean']);
-        $artifact = $operations->createBackup($request->user()->id, $request->boolean('include_schema'), $request->boolean('include_data'));
-        $audit->record('database.backup.download', 'database', null, [], ['artifact_id' => $artifact['id']]);
+        try {
+            $artifact = $operations->createBackup($request->user()->id, $request->boolean('include_schema'), $request->boolean('include_data'));
+            $path = $operations->verifiedPath($artifact['id']);
+            $audit->record('database.backup.download', 'database', null, [], ['artifact_id' => $artifact['id']]);
 
-        return response()->download($operations->verifiedPath($artifact['id']), $artifact['filename'], ['Content-Type' => 'application/sql; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+            return response()->download($path, $artifact['filename'], ['Content-Type' => 'application/sql; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            report($exception);
+
+            throw ValidationException::withMessages(['backup' => 'Không thể xuất database. Kiểm tra kết nối database và dung lượng ổ đĩa; nếu vẫn lỗi, xem nhật ký ứng dụng.']);
+        }
     }
 
     public function downloadArtifact(BackupRequest $request, string $artifact, DatabaseOperationsService $operations, AuditService $audit): mixed
@@ -41,7 +52,7 @@ class DatabaseBackupController extends AdminPageController
 
     public function preflight(Request $request, DatabaseOperationsService $operations): mixed
     {
-        $data = $request->validate(['file' => 'required|file|mimes:txt,sql|extensions:sql|max:102400']);
+        $data = $request->validate(['file' => 'required|file|mimes:txt,sql|extensions:sql']);
         $operation = $operations->preflight($data['file'], $request->user()->id);
 
         return redirect()->route('admin.settings.database', ['operation' => $operation['id']])->with('status', 'Đã kiểm tra file. Chưa thay đổi database; hãy kiểm tra nguồn và xác nhận bước phục hồi.');

@@ -390,7 +390,7 @@
     <nav class="lb-breadcrumbs" aria-label="Đường dẫn">
         <a href="{{ route('exams.index') }}">Kho đề thi</a>
         <span aria-hidden="true">›</span>
-        <a href="{{ route('attempts.history') }}">Lượt làm của tôi</a>
+        <a href="{{ route('profile.history') }}">Lượt làm của tôi</a>
         <span aria-hidden="true">›</span>
         <span aria-current="page">Bảng xếp hạng</span>
     </nav>
@@ -400,7 +400,7 @@
             <h1 id="lb-title">Bảng xếp hạng</h1>
             <p>{{ $exam->title }}</p>
         </div>
-        <a class="button button-quiet" href="{{ route('attempts.history') }}">
+        <a class="button button-quiet" href="{{ route('profile.history') }}">
             @include('pages.dictionary.icon', ['name' => 'clock'])
             Lượt làm của tôi
         </a>

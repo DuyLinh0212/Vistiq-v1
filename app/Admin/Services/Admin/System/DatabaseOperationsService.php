@@ -61,11 +61,20 @@ class DatabaseOperationsService
         return new LengthAwarePaginator(array_slice($items, ($page - 1) * 20, 20), count($items), 20, $page, ['path' => request()->url(), 'query' => request()->except('page')]);
     }
 
+    private function allowLongRunningOperation(): void
+    {
+        $executionLimit = (int) ini_get('max_execution_time');
+        if ($executionLimit > 0 && $executionLimit < 300) {
+            set_time_limit(300);
+        }
+    }
+
     public function createBackup(int $actor, bool $schema = true, bool $data = true, string $kind = 'backup'): array
     {
         if (! $schema && ! $data) {
             throw ValidationException::withMessages(['backup' => 'Chọn cấu trúc, dữ liệu hoặc cả hai.']);
         }
+        $this->allowLongRunningOperation();
         $id = (string) Str::uuid();
         $disk = Storage::disk('local');
         $disk->makeDirectory('database-operations');
@@ -74,7 +83,7 @@ class DatabaseOperationsService
             throw new RuntimeException('Không thể tạo file sao lưu.');
         }
         try {
-            DB::transaction(fn () => $this->backup->export($schema, $data, $stream));
+            $metadata = DB::transaction(fn () => $this->backup->export($schema, $data, $stream));
         } catch (Throwable $exception) {
             fclose($stream);
             $stream = null;
@@ -87,7 +96,16 @@ class DatabaseOperationsService
         }
         $operation = ['id' => $id, 'actor_id' => $actor, 'kind' => $kind, 'state' => 'available', 'filename' => 'vistiq-'.$kind.'-'.now()->format('Ymd-His').'.sql', 'created_at' => now()->toIso8601String(), 'include_schema' => $schema, 'include_data' => $data];
         try {
-            $operation = [...$operation, ...$this->inspect($id)];
+            $absolutePath = $disk->path($this->path($id, 'sql'));
+            $size = filesize($absolutePath);
+            if ($size === false) {
+                throw new RuntimeException('Không thể xác định dung lượng file sao lưu.');
+            }
+            $checksum = hash_file('sha256', $absolutePath);
+            if ($checksum === false) {
+                throw new RuntimeException('Không thể kiểm tra integrity file sao lưu.');
+            }
+            $operation = [...$operation, ...$metadata, 'size' => $size, 'checksum' => $checksum];
             $this->write($operation);
         } catch (Throwable $exception) {
             $disk->delete($this->path($id, 'sql'));
@@ -102,15 +120,22 @@ class DatabaseOperationsService
     {
         $disk = Storage::disk('local');
         $path = $this->path($id, 'sql');
-        if (! $disk->exists($path) || $disk->size($path) > 100 * 1024 * 1024) {
-            throw new RuntimeException('Bản sao lưu không tồn tại hoặc vượt quá 100 MB.');
+        $absolutePath = $disk->path($path);
+        $size = is_file($absolutePath) ? filesize($absolutePath) : false;
+        if ($size === false) {
+            throw new RuntimeException('Không tìm thấy file sao lưu.');
+        }
+        $checksum = hash_file('sha256', $absolutePath);
+        if (! is_string($checksum)) {
+            throw new RuntimeException('Không thể kiểm tra integrity file sao lưu.');
         }
 
-        return [...$this->backup->preflight($disk->get($path)), 'size' => $disk->size($path), 'checksum' => hash_file('sha256', $disk->path($path))];
+        return [...$this->backup->preflightFile($absolutePath), 'size' => $size, 'checksum' => $checksum];
     }
 
     public function preflight(UploadedFile $file, int $actor): array
     {
+        $this->allowLongRunningOperation();
         $id = (string) Str::uuid();
         $disk = Storage::disk('local');
         $file->storeAs('database-operations', $id.'.sql', 'local');
@@ -131,16 +156,22 @@ class DatabaseOperationsService
     {
         $operation = $this->operation($id);
         abort_unless(in_array($operation['kind'], ['backup', 'recovery']) && $operation['state'] === 'available', 404);
-        $inspection = $this->inspect($id);
-        if (! hash_equals($operation['checksum'], $inspection['checksum'])) {
+        $path = Storage::disk('local')->path($this->path($id, 'sql'));
+        $size = is_file($path) ? filesize($path) : false;
+        if ($size === false) {
+            throw ValidationException::withMessages(['backup' => 'Không tìm thấy file sao lưu.']);
+        }
+        $checksum = hash_file('sha256', $path);
+        if (! is_string($checksum) || ! hash_equals($operation['checksum'], $checksum)) {
             throw ValidationException::withMessages(['backup' => 'Integrity không hợp lệ. File đã thay đổi; hãy tạo bản sao lưu mới.']);
         }
 
-        return Storage::disk('local')->path($this->path($id, 'sql'));
+        return $path;
     }
 
     public function restore(string $id, int $actor): array
     {
+        $this->allowLongRunningOperation();
         $disk = Storage::disk('local');
         $disk->makeDirectory('database-operations');
         $lock = fopen($disk->path('database-operations/restore.lock'), 'c');
@@ -176,7 +207,7 @@ class DatabaseOperationsService
                 $operation['recovery_id'] = $recovery['id'];
                 $this->write($operation);
                 $safe = false;
-                $this->backup->restore($disk->get($this->path($id, 'sql')));
+                $this->backup->restoreFile($disk->path($this->path($id, 'sql')));
                 $this->verifyRelations();
                 $this->invalidateSessions();
                 $safe = true;
@@ -187,7 +218,7 @@ class DatabaseOperationsService
                 $operation['state'] = 'failed';
                 if (! $safe && $recovery) {
                     try {
-                        $this->backup->restore(file_get_contents($this->verifiedPath($recovery['id'])));
+                        $this->backup->restoreFile($this->verifiedPath($recovery['id']));
                         $this->verifyRelations();
                         $safe = true;
                         $operation['recovered'] = true;
