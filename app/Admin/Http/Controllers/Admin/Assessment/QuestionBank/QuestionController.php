@@ -36,6 +36,7 @@ use VistiqCore\Services\Assessment\QuestionBank\QuestionEditorService;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionDeletionService;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionRegistry;
 use VistiqCore\Services\Assessment\QuestionBank\QuestionWorkbookImportService;
+use VistiqCore\Services\Assessment\QuestionBank\SubjectiveQuestionWorkbookService;
 use VistiqCore\Services\Assessment\QuestionBank\ThptEnglishWorkbookImportService;
 use VistiqCore\Services\System\SettingsService;
 use VistiqCore\Services\System\AuditService;
@@ -749,11 +750,14 @@ class QuestionController extends StaticPageController
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx', 'max:20480'],
-            'kind' => ['required', 'in:listening,reading,thpt_english'],
+            'kind' => ['required', 'in:listening,reading,writing,speaking,thpt_english'],
         ]);
-        $preview = $validated['kind'] === 'thpt_english'
-            ? $thptWorkbooks->preview($request->file('file')->getRealPath())
-            : $workbooks->preview($request->file('file')->getRealPath(), $validated['kind']);
+        $path = $request->file('file')->getRealPath();
+        $preview = match ($validated['kind']) {
+            'thpt_english' => $thptWorkbooks->preview($path),
+            'writing', 'speaking' => app(SubjectiveQuestionWorkbookService::class)->preview($path, $validated['kind']),
+            default => $workbooks->preview($path, $validated['kind']),
+        };
         $this->pruneExpiredWorkbookAudio((int) $request->user()->id);
         $token = (string) Str::uuid();
         Cache::put('question-workbook:'.$request->user()->id.':'.$token, $preview, now()->addMinutes(30));
@@ -786,7 +790,12 @@ class QuestionController extends StaticPageController
                     && $sheet['exam_type'] === 'toeic'
                     && $sheet['skill'] === 'listening'
                     && $sheet['exam_part'] === 'part-1',
-                'questions' => $preview['kind'] === 'listening'
+                'questions' => in_array($preview['kind'], ['writing', 'speaking'], true)
+                    ? collect($sheet['questions'])->map(fn (array $question): array => [
+                        'row' => $question['row'], 'prompt' => strip_tags($question['attributes']['prompt']),
+                        'part_name' => $question['part_name'], 'min_words' => $question['attributes']['metadata']['min_words'] ?? null,
+                    ])->values()
+                    : ($preview['kind'] === 'listening'
                     && $sheet['exam_type'] === 'toeic'
                     && $sheet['skill'] === 'listening'
                     && $sheet['exam_part'] === 'part-1'
@@ -794,7 +803,7 @@ class QuestionController extends StaticPageController
                         'row' => $question['row'],
                         'prompt' => $question['attributes']['prompt'],
                     ])->values()
-                    : [],
+                    : []),
                 'requires_group_image' => $sheet['requires_group_image'] ?? false,
             ])->values(),
         ]);
@@ -869,6 +878,9 @@ class QuestionController extends StaticPageController
         $cacheKey = 'question-workbook:'.$request->user()->id.':'.$validated['token'];
         $preview = Cache::get($cacheKey);
         abort_unless(is_array($preview), 404, 'Bản xem trước đã hết hạn. Hãy tải workbook lên lại.');
+        if (in_array($preview['kind'] ?? null, ['writing', 'speaking'], true)) {
+            return $this->confirmSubjectiveWorkbook($request, $cacheKey);
+        }
         if (($preview['kind'] ?? null) === 'thpt_english') {
             return $this->confirmThptEnglishWorkbook($request, $preview, $cacheKey, $media);
         }
@@ -1120,6 +1132,42 @@ class QuestionController extends StaticPageController
         return response()->json(['summary' => $summary, 'errors' => $errors, 'redirect' => $redirect]);
     }
 
+    private function confirmSubjectiveWorkbook(Request $request, string $cacheKey): mixed
+    {
+        set_time_limit(0);
+        $lock = Cache::lock($cacheKey.':confirm', 3600);
+        abort_unless($lock->get(), 409, 'Workbook đang được import. Chờ hoàn tất rồi tải lại danh sách.');
+        try {
+            $preview = Cache::get($cacheKey);
+            abort_unless(is_array($preview), 404, 'Bản xem trước đã hết hạn. Hãy tải workbook lên lại.');
+            if (isset($preview['completed_response'])) return response()->json($preview['completed_response']);
+            abort_unless($preview['can_import'] ?? false, 422, 'Sửa hết lỗi theo sheet/dòng và tải lại workbook trước khi import.');
+            DB::transaction(function () use ($preview): void {
+                foreach ($preview['sheets'] as $sheet) {
+                    foreach ($sheet['questions'] as $question) {
+                        try {
+                            $payload = $this->questionPayload($question['attributes']);
+                            abort_unless($payload['skill'] === $preview['kind'], 422, 'Part đã thay đổi kỹ năng. Hãy tải lại workbook.');
+                            app(QuestionRegistry::class)->validate($payload);
+                            $this->persistQuestion($question['attributes']);
+                        } catch (ValidationException $exception) {
+                            throw ValidationException::withMessages(['file' => $sheet['code'].' · Dòng '.$question['row'].': '.collect($exception->errors())->flatten()->implode(' ')]);
+                        }
+                    }
+                }
+            });
+            $count = $preview['total_questions'];
+            $result = ['summary' => ['total' => $count, 'imported' => $count, 'failed' => 0], 'errors' => [], 'redirect' => route('admin.questions.'.$preview['kind'])];
+            $preview['completed_response'] = $result;
+            Cache::put($cacheKey, $preview, now()->addMinutes(30));
+            $request->session()->flash('status', 'Đã import '.$count.' câu hỏi '.ucfirst($preview['kind']).' ở trạng thái bản nháp.');
+
+            return response()->json($result);
+        } finally {
+            $lock->release();
+        }
+    }
+
     /** Import one complete six-part THPT English paper after its workbook and shared images pass preview. */
     private function confirmThptEnglishWorkbook(Request $request, array $preview, string $cacheKey, MediaService $media): mixed
     {
@@ -1223,6 +1271,16 @@ class QuestionController extends StaticPageController
     public function importTemplate(Request $request, QuestionWorkbookImportService $workbooks, ThptEnglishWorkbookImportService $thptWorkbooks): mixed
     {
         $template = $request->string('template', 'all')->toString();
+        if (in_array($template, ['writing-xlsx', 'speaking-xlsx'], true)) {
+            $kind = str_replace('-xlsx', '', $template);
+            $spreadsheet = app(SubjectiveQuestionWorkbookService::class)->template($kind);
+            $writer = $workbooks->writer($spreadsheet);
+
+            return response()->streamDownload(function () use ($writer, $spreadsheet): void {
+                $writer->save('php://output');
+                $spreadsheet->disconnectWorksheets();
+            }, 'vistiq-'.$kind.'-question-template.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+        }
         if ($template === 'thpt-english-xlsx') {
             $spreadsheet = $thptWorkbooks->template();
             $writer = $thptWorkbooks->writer($spreadsheet);
@@ -1672,6 +1730,19 @@ class QuestionController extends StaticPageController
             $payload = ['exam_part_id' => $context['metadata']['exam_part_id'] ?? null, 'stimulus_ids' => [$contextStimulus->id], 'group_id' => $context['metadata']['question_group_id'] ?? null];
         }
         $editor = app(QuestionEditorService::class);
+        $parts = ExamPart::with(['examType', 'skill'])->when($contextStimulus?->stimulus_type === 'reading', fn ($query) => $query->whereHas('skill', fn ($skills) => $skills->where('code', 'reading')))->orderBy('exam_type_id')->orderBy('sort_order')->get();
+        $currentPart = $parts->firstWhere('id', (int) ($payload['exam_part_id'] ?? request()->integer('exam_part_id')));
+        $editorSkill = $currentPart?->skill?->code ?? request()->query('skill');
+        if (in_array($editorSkill, ['writing', 'speaking'], true) && ! $contextStimulus) {
+            $parts = $parts->filter(fn ($part) => $part->skill?->code === $editorSkill)->values();
+            if (! $question) {
+                $currentPart ??= $parts->first();
+                $payload['exam_part_id'] = $currentPart?->id;
+                $payload['type'] = $editorSkill === 'writing' ? 'essay' : 'speaking';
+                $payload['metadata'] = ['rubric' => SubjectiveQuestionWorkbookService::defaultRubric($editorSkill), 'variant' => 'academic'];
+                if ($editorSkill === 'writing') $payload['metadata']['min_words'] = str_ends_with($currentPart?->code ?? '', '2') ? 250 : 150;
+            }
+        }
 
         return [
             'question' => $question,
@@ -1685,7 +1756,8 @@ class QuestionController extends StaticPageController
             'groups' => DB::table('question_groups')->orderBy('title')->get(),
             'assets' => MediaAsset::whereIn('id', array_filter([$payload['metadata']['image_id'] ?? null, $payload['metadata']['audio_id'] ?? null]))->get(),
             'selectedStimulusId' => request()->integer('stimulus') ?: null,
-            'parts' => ExamPart::with(['examType', 'skill'])->when($contextStimulus?->stimulus_type === 'reading', fn ($query) => $query->whereHas('skill', fn ($skills) => $skills->where('code', 'reading')))->orderBy('exam_type_id')->orderBy('sort_order')->get(),
+            'parts' => $parts,
+            'editorSkill' => $editorSkill,
             'editorTypeFamilies' => QuestionRegistry::TYPES,
             'questionTypes' => QuestionType::orderBy('id')->get(),
             'difficulties' => QuestionDifficulty::orderBy('sort_order')->get(),

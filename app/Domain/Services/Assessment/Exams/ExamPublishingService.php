@@ -167,6 +167,9 @@ class ExamPublishingService
                 $errors[] = $section['title'].': chưa có câu hỏi.';
             }
         }
+        if ($snapshot['exam_type'] === 'ielts' && empty($snapshot['variant']) && collect($items)->contains(fn ($item) => in_array($item['skill'] ?? '', ['reading', 'writing'], true))) {
+            $errors[] = 'Đề IELTS có Reading/Writing cần chọn phiên bản Academic hoặc General trong phần Chỉnh sửa đề thi.';
+        }
         foreach ($items as $item) {
             try {
                 $this->registry->validate($item);
@@ -189,8 +192,12 @@ class ExamPublishingService
             if ($skill === 'reading' && ($snapshot['exam_type'] === 'ielts' || in_array($item['part'], ['part-6', 'part-7'], true)) && ! $hasReading) {
                 $errors[] = $item['key'].': thiếu passage.';
             }
-            if ($snapshot['exam_type'] === 'ielts' && in_array($skill, ['reading', 'writing'], true) && ($metadata['variant'] ?? null) !== $snapshot['variant']) {
-                $errors[] = $item['key'].': variant Academic/General không khớp.';
+            if ($snapshot['exam_type'] === 'ielts' && in_array($skill, ['reading', 'writing'], true) && ! empty($snapshot['variant']) && ($metadata['variant'] ?? null) !== $snapshot['variant']) {
+                $questionVariant = match ($metadata['variant'] ?? null) {
+                    'academic' => 'Academic', 'general' => 'General Training', default => 'chưa chọn phiên bản',
+                };
+                $examVariant = $snapshot['variant'] === 'academic' ? 'Academic' : 'General Training';
+                $errors[] = $item['key'].': câu hỏi '.$questionVariant.', đề '.$examVariant.'. Chọn câu hỏi cùng phiên bản hoặc sửa phiên bản đề.';
             }
             if ($snapshot['exam_type'] === 'thpt' && (($item['type'] ?? null) !== 'multiple_choice' || count($item['options'] ?? []) !== 4)) {
                 $errors[] = $item['key'].': câu THPT cần có đúng 4 lựa chọn trắc nghiệm.';

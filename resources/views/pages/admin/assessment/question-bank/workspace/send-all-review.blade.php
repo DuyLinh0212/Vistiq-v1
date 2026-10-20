@@ -11,7 +11,7 @@
     @endphp
     @if($draftReviewCount > 0)
         <form method="post" action="{{ route('admin.questions.bulk') }}"
-            data-confirm="Gửi duyệt {{ number_format($draftReviewCount) }} câu hỏi nháp trên toàn bộ Listening, Reading và Tiếng Anh THPT? Cả lượt chỉ hoàn tất khi mọi câu đều hợp lệ; nếu có câu lỗi, hệ thống dừng toàn bộ và nêu mã câu cần sửa."
+            data-confirm="Gửi duyệt {{ number_format($draftReviewCount) }} câu hỏi nháp trên toàn bộ ngân hàng Listening, Reading, Writing, Speaking và Tiếng Anh THPT? Cả lượt chỉ hoàn tất khi mọi câu đều hợp lệ; nếu có câu lỗi, hệ thống dừng toàn bộ và nêu mã câu cần sửa."
             data-confirm-title="Gửi duyệt toàn bộ câu nháp"
             data-confirm-label="Gửi duyệt {{ number_format($draftReviewCount) }} câu"
             data-confirm-tone="safe"

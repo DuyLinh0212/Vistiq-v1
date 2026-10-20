@@ -30,7 +30,7 @@
 }
 
 * { box-sizing: border-box; }
-html { min-width: 360px; background: var(--canvas); scroll-behavior: smooth; }
+html { min-width: 320px; background: var(--canvas); scroll-behavior: smooth; }
 body { margin: 0; background: var(--canvas); color: var(--ink); font-family: 'Be Vietnam Pro', sans-serif; font-size: 13px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { color: inherit; font: inherit; }
@@ -1855,4 +1855,40 @@ button:disabled{opacity:.5;cursor:not-allowed}[hidden]{display:none!important}
 }
 @media (prefers-reduced-motion: reduce) {
     .exam-catalog-card { transition: none; }
+}
+
+/* Keep the existing learner shell usable with touch and on narrow screens. */
+@media (max-width: 1024px) {
+    body.user-mode button { min-height: 44px; }
+    body.user-mode :is(.button, .icon-button, .nav-logout, .mobile-menu, .dictionary-clear, .dictionary-sound, .dictionary-save, .dictionary-type-tabs button, .dictionary-tabs button, .knowledge-tabs a, .library-collections summary, .account-edit-name, .account-avatar-camera) { min-width: 44px; min-height: 44px; }
+    body.user-mode :is(.button, .nav-logout) { padding: 8px 12px; font-size: 13px; white-space: normal; text-align: center; }
+    body.user-mode :is(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), select:not(.dictionary-sr-only), textarea) { min-height: 44px; max-width: 100%; font-size: 16px; }
+    body.user-mode :is(input[type="checkbox"], input[type="radio"]) { min-width: 20px; min-height: 20px; }
+    body.user-mode .mobile-menu { flex-basis: 44px; }
+    body.user-mode .user-nav a { min-height: 44px; }
+    body.user-mode .user-nav a span { font-size: 13px; }
+    body.user-mode :is(.page-heading, .section-head, .saved-toolbar, .exam-catalog-title-row, .library-detail-heading) { flex-wrap: wrap; min-width: 0; }
+    body.user-mode :is(.exam-tabs button, .exam-filter-row label, .exam-catalog-action .button) { min-height: 44px; font-size: 13px; }
+    body.user-mode :is(.exam-catalog-title-row h3, .exam-catalog-meta, .exam-catalog-tags, .exam-tag) { font-size: 13px; }
+    body.user-mode .exam-catalog-title-row { flex-wrap: wrap; }
+    body.user-mode .exam-catalog-title-row h3 { white-space: normal; overflow-wrap: anywhere; }
+    body.user-mode .exam-catalog-meta { line-height: 1.6; }
+    body.user-mode .site-footer { flex-wrap: wrap; padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
+    body.user-mode .account-avatar-camera { right: -4px; bottom: -4px; }
+    body.user-mode .pagination { flex-wrap: wrap; gap: 8px; }
+    body.user-mode .pagination :is(a, button) { min-width: 44px; min-height: 44px; }
+    body.user-mode .account-profile .account-form-actions .button { min-height: 44px; font-size: 13px; }
+    body.user-mode .library-heart { min-width: 44px; min-height: 44px; }
+    body.user-mode .dictionary-types button { min-height: 44px; font-size: 13px; }
+}
+@media (max-width: 680px) {
+    body.user-mode .topbar-actions { min-width: 0; gap: 6px; }
+    body.user-mode .nav-register { max-width: 135px; }
+    body.user-mode .exam-catalog-card { gap: 12px; }
+    body.user-mode .exam-catalog-action { flex-basis: 100%; }
+    body.user-mode .exam-catalog-action .button { width: 100%; }
+    body.user-mode .saved-item { flex-wrap: wrap; }
+    body.user-mode .saved-item-main { min-width: 0; flex-basis: calc(100% - 60px); }
+    body.user-mode .saved-item .saved-date { width: auto; flex: 1; }
+    body.user-mode .page-heading .button { max-width: 100%; }
 }

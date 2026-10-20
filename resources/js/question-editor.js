@@ -30,6 +30,7 @@ export function initQuestionEditor(root) {
     const pickerFeedback = root.querySelector('[data-qe-picker-feedback]');
     let dirty = false, saving = null, autosavePaused = false, saveTimer, previewTimer, previewRequest, pickerRequest, pickerTimer, pickerKind;
     let historyPage = initial.history.next_page;
+    let previousPartCode = part.selectedOptions[0]?.dataset.partCode;
     let tags = form.querySelector('[data-qe-tags-value]').value.split(',').map(tag => tag.trim()).filter(Boolean);
     const errorText = result => Object.values(result.errors ?? {}).flat().join('\n') || result.message || 'Không thể xử lý. Hãy thử lại.';
     const showError = message => { feedback.textContent = message; feedback.hidden = false; };
@@ -185,6 +186,12 @@ export function initQuestionEditor(root) {
             markDirty();
         }
         const currentFamily = family() === 'writing' ? 'essay' : family();
+        const minWords = form.querySelector('[data-qe-min-words]');
+        const currentPartCode = part.selectedOptions[0]?.dataset.partCode;
+        if (changed && previousPartCode !== currentPartCode && currentFamily === 'essay' && minWords && ['', '150', '250'].includes(minWords.value)) {
+            minWords.value = currentPartCode === 'writing-task-2' ? '250' : '150';
+        }
+        previousPartCode = currentPartCode;
         form.querySelectorAll('[data-type-family]').forEach(section => {
             const visible = section.dataset.typeFamily.split(' ').includes(currentFamily); section.hidden = !visible;
             section.querySelectorAll('input,textarea,select,button').forEach(input => { input.disabled = !visible || !canEdit; });

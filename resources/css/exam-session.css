@@ -133,3 +133,18 @@ body.admin-mode.exam-preview-mode {
 .exam-preview-mode .assessment-stimulus-panel,
 .exam-preview-mode .assessment-response-panel { min-height: 0; overflow: visible; }
 .exam-preview-mode .exam-session-items > .assessment-item:not(:has(.assessment-passage, .assessment-image, .assessment-audio)) .assessment-response-panel { min-height: 0; }
+
+@media (max-width: 1024px) {
+    .exam-session-page :is(button, .button, summary) { min-height: 44px; }
+    .exam-session-page .assessment-nav-grid { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 8px; }
+    .exam-session-page .assessment-navigation .assessment-nav-question { min-width: 44px; min-height: 44px; font-size: 14px; }
+    .exam-session-page .exam-nav-section summary { font-size: 14px; }
+    .exam-session-page :is(.exam-session-subtitle, .exam-session-save-status, .exam-progress-label, .exam-progress-stat, .exam-nav-complete, .exam-nav-section summary small) { font-size: 12px; }
+    .exam-session-page :is(.assessment-passage, .assessment-prompt, .assessment-item label:not(.assessment-option)) { font-size: 15px; }
+    .exam-session-page .assessment-option { min-height: 48px; grid-template-columns: 20px 24px minmax(0, 1fr); font-size: 14px; }
+    .exam-session-page .assessment-option input { width: 20px; height: 20px; }
+    .exam-session-page .assessment-flag { min-height: 44px; }
+    .exam-session-page .assessment-question-nav { flex-wrap: wrap; }
+    .exam-session-page .assessment-question-nav .button { flex: 1; min-height: 44px; font-size: 13px; }
+    .exam-session-page :is(audio, video, img) { max-width: 100%; }
+}

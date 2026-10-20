@@ -18,6 +18,8 @@
     $snapshot = $attempt->snapshot ?? [];
     $items = collect(data_get($snapshot, 'items', []))->values();
     $answers = $attempt->answers->keyBy('item_key');
+    $pendingManualCount = $items->filter(static fn ($item): bool => in_array($item['type'] ?? '', ['essay', 'speaking'], true)
+        && ($answer = $answers->get($item['key'] ?? '')) !== null && ! $answer->grade)->count();
     $hasResponseValue = static fn ($value): bool => is_scalar($value) && (! is_string($value) || trim($value) !== '');
     $hasResponse = static fn ($response): bool => collect($response ?? [])->flatten()->contains($hasResponseValue);
     $answeredCount = $items->filter(static function ($item) use ($answers, $hasResponse): bool {
@@ -99,6 +101,11 @@
                         <span class="attempt-badge {{ $statusTone }}">{{ $statusLabel }}</span>
                         <span class="attempt-badge {{ $attempt->leaderboard_status === 'approved' ? 'is-success' : 'is-neutral' }}">{{ $leaderboardLabel }}</span>
                     </div>
+                    @can('results.grade')
+                        @if ($attempt->submitted_at && $pendingManualCount > 0)
+                            <a class="button button-primary attempt-grade-link" href="{{ route('admin.grading.index', ['attempt' => $attempt->id]) }}">Chấm {{ $pendingManualCount }} câu</a>
+                        @endif
+                    @endcan
                 </div>
             </div>
 
@@ -256,6 +263,7 @@
                             $itemType = $item['type'] ?? '';
                             $itemTypeLabel = $questionTypes[$itemType] ?? ucfirst(str_replace('_', ' ', $itemType));
                             $response = is_array($answer?->response) ? $answer->response : [];
+                            $recordingId = $itemType === 'speaking' ? (int) ($response['asset_id'] ?? 0) : 0;
                             $hasAnswer = $answer && $hasResponse($response);
                             $optionMap = is_array($item['options'] ?? null) ? $item['options'] : [];
                             $selectedOptionValues = $response['options'] ?? [];
@@ -270,7 +278,7 @@
                             $blankResponses = is_array($response['blanks'] ?? null) ? $response['blanks'] : [];
                             $blankDefinitions = is_array(data_get($item, 'metadata.blanks', [])) ? data_get($item, 'metadata.blanks', []) : [];
                             $fallbackResponseValues = collect($response)
-                                ->except(['options', 'matching', 'blanks', 'text'])
+                                ->except(['options', 'matching', 'blanks', 'text', 'asset_id'])
                                 ->flatten()
                                 ->filter($hasResponseValue)
                                 ->map(static fn ($value): string => is_bool($value) ? ($value ? 'Có' : 'Không') : (string) $value);
@@ -284,9 +292,9 @@
                                 return $key.(is_scalar($label) && trim((string) $label) !== '' ? ' · '.$label : '');
                             });
                             $responseSummaryValues = $selectedOptionSummary->isNotEmpty() ? $selectedOptionSummary : $responseValues;
-                            $responseSummary = $responseSummaryValues->isNotEmpty()
+                            $responseSummary = $recordingId > 0 ? 'Bản ghi âm' : ($responseSummaryValues->isNotEmpty()
                                 ? \Illuminate\Support\Str::limit($responseSummaryValues->implode(' · '), 68)
-                                : ($hasAnswer ? 'Đã lưu phản hồi' : 'Chưa có câu trả lời');
+                                : ($hasAnswer ? 'Đã lưu phản hồi' : 'Chưa có câu trả lời'));
                             $rawGrade = $answer?->grade;
                             $rawGrade = is_string($rawGrade) ? json_decode($rawGrade, true) : $rawGrade;
                             $grade = is_array($rawGrade) ? $rawGrade : [];
@@ -394,6 +402,10 @@
                                                     </div>
                                                 @endforeach
                                             </dl>
+                                        @elseif ($recordingId > 0)
+                                            <audio class="attempt-recording" controls preload="metadata" aria-label="Bản ghi âm câu {{ $itemKey }}" src="{{ route('admin.attempts.recording', [$attempt, $recordingId]) }}">Trình duyệt không hỗ trợ phát bản ghi âm.</audio>
+                                            <a href="{{ route('admin.attempts.recording', [$attempt, $recordingId]) }}" download="{{ $itemKey }}.webm">Tải bản ghi âm</a>
+                                            @if (filled($response['text'] ?? null))<p class="attempt-answer-text">{{ $response['text'] }}</p>@endif
                                         @elseif (filled($response['text'] ?? null))
                                             <p class="attempt-answer-text">{{ $response['text'] }}</p>
                                         @elseif ($fallbackResponseValues->isNotEmpty())
@@ -427,6 +439,20 @@
                                                     <p>{{ $grade['feedback'] }}</p>
                                                 </div>
                                             @endif
+                                            @foreach ($grade['criterion_feedback'] ?? [] as $criterion => $comment)
+                                                @if (filled($comment))
+                                                    <div class="attempt-answer-feedback">
+                                                        <strong>{{ $gradingCriteriaLabels[$criterion] ?? $humanizeLabel($criterion) }}</strong>
+                                                        <p>{{ $comment }}</p>
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                            @if (filled($grade['improvements'] ?? null))
+                                                <div class="attempt-answer-feedback">
+                                                    <strong>Gợi ý cải thiện</strong>
+                                                    <p>{{ $grade['improvements'] }}</p>
+                                                </div>
+                                            @endif
                                             @if (filled($grade['reason'] ?? null))
                                                 <div class="attempt-answer-feedback">
                                                     <strong>Lý do điều chỉnh</strong>
@@ -447,6 +473,11 @@
                                         @else
                                             <p class="attempt-answer-empty">Chưa có kết quả chấm cho câu này.</p>
                                         @endif
+                                        @can('results.grade')
+                                            @if ($attempt->submitted_at && $answer && in_array($itemType, ['essay', 'speaking'], true))
+                                                <a class="button button-quiet" href="{{ route('admin.grading.index', ['attempt' => $attempt->id, 'answer' => $answer->id]) }}">{{ $grade ? 'Điều chỉnh điểm' : 'Chấm câu này' }}</a>
+                                            @endif
+                                        @endcan
                                     </section>
                                     @if ($rubric !== [])
                                         <section class="attempt-rubric-card">
@@ -557,6 +588,7 @@
     .attempt-learner-copy h2 { margin: 0; overflow: hidden; color: var(--ink, #142c55); font-size: 18px; line-height: 1.25; text-overflow: ellipsis; }
     .attempt-learner-copy > p { margin: 3px 0 8px; overflow: hidden; color: #6d809f; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
     .attempt-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+    .attempt-grade-link { margin-top: 10px; }
     .attempt-badge { min-height: 22px; display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; color: #526984; background: #edf2f8; font-size: 10px; font-weight: 700; line-height: 1.2; }
     .attempt-badge.is-mode { color: #435c7f; background: #edf2f9; }
     .attempt-badge.is-success { color: #12805c; background: #e4f7ed; }
@@ -654,6 +686,7 @@
     .attempt-stimulus h4 { margin: 0 0 6px; color: #536b8e; font-size: 10px; }
     .attempt-answer-data { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
     .attempt-answer-data section { min-width: 0; padding: 10px; border: 1px solid #e6edf7; border-radius: 8px; background: #fff; }
+    .attempt-recording { display: block; width: 100%; max-width: 100%; margin-bottom: 8px; }
     .attempt-answer-data .attempt-options-card { grid-column: 1 / -1; }
     .attempt-option-list,
     .attempt-answer-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }

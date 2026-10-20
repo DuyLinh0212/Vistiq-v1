@@ -195,3 +195,9 @@
 @media (prefers-reduced-motion: reduce) {
     .auth-unified *, .auth-unified *::before, .auth-unified *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+@media (max-width: 1024px) {
+    body.auth-mode .button { min-height: 44px; font-size: 14px; white-space: normal; }
+    body.auth-mode :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea) { min-height: 44px; font-size: 16px; }
+    .auth-unified :is(.password-toggle, .auth-unified-close) { width: 44px; height: 44px; }
+    .auth-unified .auth-input-wrap input { font-size: 16px; }
+}

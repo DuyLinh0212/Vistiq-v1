@@ -33,7 +33,6 @@
             <input type="hidden" name="visual_template" data-visual-template value="{{ $initialTemplateCard }}">
             <input type="hidden" name="exam_type_id" data-exam-type value="{{ $initialType }}">
             <input type="hidden" name="mode" value="{{ old('mode',$exam->mode ?? 'mini') }}">
-            <input type="hidden" name="variant" value="{{ old('variant',$exam->variant) }}">
 
             <section class="ex-wizard-panel" data-wizard-panel="0">
                 <div class="ex-wizard-section-title"><div><h2>Bước 1: Chọn template đề thi</h2><p>Sử dụng cấu trúc có sẵn hoặc bắt đầu với đề tùy chỉnh.</p></div><button type="button" class="ex-button" data-template-create><i data-ex-icon="plus"></i>Đề tùy chỉnh</button></div>
@@ -61,6 +60,7 @@
                 <section class="ex-config-block"><h3>1. Thông tin chung</h3><div class="ex-info-grid">
                     <label data-thpt-subject-field @if(($generation['template'] ?? null) !== 'thpt') hidden @endif>Môn thi<select data-thpt-subject>@foreach($thptParts as $part)<option value="{{ $part->id }}" data-part-code="{{ $part->code }}" @selected((int)$initialThptPartId === $part->id)>{{ $part->name }} · {{ $part->code === 'toan' ? '34 câu · 90 phút' : '40 câu · 50 phút' }}</option>@endforeach</select></label>
                     <label>Tên đề thi <em>*</em><input name="title" value="{{ old('title',$exam->title) }}" required maxlength="180" placeholder="Nhập tên đề thi"></label>
+                    <label>Phiên bản IELTS <small>(nếu áp dụng)</small><select name="variant" aria-describedby="exam-variant-help"><option value="" @selected(!old('variant', $exam->variant))>Chưa chọn</option><option value="academic" @selected(old('variant', $exam->variant) === 'academic')>Academic</option><option value="general" @selected(old('variant', $exam->variant) === 'general')>General Training</option></select><small id="exam-variant-help">Đề IELTS có Writing hoặc Reading cần khớp phiên bản của câu hỏi.</small></label>
                     <label>Mã đề<input value="{{ $exam->exists ? strtoupper($exam->examType?->code ?? 'EXAM').'-'.str_pad($exam->id,4,'0',STR_PAD_LEFT) : 'Tự tạo sau khi lưu' }}" readonly></label>
                     <label>Trạng thái<input value="{{ $statusLabels[$exam->draft_status ?? 'draft'] }}" readonly></label>
                     <label>Thang điểm<select name="score_scale_id" data-score-scale><option value="">Điểm thô / %</option>@foreach($scales as $scale)<option value="{{ $scale->id }}" @selected((int) old('score_scale_id',$exam->score_scale_id)===$scale->id)>{{ $scale->name }} · v{{ $scale->version }}</option>@endforeach</select></label>

@@ -390,3 +390,34 @@
 @media (max-width: 900px) { .ex-list-layout, .ex-editor-layout { grid-template-columns: minmax(0,1fr); } .ex-detail-panel, .ex-preview-panel { position: static; } .ex-detail-panel { scroll-margin-top: 12px; } .ex-detail-body { padding: 12px; } .ex-part-bar { grid-template-columns: 18px 90px minmax(0,1fr) 45px 35px; } .ex-preview-bottom { grid-template-columns: 1fr 1fr; } .ex-part-tabs { grid-template-columns: repeat(auto-fit,minmax(72px,1fr)); } }
 @media (max-width: 600px) { .ex-add-section-controls { flex-wrap: wrap; justify-content: flex-end; } .ex-add-section-picker { flex: 1 1 150px; } .ex-add-section-picker select { width: 100% !important; } }
 @media (max-width: 500px) { .ex-workspace .ex-panel-heading :is(h1,h2) { font-size: 13px; } .ex-tabs { width: 100%; } .ex-tabs button { flex: 1; padding: 5px 8px; font-size: 9px; } .ex-search { width: 100%; } .ex-search input { width: 100%; } .ex-panel-heading { padding: 8px; } .ex-heading-actions { flex-wrap: wrap; } .ex-heading-actions [data-autosave-status] { flex-basis: 100%; } .ex-secondary-grid, .ex-quota-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .ex-quota-grid > label:first-child { grid-column: 1 / -1; } .ex-filter-grid, .ex-info-grid { gap: 7px; } .ex-editor-body, .ex-filters { padding-left: 8px; padding-right: 8px; } .ex-selection-metrics { width: 100%; } .ex-selection-metrics > span { flex: 1; min-width: 0; } .ex-pagination { align-items: flex-start; flex-direction: column; } .ex-page-links { flex-wrap: wrap; } .ex-part-bar { grid-template-columns: 15px 65px minmax(0,1fr) 35px 28px; } }
+.ex-workspace :is(.ex-add-section-picker, .ex-policy-toggles > label) { min-width: 0; }
+@media (max-width: 1024px) {
+    .ex-workspace { font-size: 14px; }
+    .ex-workspace :is(.ex-button, .ex-tabs button, .ex-chip, .ex-text-button) { min-height: 44px; font-size: 13px; white-space: normal; }
+    .ex-workspace .ex-icon-button { min-width: 44px; min-height: 44px; }
+    .ex-workspace :is(.ex-table, .ex-table td, .ex-facts, .ex-description) { font-size: 13px; }
+    .ex-workspace :is(.ex-table th, .ex-status, .ex-tag, .ex-muted, .ex-list-meta, .ex-section-duration-summary, .ex-part-config-card > small, .ex-template-copy small, .ex-template-copy em) { font-size: 12px; }
+    .ex-workspace :is(.ex-config-block > h3, .ex-section-heading h3, .ex-template-copy strong) { font-size: 14px; }
+    .ex-workspace :is(.ex-wizard-section-title p, .ex-config-block > .ex-section-heading p) { font-size: 12px; }
+    .ex-workspace :is(.ex-part-config-card > label, .ex-policy-toggles > label, .ex-bank-filters > label:not(.ex-search), .ex-quota-detail label) { font-size: 13px !important; }
+    .ex-workspace .ex-policy-toggles > label { min-height: 44px; }
+    .ex-workspace .ex-part-config-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ex-workspace .ex-part-label { font-size: 13px; }
+    .ex-workspace :is(.ex-page-links a, .ex-page-links > span, .ex-page-links button) { min-width: 44px; min-height: 44px; font-size: 13px; }
+    .ex-workspace .ex-wizard-steps button { min-width: 0; min-height: 44px; font-size: 11px; white-space: normal; }
+    .ex-workspace .ex-wizard-steps button > span { flex-shrink: 0; font-size: 13px; }
+    .ex-workspace .ex-section-heading { flex-wrap: wrap; }
+    .ex-workspace .ex-wizard-section-title { flex-wrap: wrap; min-width: 0; }
+    .ex-workspace .ex-tabs { max-width: 100%; }
+    .ex-workspace .ex-add-section-controls { max-width: 100%; flex: 0 1 auto; flex-wrap: wrap; }
+    .ex-workspace .ex-add-section-picker select { width: min(205px, 100%) !important; min-height: 44px !important; font-size: 16px !important; }
+    .ex-workspace :is(.ex-part-config-card > label > :is(input, select), .ex-policy-toggles select, .ex-bank-filters :is(input, select), .ex-bank-pagination select, .ex-quota-detail input) { min-height: 44px !important; font-size: 16px !important; }
+    .ex-workspace .ex-policy-toggles > label { flex-wrap: wrap; gap: 8px; }
+}
+@media (max-width: 600px) {
+    .ex-workspace .ex-wizard-section-title > .ex-tabs { display: grid; width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ex-workspace .ex-part-config-grid { grid-template-columns: minmax(0, 1fr); }
+    .ex-workspace .ex-config-block .ex-info-grid > label:first-child { grid-column: 1 / -1; }
+    .ex-workspace .ex-section-heading { align-items: stretch; flex-direction: column; }
+    .ex-workspace .ex-add-section-controls { width: 100%; }
+}

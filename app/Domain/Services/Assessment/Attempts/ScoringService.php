@@ -124,7 +124,11 @@ class ScoringService
         if ($scaled === null && $details['pending_tasks'] === 0 && $attempt->snapshot['mode'] !== 'full') {
             $total = array_sum(array_column($details['by_skill'], 'total'));
             if (($attempt->snapshot['exam_type'] ?? null) === 'ielts') {
-                $scaled = count($details['bands']) === 1 ? (float) reset($details['bands']) : null;
+                // Mini IELTS exams can contain any subset of the four skills.
+                // Once every task is graded, report the band for the skills present.
+                $scaled = $details['bands'] !== []
+                    ? round(array_sum($details['bands']) / count($details['bands']) * 2) / 2
+                    : null;
             } else {
                 $scaled = $total > 0 ? round($raw / $total * 100, 2) : (count($details['bands']) > 0 ? round(array_sum($details['bands']) / count($details['bands']) * 2) / 2 : null);
             }

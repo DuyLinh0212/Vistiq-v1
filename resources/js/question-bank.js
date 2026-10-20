@@ -88,3 +88,37 @@ if (thptQuickForm) {
     });
     syncGroups();
 }
+const updateSubjectiveSelection = () => {
+    const root = document.querySelector('[data-subjective-bank]');
+    if (!root) return;
+    const boxes = [...root.querySelectorAll('[data-subjective-select]')];
+    const count = boxes.filter(box => box.checked).length;
+    const all = root.querySelector('[data-subjective-select-all]');
+    if (all) {
+        all.checked = count > 0 && count === boxes.length;
+        all.indeterminate = count > 0 && count < boxes.length;
+        all.disabled = boxes.length === 0;
+    }
+    const label = root.querySelector('[data-subjective-selection]');
+    if (label) label.textContent = count ? `Đã chọn ${count} câu hỏi nháp trên trang này.` : 'Chọn câu hỏi nháp để gửi duyệt.';
+    const submit = root.querySelector('[data-subjective-review-submit]');
+    if (submit) { submit.disabled = count === 0; submit.textContent = count ? `Gửi duyệt ${count} câu` : 'Gửi duyệt mục đã chọn'; }
+};
+document.addEventListener('change', event => {
+    if (event.target.matches('[data-subjective-select-all]')) document.querySelectorAll('[data-subjective-select]').forEach(box => { box.checked = event.target.checked; });
+    if (event.target.matches('[data-subjective-select-all], [data-subjective-select]')) updateSubjectiveSelection();
+});
+document.addEventListener('vistiq:ajax-results-updated', updateSubjectiveSelection);
+updateSubjectiveSelection();
+const subjectiveFilters = document.querySelector('[data-subjective-filters]');
+if (subjectiveFilters) {
+    const phone = matchMedia('(max-width: 680px)');
+    const applied = ['exam', 'part', 'difficulty'].some(name => subjectiveFilters.querySelector(`[name="${name}"]`)?.value);
+    subjectiveFilters.open = !phone.matches || applied;
+    phone.addEventListener('change', () => { subjectiveFilters.open = !phone.matches; });
+}
+const subjectiveDetail = document.querySelector('[data-subjective-detail]');
+if (subjectiveDetail && matchMedia('(max-width: 680px)').matches) {
+    subjectiveDetail.scrollIntoView({ block: 'start', behavior: 'instant' });
+    subjectiveDetail.focus({ preventScroll: true });
+}

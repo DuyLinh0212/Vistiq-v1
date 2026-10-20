@@ -1,8 +1,24 @@
 {
-  "generated_at": "2026-10-19T14:22:45.970572+00:00",
+  "generated_at": "2026-10-20T16:39:48.283561+00:00",
   "nodes": {
+    "app_admin_http_controllers_admin_assessment_attempts_attemptcontroller_attemptcontroller": {
+      "code_fingerprint": "525e34d62604c888e3c6d6dd03156b0cd1cdf6f7756c63897ad2a231aef390ed",
+      "label": "AttemptController",
+      "last": "2026-10-19T14:33:36.950571+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-19T14:33:36.950571+00:00",
+          "outcome": "useful",
+          "q": "Làm lại giao diện lượt thi & báo cáo"
+        }
+      ],
+      "score": 0.975183505,
+      "source_file": "app/Admin/Http/Controllers/Admin/Assessment/Attempts/AttemptController.php",
+      "status": "tentative",
+      "uses": 1
+    },
     "app_admin_http_controllers_admin_assessment_exams_exambuildercontroller": {
-      "code_fingerprint": "939c93610b118f0c1ac72f4f180495b1746d7b0a982ed6fd56f866cfcbd08d8e",
+      "code_fingerprint": "b8f12372db0b353b6a578a4b260104aa9053a34f9d91db835e4d17422b72af2c",
       "label": "ExamBuilderController.php",
       "last": "2026-10-11T07:09:24.163974+00:00",
       "provenance": [
@@ -17,13 +33,13 @@
           "q": "Why does the THPT exam builder reject 40 selected questions?"
         }
       ],
-      "score": 1.650806859,
+      "score": 1.609559395,
       "source_file": "app/Admin/Http/Controllers/Admin/Assessment/Exams/ExamBuilderController.php",
       "status": "preferred",
       "uses": 2
     },
     "app_admin_http_controllers_admin_assessment_questionbank_questioncontroller": {
-      "code_fingerprint": "aeb5b8bed6418b37477988345aa142297d42ef82a235126d50377fb0267b17f5",
+      "code_fingerprint": "e6653d114da76a84e0104118671e9a414740c66998bc6cc56ca2bb7d6d9484c5",
       "label": "QuestionController.php",
       "last": "2026-10-11T06:45:55.845534+00:00",
       "provenance": [
@@ -33,16 +49,122 @@
           "q": "Fix THPT English Excel import error for missing category, question type, and difficulty initialization"
         }
       ],
-      "score": 0.825167233,
+      "score": 0.804549403,
       "source_file": "app/Admin/Http/Controllers/Admin/Assessment/QuestionBank/QuestionController.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_admin_http_controllers_admin_assessment_questionbank_questioncontroller_questioncontroller": {
+      "code_fingerprint": "e6653d114da76a84e0104118671e9a414740c66998bc6cc56ca2bb7d6d9484c5",
+      "label": "QuestionController",
+      "last": "2026-10-20T16:31:02.506479+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-20T16:31:02.506479+00:00",
+          "outcome": "useful",
+          "q": "Thêm tab Câu hỏi Writing và Speaking với bộ lọc, gửi duyệt, import XLSX và file mẫu"
+        },
+        {
+          "date": "2026-10-20T14:47:16.315065+00:00",
+          "outcome": "useful",
+          "q": "Code hiện tại có tạo và làm Writing/Speaking không?"
+        }
+      ],
+      "score": 1.99805544,
+      "source_file": "app/Admin/Http/Controllers/Admin/Assessment/QuestionBank/QuestionController.php",
+      "status": "preferred",
+      "uses": 2
+    },
+    "app_admin_http_controllers_admin_assessment_questionbank_subjectivequestioncontroller_subjectivequestioncontroller": {
+      "code_fingerprint": "d3a5c31fa77a696a4f6e217b58a46ab18e7c9be6034d6587eafafce95d079699",
+      "label": "SubjectiveQuestionController",
+      "last": "2026-10-20T16:31:02.506479+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-20T16:31:02.506479+00:00",
+          "outcome": "useful",
+          "q": "Thêm tab Câu hỏi Writing và Speaking với bộ lọc, gửi duyệt, import XLSX và file mẫu"
+        }
+      ],
+      "score": 0.999859408,
+      "source_file": "app/Admin/Http/Controllers/Admin/Assessment/QuestionBank/SubjectiveQuestionController.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_admin_http_requests_admin_assessment_attempts_attemptfilterrequest_attemptfilterrequest": {
+      "code_fingerprint": "efe7af67ed9f41b70d3c0130ada43d30b7c4b023d7d622b4a7c9b6e37df0b1d0",
+      "label": "AttemptFilterRequest",
+      "last": "2026-10-19T14:33:36.950571+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-19T14:33:36.950571+00:00",
+          "outcome": "useful",
+          "q": "Làm lại giao diện lượt thi & báo cáo"
+        }
+      ],
+      "score": 0.975183505,
+      "source_file": "app/Admin/Http/Requests/Admin/Assessment/Attempts/AttemptFilterRequest.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_domain_services_assessment_attempts_attemptqueryservice_attemptqueryservice": {
+      "code_fingerprint": "02cc6c98249234fd16164c34c93ccb658782c3dcffb7911a52416f03b04f387e",
+      "label": "AttemptQueryService",
+      "last": "2026-10-19T14:33:36.950571+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-19T14:33:36.950571+00:00",
+          "outcome": "useful",
+          "q": "Làm lại giao diện lượt thi & báo cáo"
+        }
+      ],
+      "score": 0.975183505,
+      "source_file": "app/Domain/Services/Assessment/Attempts/AttemptQueryService.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_domain_services_assessment_attempts_attemptservice_attemptservice": {
+      "code_fingerprint": "17bde230fc6ccd7d0d256a0452c79f60c3f6d4d612c6becea1098cbed1f6627b",
+      "label": "AttemptService",
+      "last": "2026-10-20T14:47:16.315065+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-20T14:47:16.315065+00:00",
+          "outcome": "useful",
+          "q": "Code hiện tại có tạo và làm Writing/Speaking không?"
+        }
+      ],
+      "score": 0.998196032,
+      "source_file": "app/Domain/Services/Assessment/Attempts/AttemptService.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_domain_services_assessment_attempts_gradingservice_gradingservice": {
+      "code_fingerprint": "c94ffd16d3d611df54bc7ce806cd7ce8e202cae11b690a4a6bec893c530868cc",
+      "label": "GradingService",
+      "last": "2026-10-20T14:47:16.315065+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-20T14:47:16.315065+00:00",
+          "outcome": "useful",
+          "q": "Code hiện tại có tạo và làm Writing/Speaking không?"
+        }
+      ],
+      "score": 0.998196032,
+      "source_file": "app/Domain/Services/Assessment/Attempts/GradingService.php",
       "status": "tentative",
       "uses": 1
     },
     "app_domain_services_assessment_exams_examgenerationservice_examgenerationservice": {
       "code_fingerprint": "7411b7ee7a05903b7f653eff412d0f47a476d3702bc90df71cca6970f2f048b8",
       "label": "ExamGenerationService",
-      "last": "2026-10-11T07:09:24.163974+00:00",
+      "last": "2026-10-20T14:47:16.315065+00:00",
       "provenance": [
+        {
+          "date": "2026-10-20T14:47:16.315065+00:00",
+          "outcome": "useful",
+          "q": "Code hiện tại có tạo và làm Writing/Speaking không?"
+        },
         {
           "date": "2026-10-11T07:09:24.163974+00:00",
           "outcome": "useful",
@@ -54,10 +176,10 @@
           "q": "Why does the THPT exam builder reject 40 selected questions?"
         }
       ],
-      "score": 1.650806859,
+      "score": 2.607755427,
       "source_file": "app/Domain/Services/Assessment/Exams/ExamGenerationService.php",
       "status": "preferred",
-      "uses": 2
+      "uses": 3
     },
     "app_domain_services_assessment_exams_examgenerationservice_examgenerationservice_validateselection": {
       "code_fingerprint": "7411b7ee7a05903b7f653eff412d0f47a476d3702bc90df71cca6970f2f048b8",
@@ -75,13 +197,13 @@
           "q": "Why does the THPT exam builder reject 40 selected questions?"
         }
       ],
-      "score": 1.650806859,
+      "score": 1.609559395,
       "source_file": "app/Domain/Services/Assessment/Exams/ExamGenerationService.php",
       "status": "preferred",
       "uses": 2
     },
     "app_domain_services_assessment_exams_exampublishingservice_exampublishingservice": {
-      "code_fingerprint": "e1ea5ba1997caf834afa90db8b4bd1e87b8bb82a877320a17e2c2f50b0174943",
+      "code_fingerprint": "32099bfee04db66a8fd0f61bbf824f79ab497c1db8febf028016435837ecd95f",
       "label": "ExamPublishingService",
       "last": "2026-10-11T07:09:24.163974+00:00",
       "provenance": [
@@ -91,8 +213,40 @@
           "q": "Explain why imported THPT draft questions were selectable but rejected in generated exam templates, and distinguish that from publishing a manual draft exam."
         }
       ],
-      "score": 0.825478058,
+      "score": 0.804852461,
       "source_file": "app/Domain/Services/Assessment/Exams/ExamPublishingService.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_domain_services_assessment_questionbank_questionregistry_questionregistry": {
+      "code_fingerprint": "3269a5786d419bf890cf9749f651d1a2d91850b306bc1dbbea6b4c76dc6022fb",
+      "label": "QuestionRegistry",
+      "last": "2026-10-20T14:47:16.315065+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-20T14:47:16.315065+00:00",
+          "outcome": "useful",
+          "q": "Code hiện tại có tạo và làm Writing/Speaking không?"
+        }
+      ],
+      "score": 0.998196032,
+      "source_file": "app/Domain/Services/Assessment/QuestionBank/QuestionRegistry.php",
+      "status": "tentative",
+      "uses": 1
+    },
+    "app_domain_services_assessment_questionbank_subjectivequestionworkbookservice_subjectivequestionworkbookservice": {
+      "code_fingerprint": "4036dfe11aaf9a2fe39b2fb2dfee12010b78c7e9a1fe709d52ecf1643dee6270",
+      "label": "SubjectiveQuestionWorkbookService",
+      "last": "2026-10-20T16:31:02.506479+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-20T16:31:02.506479+00:00",
+          "outcome": "useful",
+          "q": "Thêm tab Câu hỏi Writing và Speaking với bộ lọc, gửi duyệt, import XLSX và file mẫu"
+        }
+      ],
+      "score": 0.999859408,
+      "source_file": "app/Domain/Services/Assessment/QuestionBank/SubjectiveQuestionWorkbookService.php",
       "status": "tentative",
       "uses": 1
     },
@@ -107,7 +261,7 @@
           "q": "Fix THPT English Excel import error for missing category, question type, and difficulty initialization"
         }
       ],
-      "score": 0.825167233,
+      "score": 0.804549403,
       "source_file": "database/seeders/Admin/AdminCatalogSeeder.php",
       "status": "tentative",
       "uses": 1
@@ -123,13 +277,13 @@
           "q": "Fix THPT English Excel import error for missing category, question type, and difficulty initialization"
         }
       ],
-      "score": 0.825167233,
+      "score": 0.804549403,
       "source_file": "database/seeders/Admin/AssessmentCatalogSeeder.php",
       "status": "tentative",
       "uses": 1
     },
     "resources_js_exam_builder": {
-      "code_fingerprint": "6dc7db3d18d0d6daab4128d6a8fc93a66a07882bc2efbdb9548243edc01f26b9",
+      "code_fingerprint": "c480ee62c55b66ea8b266238f5708e835936e9929eaf065bc10a900d8ff9950c",
       "label": "exam-builder.js",
       "last": "2026-10-11T06:58:07.960072+00:00",
       "provenance": [
@@ -139,8 +293,24 @@
           "q": "Why does the THPT exam builder reject 40 selected questions?"
         }
       ],
-      "score": 0.825328801,
+      "score": 0.804706934,
       "source_file": "resources/js/exam-builder.js",
+      "status": "tentative",
+      "uses": 1
+    },
+    "resources_js_exam_runner": {
+      "code_fingerprint": "93b6bfd0b08a83b3fae4643b51d6a1d7532b55dc5281a337f9132a27b816bf66",
+      "label": "exam-runner.js",
+      "last": "2026-10-20T14:47:16.315065+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-20T14:47:16.315065+00:00",
+          "outcome": "useful",
+          "q": "Code hiện tại có tạo và làm Writing/Speaking không?"
+        }
+      ],
+      "score": 0.998196032,
+      "source_file": "resources/js/exam-runner.js",
       "status": "tentative",
       "uses": 1
     }

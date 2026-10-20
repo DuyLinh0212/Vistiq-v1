@@ -6,6 +6,7 @@ use VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank\QuestionBankWorkf
 use VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank\StimulusController;
 use VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank\QuestionEditorController;
 use VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank\MediaController;
+use VistiqAdmin\Http\Controllers\Admin\Assessment\QuestionBank\SubjectiveQuestionController;
 
 Route::get('/questions/import-template', [QuestionController::class, 'importTemplate'])->middleware('can:content.edit')->name('questions.import-template');
 Route::get('/questions/import-progress/{token}', [QuestionController::class, 'importProgress'])->middleware('can:content.edit')->name('questions.import-progress');
@@ -19,6 +20,10 @@ Route::post('/questions/approve', [QuestionBankWorkflowController::class, 'appro
 Route::post('/questions/bulk', [QuestionBankWorkflowController::class, 'bulk'])->middleware('can:content.edit')->name('questions.bulk');
 Route::get('/questions/bank-preview/{kind}/{id}', [QuestionController::class, 'bankPreview'])->middleware('can:content.view')->whereNumber('id')->name('questions.bank-preview');
 Route::get('/questions/listening', [StimulusController::class, 'listening'])->middleware('can:content.view')->name('questions.listening');
+foreach (['writing', 'speaking'] as $skill) {
+    Route::get('/questions/'.$skill, [SubjectiveQuestionController::class, 'index'])->defaults('skill', $skill)->middleware('can:content.view')->name('questions.'.$skill);
+    Route::post('/questions/'.$skill.'/review', [SubjectiveQuestionController::class, 'review'])->defaults('skill', $skill)->middleware(['can:content.edit', 'throttle:30,1'])->name('questions.'.$skill.'.review');
+}
 Route::get('/questions/thpt', [QuestionController::class, 'thpt'])->middleware('can:content.view')->name('questions.thpt');
 Route::get('/questions/deleted', [QuestionController::class, 'deleted'])->middleware('can:content.view')->name('questions.deleted');
 Route::delete('/questions/{question}', [QuestionController::class, 'destroy'])->middleware('can:content.edit')->whereNumber('question')->name('questions.destroy');

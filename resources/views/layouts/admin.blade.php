@@ -8,6 +8,8 @@
                 ['route' => 'admin.questions.index', 'permission' => 'content.view', 'label' => 'Ngân hàng Câu Hỏi', 'icon' => 'book-open-text', 'active' => ['admin.questions.index'], 'children' => [
                     ['route' => 'admin.questions.listening', 'permission' => 'content.view', 'label' => 'Câu hỏi Listening', 'active' => ['admin.questions.listening']],
                     ['route' => 'admin.readings.index', 'permission' => 'content.view', 'label' => 'Câu hỏi Reading', 'active' => ['admin.readings.*']],
+                    ['route' => 'admin.questions.writing', 'permission' => 'content.view', 'label' => 'Câu hỏi Writing', 'active' => ['admin.questions.writing', 'admin.questions.writing.*']],
+                    ['route' => 'admin.questions.speaking', 'permission' => 'content.view', 'label' => 'Câu hỏi Speaking', 'active' => ['admin.questions.speaking', 'admin.questions.speaking.*']],
                     ['route' => 'admin.questions.thpt', 'permission' => 'content.view', 'label' => 'Câu hỏi Tiếng Anh THPT', 'active' => ['admin.questions.thpt']],
                 ]],
                 ['route' => 'admin.resources.index', 'permission' => 'content.view', 'label' => 'Tài nguyên', 'icon' => 'resources', 'active' => ['admin.resources.*', 'admin.audio.*', 'admin.media.*']],
@@ -36,7 +38,10 @@
         ],
     ];
     $canSeeSidebarItem = static fn (array $navItem): bool => auth()->user()?->hasPermission($navItem['permission']) ?? false;
-    $isSidebarItemActive = static fn (array $navItem): bool => request()->routeIs(...$navItem['active']);
+    $isSidebarItemActive = static fn (array $navItem): bool => request()->routeIs(...$navItem['active'])
+        || (in_array($editorSkill ?? null, ['writing', 'speaking'], true)
+            && $navItem['route'] === 'admin.questions.'.$editorSkill
+            && request()->routeIs('admin.questions.create', 'admin.questions.edit'));
     $sidebarNavigationGroups = collect($sidebarNavigationGroups)->map(function (array $navGroup) use ($canSeeSidebarItem, $isSidebarItemActive): array {
         $navGroup['items'] = collect($navGroup['items'])->map(function (array $navItem) use ($canSeeSidebarItem, $isSidebarItemActive): ?array {
             if (isset($navItem['children'])) {

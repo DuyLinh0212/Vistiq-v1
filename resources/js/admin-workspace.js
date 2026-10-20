@@ -94,13 +94,18 @@ document.querySelectorAll('[data-unsaved-form]').forEach(form => {
     }, 5000);
 });
 
-document.querySelectorAll('[data-confirm]').forEach(form => form.addEventListener('submit', async event => {
+document.addEventListener('submit', async event => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-confirm') || event.defaultPrevented) {
+        return;
+    }
     if (form.dataset.confirmApproved === 'true') {
         delete form.dataset.confirmApproved;
         return;
     }
 
     event.preventDefault();
+    event.stopImmediatePropagation();
     if (form.dataset.confirmPending === 'true') {
         return;
     }
@@ -113,7 +118,7 @@ document.querySelectorAll('[data-confirm]').forEach(form => form.addEventListene
     });
     delete form.dataset.confirmPending;
 
-    if (!confirmed) {
+    if (!confirmed || !form.isConnected) {
         return;
     }
 
@@ -128,7 +133,7 @@ document.querySelectorAll('[data-confirm]').forEach(form => form.addEventListene
         control.disabled = true;
         control.setAttribute('aria-busy', 'true');
     });
-}));
+}, true);
 
 const audioDeleteForm = document.querySelector('[data-audio-delete-form]');
 if (audioDeleteForm) {

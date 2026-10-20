@@ -185,7 +185,7 @@ class QuestionBankWorkflowController extends AdminPageController
             }
         });
 
-        return back()->with('status', 'Đã gửi duyệt toàn bộ '.number_format($draftIds->count()).' câu hỏi nháp trong ba ngân hàng.');
+        return back()->with('status', 'Đã gửi duyệt toàn bộ '.number_format($draftIds->count()).' câu hỏi nháp trong các ngân hàng câu hỏi.');
     }
 
     public function export(Request $request, ContentRevisionService $revisions): mixed

@@ -7,6 +7,7 @@ document.querySelectorAll('[data-workbook-import]').forEach(container => {
     const sheetsRoot = container.querySelector('[data-workbook-sheets]');
     const readingKind = container.dataset.kind === 'reading';
     const listeningKind = container.dataset.kind === 'listening';
+    const subjectiveKind = ['writing', 'speaking'].includes(container.dataset.kind);
     const audioRoot = container.querySelector('[data-workbook-audio]');
     const imageRoot = container.querySelector('[data-workbook-images]');
     const errors = container.querySelector('[data-workbook-errors]');
@@ -329,6 +330,11 @@ document.querySelectorAll('[data-workbook-import]').forEach(container => {
 
     uploadForm.addEventListener('submit', async event => {
         event.preventDefault();
+        const uploadButton = uploadForm.querySelector('[type="submit"]');
+        if (uploadButton.disabled) return;
+        uploadButton.disabled = true;
+        const uploadLabel = uploadButton.textContent;
+        uploadButton.textContent = 'Đang đọc workbook…';
         showError('');
         setProgress({ visible: false });
         confirmButton.disabled = true;
@@ -349,7 +355,7 @@ document.querySelectorAll('[data-workbook-import]').forEach(container => {
                     .filter(sheet => !sheet.blocked && Number(sheet.question_count) > 0)
                     .map(sheet => ({ code: String(sheet.code), sourceSheet: sourceSheetName(sheet) }))
                 : [];
-            hasImportableQuestions = container.dataset.kind === 'thpt_english'
+            hasImportableQuestions = (container.dataset.kind === 'thpt_english' || subjectiveKind)
                 ? result.can_import === true
                 : sheets.some(sheet => !sheet.blocked && sheet.question_count > 0);
             summary.textContent = container.dataset.kind === 'thpt_english'
@@ -367,6 +373,10 @@ document.querySelectorAll('[data-workbook-import]').forEach(container => {
                     ? `<div class="workbook-audio-row" data-audio-row data-sheet-code="${code}" data-source-sheet="${sourceSheet}"><span data-audio-status>Chưa ghép audio</span><button class="button button-quiet" type="button" data-audio-choose aria-label="Chọn audio cho bài ${sourceSheet}">Chọn file</button><input type="file" data-audio-override accept=".mp3,.wav,.m4a,.ogg,audio/*" aria-label="Chọn audio cho bài ${sourceSheet}" hidden></div>`
                     : '';
                 const sheetHeading = `<div class="workbook-sheet-heading"><div class="workbook-sheet-title"><b>${sheetTitle}</b><span>${questionCount}</span></div>${audioField}</div>`;
+                if (subjectiveKind) {
+                    const questions = (sheet.questions || []).map(question => `<li><b>Dòng ${Number(question.row)} · ${escapeHtml(question.part_name)}</b><p>${escapeHtml(question.prompt)}</p>${question.min_words ? `<small>Tối thiểu ${Number(question.min_words)} từ</small>` : ''}</li>`).join('');
+                    return `<article class="workbook-sheet-row">${sheetHeading}${errorList}${questions ? `<details><summary>Xem ${Number(sheet.question_count)} câu hỏi</summary><ol>${questions}</ol></details>` : ''}</article>`;
+                }
                 if (!readingKind || sheet.blocked || !sheet.question_count) {
                     return `<article class="workbook-sheet-row">${sheetHeading}${errorList}</article>`;
                 }
@@ -410,6 +420,9 @@ document.querySelectorAll('[data-workbook-import]').forEach(container => {
             showError(error.message || 'Không thể đọc workbook.');
             preview.hidden = false;
             confirmButton.hidden = true;
+        } finally {
+            uploadButton.disabled = false;
+            uploadButton.textContent = uploadLabel;
         }
     });
 
@@ -459,13 +472,14 @@ document.querySelectorAll('[data-workbook-import]').forEach(container => {
             const response = await xhrPost(container.dataset.confirmUrl, data, (loaded, requestBytes) => {
                 const percentage = loaded / requestBytes * 100;
                 setProgress(percentage >= 100
-                    ? { value: null, label: 'Đang xử lý import…', message: 'Đang lưu câu hỏi và liên kết audio. Vui lòng giữ cửa sổ này mở.' }
+                    ? { value: null, label: 'Đang xử lý import…', message: subjectiveKind ? 'Đang lưu câu hỏi bản nháp. Vui lòng giữ cửa sổ này mở.' : 'Đang lưu câu hỏi và liên kết audio. Vui lòng giữ cửa sổ này mở.' }
                     : { value: percentage, label: 'Đang gửi dữ liệu import…', message: `${formatBytes(loaded)} / ${formatBytes(requestBytes)}` });
             });
             const result = response.result;
             if (!response.ok) {
                 const sheetErrors = Object.entries(result.sheets || {}).flatMap(([code, messages]) => messages.map(message => `${code}: ${message}`));
-                throw new Error(sheetErrors.join('\n') || result.message || 'Không thể xác nhận import.');
+                const fieldErrors = Object.values(result.errors || {}).flat().join('\n');
+                throw new Error(sheetErrors.join('\n') || fieldErrors || result.message || 'Không thể xác nhận import.');
             }
             const failed = Object.entries(result.errors || {}).flatMap(([code, messages]) => messages.map(message => `${code}: ${message}`));
             summary.textContent = `Đã import ${result.summary?.imported || 0}/${result.summary?.total || 0} câu ở trạng thái bản nháp.`;
@@ -475,7 +489,7 @@ document.querySelectorAll('[data-workbook-import]').forEach(container => {
             if (result.redirect && !failed.length) window.location.assign(result.redirect);
         } catch (error) {
             showError(error.message || 'Không thể xác nhận import.');
-            setProgress({ value: null, label: 'Import chưa hoàn tất', message: 'Các audio đã nhận được giữ lại; thử xác nhận lại để tiếp tục.' });
+            setProgress({ value: null, label: 'Import chưa hoàn tất', message: subjectiveKind ? 'Kiểm tra lỗi hiển thị rồi thử lại. Nếu lỗi nằm trong file, chọn “Tải workbook khác” để tải bản đã sửa.' : 'Các audio đã nhận được giữ lại; thử xác nhận lại để tiếp tục.' });
             confirmButton.disabled = false;
             confirmButton.textContent = 'Thử xác nhận lại';
         }

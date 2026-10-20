@@ -4,6 +4,12 @@ export const canNavigateQuestion = (index, currentIndex, policies) =>
     (!(policies.lock_previous) || index >= currentIndex) &&
     (policies.navigation !== 'linear' || Math.abs(index - currentIndex) <= 1);
 
+export const nextStepKind = (items, selected, activeSection) => {
+    const current = items[selected], next = items[selected + 1];
+    if (!current || !next) return null;
+    return current.section === activeSection && next.section === activeSection + 1 ? 'section' : 'question';
+};
+
 export const remainingSeconds = (deadline, serverOffset = 0, time = Date.now()) => Math.max(0, Math.floor((Date.parse(deadline) - time - serverOffset) / 1000));
 
 export const reconcileAnswers = (pending, serverAnswers) => {
@@ -175,7 +181,12 @@ export const initializeExamRunner = (rootOverride = undefined) => {
         }
         const sectionTitle = escape(config.snapshot.sections[item.section].title);
         const previousDisabled = selected === 0 || !questionAccessible(config.snapshot.items[selected - 1], selected - 1) ? 'disabled' : '';
-        const nextDisabled = selected === config.snapshot.items.length - 1 || !questionAccessible(config.snapshot.items[selected + 1], selected + 1) ? 'disabled' : '';
+        const nextKind = nextStepKind(config.snapshot.items, selected, state.active_section);
+        const nextDisabled = !nextKind || (nextKind === 'section'
+            ? state.paused || state.status === 'expired'
+            : !questionAccessible(config.snapshot.items[selected + 1], selected + 1)) ? 'disabled' : '';
+        const nextAction = nextKind === 'section' ? 'data-next-section' : 'data-step-question="1"';
+        const nextLabel = nextKind === 'section' ? 'Phần tiếp theo' : 'Câu tiếp theo';
         const html = `<article class="panel assessment-item ${item.stimuli?.length ? 'has-reading-passage' : ''}">
             <section class="assessment-stimulus-panel ${stimulusHtml ? '' : 'is-empty'}">
                 <header class="assessment-reading-heading"><div><span class="badge badge-blue">${sectionTitle}</span><h2>${sectionTitle}</h2></div><span>Câu ${selected + 1} / ${config.snapshot.items.length}</span></header>
@@ -187,7 +198,7 @@ export const initializeExamRunner = (rootOverride = undefined) => {
                 <label class="assessment-flag"><input type="checkbox" data-flag ${answer.flagged ? 'checked' : ''}> Đánh dấu xem lại</label>
                 <nav class="assessment-question-nav" aria-label="Điều hướng câu hỏi">
                     <button class="button button-quiet" type="button" data-step-question="-1" ${previousDisabled}>‹ <span>Câu trước</span></button>
-                    <button class="button button-primary" type="button" data-step-question="1" ${nextDisabled}><span>Câu tiếp theo</span> ›</button>
+                    <button class="button button-primary" type="button" ${nextAction} ${nextDisabled}><span>${nextLabel}</span> ›</button>
                 </nav>
             </section>
         </article>`;

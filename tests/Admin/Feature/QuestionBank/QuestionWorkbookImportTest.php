@@ -55,7 +55,8 @@ class QuestionWorkbookImportTest extends TestCase
             $guide = $workbook->getSheetByName('HUONG_DAN');
             $this->assertSame('HƯỚNG DẪN IMPORT CÂU HỎI '.strtoupper($kind), $guide->getCell('A1')->getValue());
             $this->assertStringContainsString('Mỗi sheet dữ liệu', $guide->getCell('B3')->getValue());
-            $this->assertStringContainsString($kind === 'listening' ? 'file audio' : 'reading_title', $guide->getCell('B9')->getValue());
+            $instructions = collect($guide->rangeToArray('B2:B'.$guide->getHighestDataRow()))->flatten()->implode(' ');
+            $this->assertStringContainsString($kind === 'listening' ? 'file audio' : 'reading_title', $instructions);
             $questionSheet = $workbook->getSheet(1);
             $this->assertSame(['exam_type', 'skill', 'exam_part', 'question_type'], array_slice($questionSheet->rangeToArray('A1:D1')[0], 0, 4));
             $this->assertSame('"toeic,ielts"', $questionSheet->getDataValidation('A2')->getFormula1());
